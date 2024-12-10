@@ -1,0 +1,30 @@
+---
+const menuItems = [
+  { href: '/', text: 'Home' },
+  { href: '/servicos', text: 'Serviços' },
+  { href: '/portfolio', text: 'Portfólio' },
+  { href: '/sobre', text: 'Sobre' },
+  { href: '/contato', text: 'Contato' }
+];
+---
+
+<header class="bg-white shadow-md fixed w-full z-50">
+  <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+    <a href="/" class="text-2xl font-bold text-primary">LYTSPOT</a>
+    
+    <nav class="hidden md:flex space-x-6">
+      {menuItems.map(item => (
+        <a 
+          href={item.href}
+          class="text-gray-700 hover:text-primary transition-colors"
+        >
+          {item.text}
+        </a>
+      ))}
+    </nav>
+
+    <button class="bg-primary text-white px-6 py-2 rounded-full hover:bg-primary/90 transition-colors">
+      Orçamento
+    </button>
+  </div>
+</header>

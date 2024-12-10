@@ -1,0 +1,35 @@
+---
+import { Image } from 'astro:assets';
+---
+
+<section class="relative h-screen flex items-center justify-center">
+  <div class="absolute inset-0 z-0">
+    <video 
+      autoplay 
+      loop 
+      muted 
+      playsinline 
+      class="w-full h-full object-cover"
+    >
+      <source src="/videos/drone-hero.mp4" type="video/mp4">
+    </video>
+    <div class="absolute inset-0 bg-black/50"></div>
+  </div>
+
+  <div class="relative z-10 text-center text-white px-4">
+    <h1 class="text-5xl md:text-7xl font-bold mb-6">
+      Capturando momentos únicos
+    </h1>
+    <p class="text-xl md:text-2xl mb-8 max-w-2xl mx-auto">
+      Especialistas em filmagens aéreas e fotografia profissional para seus eventos e projetos
+    </p>
+    <div class="flex gap-4 justify-center">
+      <a href="/portfolio" class="bg-primary text-white px-8 py-3 rounded-full hover:bg-primary/90 transition-colors">
+        Ver Portfólio
+      </a>
+      <a href="/contato" class="bg-white text-primary px-8 py-3 rounded-full hover:bg-gray-100 transition-colors">
+        Fale Conosco
+      </a>
+    </div>
+  </div>
+</section>
