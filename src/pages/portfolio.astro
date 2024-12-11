@@ -1,14 +1,5 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import PortfolioHero from '../components/portfolio/PortfolioHero.astro';
-import PortfolioGrid from '../components/portfolio/PortfolioGrid';
-import PortfolioCategories from '../components/portfolio/PortfolioCategories.astro';
-import Contact from '../components/Contact.astro';
+import Portfolio from '../components/Portfolio.astro';
 ---
 
-<Layout title="Portfólio">
-  <PortfolioHero />
-  <PortfolioCategories />
-  <PortfolioGrid client:load />
-  <Contact />
-</Layout>
+<Portfolio />
