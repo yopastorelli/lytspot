@@ -1,5 +1,16 @@
 ---
-import Services from '../components/Services.astro';
+import Layout from '../layouts/Layout.astro';
+import ServicesHero from '../components/services/ServicesHero.astro';
+import ServicesList from '../components/services/ServicesList.astro';
+import ServicesPricing from '../components/services/ServicesPricing.astro';
+import ServicesFAQ from '../components/services/ServicesFAQ.astro';
+import Contact from '../components/Contact.astro';
 ---
 
-<Services />
+<Layout title="Serviços">
+  <ServicesHero />
+  <ServicesList />
+  <ServicesPricing />
+  <ServicesFAQ />
+  <Contact />
+</Layout>
