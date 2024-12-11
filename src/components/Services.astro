@@ -12,7 +12,7 @@ import { SERVICES } from '../utils/constants';
     />
     
     <div class="grid md:grid-cols-3 gap-8">
-      {SERVICES.map(service => (
+      {SERVICES && SERVICES.map(service => (
         <div class="bg-dark p-8 rounded-lg border border-gray-700/50 hover:border-primary-light transition-colors">
           <div class="w-16 h-16 bg-primary-light/10 rounded-full flex items-center justify-center mb-6">
             <span class="text-primary-light text-2xl">{service.icon}</span>
