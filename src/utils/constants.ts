@@ -2,9 +2,9 @@ export const SITE_CONFIG = {
   name: 'LYTSPOT',
   description: 'Especialistas em captura de imagens profissionais com drones e câmeras',
   contact: {
-    phone: '+55 (11) 99999-9999',
+    phone: '+55 (41) 99888-0303',
     email: 'contato@lytspot.com.br',
-    address: 'São Paulo, SP'
+    address: 'Curitiba, SP'
   },
   social: {
     instagram: 'https://instagram.com/lytspot',
@@ -18,20 +18,21 @@ export const SERVICES = [
   {
     id: 'drone',
     title: 'Filmagem com Drones',
-    description: 'Captação aérea profissional para eventos, publicidade e projetos especiais.',
-    icon: '🚁',
+    description: 'Captação aérea profissional para eventos, publicidade, programas e projetos únicos.',
+    image: '/images/drone.png',
     features: [
-      'Imagens em 4K e 8K',
+      'Imagens em 4K 60fps',
       'Drones profissionais',
       'Pilotos certificados',
-      'Licenças ANAC'
+      'Licenças ANAC',
+      'Seguro RETA'
     ]
   },
   {
     id: 'photo',
     title: 'Fotografia Profissional',
     description: 'Ensaios fotográficos, eventos corporativos e campanhas publicitárias.',
-    icon: '📸',
+    image: '/images/photo.png',
     features: [
       'Equipamentos de última geração',
       'Fotógrafos experientes',
@@ -41,9 +42,9 @@ export const SERVICES = [
   },
   {
     id: 'video',
-    title: 'Vídeos Corporativos',
-    description: 'Produção audiovisual completa para sua empresa ou evento.',
-    icon: '🎥',
+    title: 'Projetos especiais',
+    description: 'Produção audiovisual para projetos personalizados',
+    image: '/images/project.png',
     features: [
       'Roteirização',
       'Captação em alta definição',

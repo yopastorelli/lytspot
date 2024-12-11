@@ -1,13 +1,15 @@
 ---
 interface Props {
-  title: string;
+  title?: string;
   subtitle?: string;
+  titleinv?: string;
 }
 
-const { title, subtitle } = Astro.props;
+const { title, subtitle, titleinv } = Astro.props;
 ---
 
 <div class="text-center mb-12">
   <h2 class="text-4xl font-bold mb-4">{title}</h2>
+  <h2 class="text-4xl font-bold mb-4 text-primary">{titleinv}</h2>
   {subtitle && <p class="text-xl text-gray-600">{subtitle}</p>}
 </div>
