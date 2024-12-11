@@ -34,8 +34,8 @@ export const SERVICES = [
     description: 'Ensaios fotográficos, eventos corporativos e campanhas publicitárias.',
     image: '/images/photo.png',
     features: [
-      'Equipamentos de última geração',
-      'Fotógrafos experientes',
+      'Equipamentos Profissionais',
+      'Fotógrafos com ampla experiência',
       'Edição profissional',
       'Entrega rápida'
     ]
@@ -48,8 +48,8 @@ export const SERVICES = [
     features: [
       'Roteirização',
       'Captação em alta definição',
-      'Edição profissional',
-      'Motion graphics'
+      'Colaboração com o cliente',
+      'Edição profissional'
     ]
   }
 ];
