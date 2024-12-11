@@ -12,7 +12,7 @@ const categories = [
 ];
 ---
 
-<section class="py-20">
+<section class="py-20 bg-dark">
   <div class="container">
     <SectionTitle
       title="Nosso Portfólio"
@@ -21,7 +21,7 @@ const categories = [
 
     <div class="flex gap-4 justify-center mb-12 overflow-x-auto pb-4">
       {categories.map(category => (
-        <button class="px-6 py-2 rounded-full border border-gray-200 hover:border-primary hover:text-primary transition-colors">
+        <button class="px-6 py-2 rounded-full border border-gray-700 text-gray-300 hover:border-primary-light hover:text-primary-light transition-colors">
           {category}
         </button>
       ))}

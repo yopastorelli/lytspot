@@ -5,9 +5,11 @@ import Services from '../components/Services.astro';
 import Portfolio from '../components/Portfolio.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Contact from '../components/Contact.astro';
+
+const seoDescription = "LYTSPOT - Especialistas em captura de imagens profissionais com drones e câmeras de alta performance. Serviços de fotografia e filmagem aérea.";
 ---
 
-<Layout title="Home">
+<Layout title="Home" description={seoDescription}>
   <Hero />
   <Services />
   <Portfolio />
