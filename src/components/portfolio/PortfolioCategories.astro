@@ -1,0 +1,26 @@
+---
+import Container from '../common/Container';
+
+const categories = [
+  { id: 'all', label: 'Todos' },
+  { id: 'events', label: 'Eventos' },
+  { id: 'corporate', label: 'Corporativo' },
+  { id: 'advertising', label: 'Publicidade' },
+  { id: 'real-estate', label: 'Imobiliário' }
+];
+---
+
+<div class="bg-dark-lighter py-8">
+  <Container>
+    <div class="flex gap-4 justify-center flex-wrap">
+      {categories.map(category => (
+        <button
+          class="px-6 py-2 rounded-full border border-gray-700 text-gray-300 hover:border-primary-light hover:text-primary-light transition-colors"
+          data-category={category.id}
+        >
+          {category.label}
+        </button>
+      ))}
+    </div>
+  </Container>
+</div>

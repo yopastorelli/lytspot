@@ -47,11 +47,3 @@ body {
 .section-subtitle {
   @apply text-xl text-gray-200 mb-8;
 }
-
-.section-titleinv {
-  @apply text-3xl md:text-4xl font-bold mb-4 text-primary;
-}
-
-.section-subtitleinv {
-  @apply text-xl text-white mb-8;
-}

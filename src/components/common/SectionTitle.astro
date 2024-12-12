@@ -2,16 +2,29 @@
 interface Props {
   title?: string;
   subtitle?: string;
-  titleinv?: string;
-  subtitleinv?: string;
+  titleInverted?: string;
+  subtitleInverted?: string;
+  alignment?: 'left' | 'center' | 'right';
 }
 
-const { title, subtitle, titleinv, subtitleinv } = Astro.props;
+const { 
+  title, 
+  subtitle, 
+  titleInverted, 
+  subtitleInverted,
+  alignment = 'center'
+} = Astro.props;
+
+const alignmentClasses = {
+  left: 'text-left',
+  center: 'text-center',
+  right: 'text-right'
+};
 ---
 
-<div class="text-center mb-12">
-  <h2 class="text-4xl font-bold mb-4">{title}</h2>
-  <h2 class="text-4xl font-bold mb-4 text-primary">{titleinv}</h2>
-  {subtitle && <p class="text-xl text-gray-600">{subtitle}</p>}
-  {subtitleinv && <p class="text-xl text-white">{subtitleinv}</p>} 
+<div class={`mb-12 ${alignmentClasses[alignment]}`}>
+  {title && <h2 class="text-4xl font-bold mb-4 text-white">{title}</h2>}
+  {titleInverted && <h2 class="text-4xl font-bold mb-4 text-primary-light">{titleInverted}</h2>}
+  {subtitle && <p class="text-xl text-gray-300">{subtitle}</p>}
+  {subtitleInverted && <p class="text-xl text-white">{subtitleInverted}</p>}
 </div>

@@ -85,7 +85,7 @@ export default function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-200 mb-1">
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
           Nome
         </label>
         <input
@@ -104,7 +104,7 @@ export default function ContactForm() {
 
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
             E-mail
           </label>
           <input
@@ -121,7 +121,7 @@ export default function ContactForm() {
           {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
         </div>
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-gray-200 mb-1">
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
             Telefone
           </label>
           <input
@@ -140,7 +140,7 @@ export default function ContactForm() {
       </div>
 
       <div>
-        <label htmlFor="service" className="block text-sm font-medium text-gray-200 mb-1">
+        <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-1">
           Serviço de Interesse
         </label>
         <select
@@ -162,7 +162,7 @@ export default function ContactForm() {
       </div>
 
       <div>
-        <label htmlFor="message" className="block text-sm font-medium text-gray-200 mb-1">
+        <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
           Mensagem
         </label>
         <textarea

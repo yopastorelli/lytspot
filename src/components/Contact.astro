@@ -6,9 +6,9 @@ import { MapPinIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline
 const contactInfo = [
   {
     icon: PhoneIcon,
-    title: 'Telefone / WhatsApp',
-    content: '+55 (41) 99888-0303',
-    link: 'https://wa.me/5541998880303'
+    title: 'Telefone',
+    content: '+55 (11) 99999-9999',
+    link: 'tel:+5511999999999'
   },
   {
     icon: EnvelopeIcon,
@@ -19,7 +19,7 @@ const contactInfo = [
   {
     icon: MapPinIcon,
     title: 'Endereço',
-    content: 'Curitiba, PR',
+    content: 'São Paulo, SP',
     link: '#'
   }
 ];
@@ -50,7 +50,7 @@ const contactInfo = [
                 <h4 class="font-bold">{item.title}</h4>
                 <a
                   href={item.link}
-                  class="text-gray-200 hover:text-primary transition-colors"
+                  class="text-gray-600 hover:text-primary transition-colors"
                 >
                   {item.content}
                 </a>
