@@ -1,0 +1,12 @@
+# _config.yml
+# Configuração principal do Jekyll
+
+# Ignorar arquivos e diretórios específicos
+exclude:
+  - "**/*.astro" # Ignorar todos os arquivos com extensão .astro
+  - "node_modules" # Ignorar a pasta node_modules
+  - "dist" # Ignorar a pasta dist (geralmente usada para builds)
+
+# Outras configurações opcionais do Jekyll
+markdown: kramdown
+theme: minima
