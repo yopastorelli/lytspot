@@ -1,23 +1,30 @@
 ---
-# Apenas metadados válidos em YAML
-title: "Default Title"
-description: "LYTSPOT - Captura de imagens profissionais com drones e câmeras de alta performance."
----
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { 
+  title, 
+  description = 'LYTSPOT - Captura de imagens profissionais com drones e câmeras'
+} = Astro.props;
 
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
+---
 
 <!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content={Astro.props.description || "Default description"} />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{Astro.props.title || "Default Title"} | LYTSPOT</title>
+    <meta name="theme-color" content="#041424" />
+    <title>{title} | LYTSPOT</title>
   </head>
-  <body class="min-h-screen flex flex-col">
+  <body class="min-h-screen flex flex-col bg-dark text-gray-100">
     <Header />
     <main class="flex-grow">
       <slot />

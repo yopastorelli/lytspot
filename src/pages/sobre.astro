@@ -1,15 +1,18 @@
-<!-- // import Layout from '../layouts/Layout.astro';
-// import AboutHero from '../components/about/AboutHero.astro';
-// import AboutMission from '../components/about/AboutMission.astro';
-// import AboutTeam from '../components/about/AboutTeam.astro';
-// import AboutEquipment from '../components/about/AboutEquipment.astro';
-// import Contact from '../components/Contact.astro';
+---
+import Layout from '../layouts/Layout.astro';
+import AboutHero from '../components/about/AboutHero.astro';
+import AboutMission from '../components/about/AboutMission.astro';
+import AboutTeam from '../components/about/AboutTeam.astro';
+import AboutEquipment from '../components/about/AboutEquipment.astro';
+import Contact from '../components/Contact.astro';
+
+const seoDescription = "Conheça a LYTSPOT - Especialistas em captura de imagens aéreas e terrestres com tecnologia de ponta.";
 ---
 
-Layout title="Sobre Nós">
+<Layout title="Sobre Nós" description={seoDescription}>
   <AboutHero />
   <AboutMission />
   <AboutTeam />
   <AboutEquipment />
   <Contact />
-</Layout> -->
+</Layout>

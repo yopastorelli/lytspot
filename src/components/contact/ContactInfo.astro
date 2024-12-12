@@ -1,0 +1,46 @@
+---
+import { MapPinIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+
+const contactInfo = [
+  {
+    icon: PhoneIcon,
+    title: 'Telefone / WhatsApp',
+    content: '+55 (41) 99888-0303',
+    link: 'https://wa.me/5541998880303'
+  },
+  {
+    icon: EnvelopeIcon,
+    title: 'E-mail',
+    content: 'contato@lytspot.com.br',
+    link: 'mailto:contato@lytspot.com.br'
+  },
+  {
+    icon: MapPinIcon,
+    title: 'Endereço',
+    content: 'Curitiba, PR',
+    link: '#'
+  }
+];
+---
+
+<div>
+  <h3 class="text-2xl font-bold mb-6 text-white">Informações de Contato</h3>
+  <div class="space-y-6">
+    {contactInfo.map(item => (
+      <div class="flex items-start gap-4">
+        <div class="w-12 h-12 bg-primary-light/10 rounded-full flex items-center justify-center">
+          <item.icon className="w-6 h-6 text-primary-light" />
+        </div>
+        <div>
+          <h4 class="font-bold text-white">{item.title}</h4>
+          <a
+            href={item.link}
+            class="text-gray-300 hover:text-primary-light transition-colors"
+          >
+            {item.content}
+          </a>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
