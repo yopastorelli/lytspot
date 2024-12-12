@@ -31,6 +31,6 @@ export default defineConfig({
   },
   integrations: [
     tailwind({ config: './tailwind.config.js' }), // Certifique-se de que o Tailwind está configurado corretamente
-    react(), // Integração com React
+    react(), // Integração com Reac
   ],
 });
