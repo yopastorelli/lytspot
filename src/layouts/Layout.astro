@@ -3,11 +3,13 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
 
+// TypeScript interface for props
 interface Props {
   title?: string;
   description?: string;
 }
 
+// Destructure props with a default description
 const { title, description = 'LYTSPOT - Captura de imagens profissionais com drones e câmeras' } = Astro.props;
 ---
 
@@ -16,7 +18,7 @@ const { title, description = 'LYTSPOT - Captura de imagens profissionais com dro
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} | LYTSPOT</title>
   </head>
