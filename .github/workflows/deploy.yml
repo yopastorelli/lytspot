@@ -3,18 +3,18 @@ name: Deploy Astro to GitHub Pages
 on:
   push:
     branches:
-      - main  # Aciona o workflow em pushs na branch main
-  workflow_dispatch:  # Permite disparo manual do workflow
+      - main
+  workflow_dispatch:
 
 permissions:
-  contents: write  # Permissão para gravar na branch gh-pages
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     concurrency:
-      group: deploy-astro  # Evita múltiplas execuções concorrentes
-      cancel-in-progress: true  # Cancela workflows anteriores se um novo for iniciado
+      group: deploy-astro
+      cancel-in-progress: true
 
     steps:
       # 1. Checkout do código
@@ -25,9 +25,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18  # Certifique-se de usar a mesma versão que no ambiente local
+          node-version: 18
 
-      # 3. Cache de dependências (opcional, para acelerar builds futuros)
+      # 3. Cache de dependências
       - name: Cache Node.js modules
         uses: actions/cache@v3
         with:
@@ -48,12 +48,9 @@ jobs:
       - name: List build output
         run: ls -R ./dist
 
-      # 7. Verificar se o arquivo CNAME existe
+      # 7. Garantir o arquivo CNAME
       - name: Ensure CNAME file
-        run: |
-          echo "www.lytspot.com.br" > ./dist/CNAME
-          echo "CNAME file content:"
-          cat ./dist/CNAME
+        run: echo "www.lytspot.com.br" > ./dist/CNAME
 
       # 8. Deploy para a branch gh-pages
       - name: Deploy to GitHub Pages
@@ -61,4 +58,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-          keep_files: true  # Mantém arquivos existentes, caso necessário
+          keep_files: false  # Substitui todos os arquivos antigos na branch gh-pages
