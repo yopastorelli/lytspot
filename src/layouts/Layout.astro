@@ -1,14 +1,14 @@
 ---
-title: Default Title
-description: LYTSPOT - Captura de imagens profissionais com drones e câmeras de alta performance.
+# YAML front matter: apenas metadados
+title: "Default Title"
+description: "LYTSPOT - Captura de imagens profissionais com drones e câmeras de alta performance."
 ---
 
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
 
-// Destructure props with default values
-const { title = "Default Title", description = "LYTSPOT - Captura de imagens profissionais com drones e câmeras" } = Astro.props;
+const { title = "Default Title", description = "Default description" } = Astro.props;
 
 <!doctype html>
 <html lang="pt-BR">
