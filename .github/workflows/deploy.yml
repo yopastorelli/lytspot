@@ -3,8 +3,8 @@ name: Deploy Astro to GitHub Pages
 on:
   push:
     branches:
-      - main  # O workflow será acionado quando houver push na branch main
-  workflow_dispatch:  # Permite disparo manual
+      - main  # Aciona o workflow em pushs na branch main
+  workflow_dispatch:  # Permite disparo manual do workflow
 
 permissions:
   contents: write  # Permissão para gravar na branch gh-pages
@@ -22,21 +22,30 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18  # Certifique-se de usar a mesma versão do Node.js do ambiente local
+          node-version: 18  # Certifique-se de usar a mesma versão que no ambiente local
 
-      # 3. Instalar dependências
+      # 3. Cache de dependências (opcional, para acelerar builds futuros)
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # 4. Instalar dependências
       - name: Install dependencies
         run: npm install
 
-      # 4. Construir o projeto
+      # 5. Construir o projeto
       - name: Build project
         run: npm run build
 
-      # 5. Listar arquivos para depuração (opcional)
+      # 6. Listar arquivos para depuração
       - name: List build output
         run: ls -R ./dist
 
-      # 6. Deploy para a branch gh-pages
+      # 7. Deploy para a branch gh-pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
