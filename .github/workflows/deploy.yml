@@ -13,8 +13,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     concurrency:
-      group: deploy-astro  # Grupo único para controlar execuções concorrentes
-      cancel-in-progress: true  # Cancela execuções anteriores em andamento
+      group: deploy-astro  # Evita múltiplas execuções concorrentes
+      cancel-in-progress: true  # Cancela workflows anteriores se um novo for iniciado
 
     steps:
       # 1. Checkout do código
@@ -48,9 +48,17 @@ jobs:
       - name: List build output
         run: ls -R ./dist
 
-      # 7. Deploy para a branch gh-pages
+      # 7. Verificar se o arquivo CNAME existe
+      - name: Ensure CNAME file
+        run: |
+          echo "www.lytspot.com.br" > ./dist/CNAME
+          echo "CNAME file content:"
+          cat ./dist/CNAME
+
+      # 8. Deploy para a branch gh-pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          keep_files: true  # Mantém arquivos existentes, caso necessário
