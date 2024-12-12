@@ -9,13 +9,21 @@ export default defineConfig({
   build: {
     outDir: 'dist', // Define o diretório de saída
     async afterBuild() {
-      // Cria o arquivo CNAME automaticamente no diretório dist
-      writeFileSync('dist/CNAME', 'www.lytspot.com.br');
+      // Verifica se a pasta 'dist' existe antes de criar o arquivo CNAME
+      try {
+        writeFileSync('dist/CNAME', 'www.lytspot.com.br', 'utf8');
+        console.log('CNAME file created successfully!');
+      } catch (error) {
+        console.error('Error creating CNAME file:', error);
+      }
     },
   },
   server: {
     host: true, // Permite que o servidor local seja acessível na rede
     port: 4321, // Define a porta (ajuste se necessário)
   },
-  integrations: [tailwind(), react()], // Integrações usadas no projeto
+  integrations: [
+    tailwind({ config: './tailwind.config.js' }), // Certifique-se de que o Tailwind está configurado corretamente
+    react(), // Integração com React
+  ],
 });
