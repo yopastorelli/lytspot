@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
 
 export default defineConfig({
   output: 'static', // Configura saída como estática (necessário para GitHub Pages)
@@ -9,10 +9,17 @@ export default defineConfig({
   build: {
     outDir: 'dist', // Define o diretório de saída
     async afterBuild() {
-      // Verifica se a pasta 'dist' existe antes de criar o arquivo CNAME
       try {
-        writeFileSync('dist/CNAME', 'www.lytspot.com.br', 'utf8');
-        console.log('CNAME file created successfully!');
+        // Certifique-se de que o diretório 'dist' existe antes de criar o arquivo CNAME
+        const distDir = 'dist';
+        if (!existsSync(distDir)) {
+          mkdirSync(distDir);
+        }
+
+        // Gera o arquivo CNAME no diretório de saída
+        const cnamePath = `${distDir}/CNAME`;
+        writeFileSync(cnamePath, 'www.lytspot.com.br', 'utf8');
+        console.log(`CNAME file created successfully at ${cnamePath}`);
       } catch (error) {
         console.error('Error creating CNAME file:', error);
       }
