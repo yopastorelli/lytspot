@@ -8,5 +8,9 @@ export default defineConfig({
   build: {
     outDir: 'dist', // Define a pasta de saída do build
   },
+  server: {
+    host: true, // Permite expor na rede local
+    port: 4321, // Define a porta, pode ser alterada se necessário
+  },
   integrations: [tailwind(), react()],
 });
