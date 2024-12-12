@@ -1,0 +1,44 @@
+name: Deploy Astro to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # O workflow será acionado quando houver push na branch main
+  workflow_dispatch:  # Permite disparo manual
+
+permissions:
+  contents: write  # Permissão para gravar na branch gh-pages
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout do código
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Configurar Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18  # Certifique-se de usar a mesma versão do Node.js do ambiente local
+
+      # 3. Instalar dependências
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Construir o projeto
+      - name: Build project
+        run: npm run build
+
+      # 5. Listar arquivos para depuração (opcional)
+      - name: List build output
+        run: ls -R ./dist
+
+      # 6. Deploy para a branch gh-pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
