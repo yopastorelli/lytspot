@@ -10,12 +10,12 @@ const categories = [
 ];
 ---
 
-<div class="bg-dark-lighter py-8">
+<div class="bg-gray py-8"> <!-- Alterado de bg-dark-lighter para bg-gray-200 -->
   <Container>
     <div class="flex gap-4 justify-center flex-wrap">
       {categories.map(category => (
         <button
-          class="px-6 py-2 rounded-full border border-gray-700 text-gray-300 hover:border-primary-light hover:text-primary-light transition-colors"
+          class="px-6 py-2 rounded-full border border-white text-white hover:border-primary-light hover:text-primary-light transition-colors"
           data-category={category.id}
         >
           {category.label}

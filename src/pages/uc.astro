@@ -1,0 +1,27 @@
+---
+import '../styles/styles.css';
+---
+
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Espaço em Construção</title>
+  </head>
+  <body class="bg-dark text-gray-100">
+    <div class="relative w-full h-screen flex items-center justify-center">
+      <!-- Imagem de fundo -->
+      <img src="/uc.png" alt="Espaço em Construção" class="absolute top-0 left-0 w-full h-full object-cover" />
+
+      <!-- Texto -->
+      <div class="relative z-10 text-center">
+        <h1 class="section-title text-primary-light">Espaço em Construção</h1>
+        <p class="section-subtitle">Estamos trabalhando para trazer algo incrível!</p>
+        <a href="/" class="btn btn-primary mt-6">Voltar ao Início</a>
+      </div>
+
+      <!-- Overlay para escurecer a imagem -->
+      <div class="absolute inset-0 bg-black/50 z-0"></div>
+    </div>
+  </body>
+</html>
