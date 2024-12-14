@@ -44,14 +44,14 @@ const contactInfo = [
         <div class="space-y-6">
           {contactInfo.map(item => (
             <div class="flex items-start gap-4">
-              <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <item.icon className="w-6 h-6 text-primary" />
+              <div class="w-12 h-12 bg-gray-100/10 rounded-full flex items-center justify-center">
+                <item.icon className="w-6 h-6 text-gray-100" />
               </div>
               <div>
                 <h4 class="font-bold">{item.title}</h4>
                 <a
                   href={item.link}
-                  class="text-gray-600 hover:text-primary transition-colors"
+                  class="text-gray-600 hover:text-gray-300 transition-colors"
                 >
                   {item.content}
                 </a>
