@@ -1,40 +1,14 @@
 ---
-import Container from './common/Container';
-import SectionTitle from './common/SectionTitle.astro';
-import { SERVICES } from '../utils/constants';
+import Layout from '../layouts/Layout.astro';
+import ServicesHero from '../components/services/ServicesHero.astro';
+import ServicesList from '../components/services/ServicesList.astro';
+import Contact from '../components/Contact.astro';
+
+const seoDescription = "Serviços profissionais de filmagem com drone, fotografia e vídeos corporativos - LYTSPOT";
 ---
 
-<section class="py-20 bg-dark-lighter">
-  <Container>
-    <SectionTitle
-      titleInverted="Nossos Serviços"
-      subtitle="Soluções completas em captação de imagens"
-    />
-    
-    <div class="grid md:grid-cols-3 gap-8">
-      {SERVICES && SERVICES.map(service => (
-        <div class="bg-dark p-8 rounded-lg border border-gray-700/50 hover:border-primary-light transition-colors">
-          <div class="flex items-center">
-            <img 
-              src={service.image}  
-              alt={`Imagem de ${service.title}`} 
-              class="w-24 h-16 rounded-lg object-cover"
-            />
-          </div>
-          <h3 class="text-xl font-bold mb-4 text-white">{service.title}</h3>
-          <p class="text-gray-300 mb-6">{service.description}</p>
-          <ul class="space-y-2">
-            {service.features.map(feature => (
-              <li class="flex items-center text-sm text-gray-300">
-                <svg class="w-4 h-4 text-primary-light mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
-                </svg>
-                {feature}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
-  </Container>
-</section>
+<Layout title="Serviços" description={seoDescription}>
+  <ServicesHero />
+  <ServicesList />
+  <Contact />
+</Layout>

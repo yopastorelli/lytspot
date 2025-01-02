@@ -1,32 +1,20 @@
 ---
-import { Image } from 'astro:assets';
-import PortfolioGrid from './portfolio/PortfolioGrid';
-import SectionTitle from './common/SectionTitle.astro';
+import Layout from '../layouts/Layout.astro';
+import PortfolioHero from '../components/portfolio/PortfolioHero.astro';
+import PortfolioGrid from '../components/portfolio/PortfolioGrid';
+import PortfolioCategories from '../components/portfolio/PortfolioCategories.astro';
+import Contact from '../components/Contact.astro';
 
-const categories = [
-  'Todos',
-  'Eventos',
-  'Corporativo',
-  'Publicidade',
-  'Ensaios'
-];
+const seoDescription = "Confira nosso portfólio de trabalhos em fotografia aérea, filmagens com drone e vídeos corporativos.";
 ---
 
-<section class="py-20 bg-gray-600">
-  <div class="container">
-    <SectionTitle
-      title="Nosso Portfólio"
-      subtitle="Conheça alguns dos nossos trabalhos mais recentes"
-    />
-
-    <div class="flex gap-4 justify-center mb-12 overflow-x-auto pb-4">
-      {categories.map(category => (
-        <button class="px-6 py-2 rounded-full border border-gray-100 text-gray-100 hover:border-primary-light hover:text-primary-light transition-colors">
-          {category}
-        </button>
-      ))}
+<Layout title="Portfólio" description={seoDescription}>
+  <PortfolioHero />
+  <PortfolioCategories />
+  <div class="py-12 bg-dark">
+    <div class="container mx-auto px-4">
+      <PortfolioGrid client:load />
     </div>
-
-    <PortfolioGrid client:load />
   </div>
-</section>
+  <Contact />
+</Layout>
