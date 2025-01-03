@@ -1,0 +1,80 @@
+---
+import { EQUIPMENT } from '../../utils/constants';
+
+const { drones, cameras } = EQUIPMENT;
+---
+
+<section id="equipment" class="equipment-section">
+  <div class="container">
+    <h2 class="section-title">Nosso Equipamento</h2>
+    <p class="section-description">
+      Utilizamos tecnologia de ponta para capturar imagens de alta qualidade. Confira os detalhes do nosso equipamento.
+    </p>
+
+    <div class="equipment-category">
+      <h3>Drones</h3>
+      <div class="equipment-grid">
+        {drones.map(drone => (
+          <div class="equipment-card" key={drone.model}>
+            <h4>{drone.model}</h4>
+            <p>{drone.description}</p>
+            <ul>
+              {drone.features.map(feature => (
+                <li key={feature}>{feature}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div class="equipment-category">
+      <h3>Câmeras</h3>
+      <div class="equipment-grid">
+        {cameras.map(camera => (
+          <div class="equipment-card" key={camera.model}>
+            <h4>{camera.model}</h4>
+            <p>{camera.description}</p>
+            <ul>
+              {camera.features.map(feature => (
+                <li key={feature}>{feature}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .equipment-section {
+    padding: 4rem 2rem;
+    background-color: #f0f0f0;
+  }
+  .equipment-category {
+    margin-bottom: 3rem;
+  }
+  .equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+  .equipment-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+  }
+  .equipment-card h4 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  .equipment-card ul {
+    list-style: disc;
+    margin-left: 1.5rem;
+  }
+  .equipment-card ul li {
+    margin-bottom: 0.5rem;
+  }
+</style>
