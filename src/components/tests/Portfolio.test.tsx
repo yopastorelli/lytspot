@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent, screen } from '@testing-library/react';
 import PortfolioGrid from '../portfolio/PortfolioGrid';
-import { portfolioItems } from '../../data/portfolio';
+import { PortfolioItemss } from '../../data/portfolio';
 
 describe('PortfolioGrid', () => {
   it('renders all portfolio items', () => {
     render(<PortfolioGrid />);
     
-    portfolioItems.forEach(item => {
+    PortfolioItemss.forEach(item => {
       expect(screen.getByText(item.title)).toBeInTheDocument();
       expect(screen.getByText(item.category)).toBeInTheDocument();
     });
@@ -16,9 +16,9 @@ describe('PortfolioGrid', () => {
   it('opens modal when clicking an item', async () => {
     render(<PortfolioGrid />);
     
-    const firstItem = screen.getByText(portfolioItems[0].title);
+    const firstItem = screen.getByText(PortfolioItemss[0].title);
     await fireEvent.click(firstItem);
     
-    expect(screen.getByText(portfolioItems[0].description)).toBeInTheDocument();
+    expect(screen.getByText(PortfolioItemss[0].description)).toBeInTheDocument();
   });
 });

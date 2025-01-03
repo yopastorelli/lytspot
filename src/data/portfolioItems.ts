@@ -1,4 +1,4 @@
-export interface PortfolioItem {
+export interface PortfolioItems {
     id: string;
     title: string;
     category: 'eventos' | 'corporativo' | 'publicidade' | 'ensaios';
@@ -11,7 +11,7 @@ export interface PortfolioItem {
     date: string;
   }
   
-  export const portfolioItems: PortfolioItem[] = [
+  export const PortfolioItems: PortfolioItems[] = [
     {
       id: 'casamento-praia',
       title: 'Casamento na Praia',

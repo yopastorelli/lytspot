@@ -1,4 +1,4 @@
-export const portfolioItems = [
+export const PortfolioItemss = [
   {
     title: 'Eventos',
     category: 'Eventos',

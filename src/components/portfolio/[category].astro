@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import PortfolioHero from '../../components/portfolio/PortfolioHero.astro';
 import PortfolioGrid from '../../components/portfolio/PortfolioGrid';
 import Contact from '../../components/Contact.astro';
-import { portfolioItems } from '../../data/portfolioItems';
+import { PortfolioItems } from '../../data/PortfolioItems';
 
 export function getStaticPaths() {
   return [
@@ -14,13 +14,13 @@ export function getStaticPaths() {
   ];
 }
 
-const { category } = Astro.params;
+const { category } = Astro.params as { category: 'eventos' | 'corporativo' | 'publicidade' | 'ensaios' }; // Garante que category é uma das chaves
 const categoryTitles = {
   eventos: 'Eventos',
   corporativo: 'Corporativo',
   publicidade: 'Publicidade',
   ensaios: 'Ensaios'
-};
+} as const; // Define categoryTitles como um objeto com propriedades imutáveis
 
 const title = categoryTitles[category] || 'Portfólio';
 const seoDescription = `Confira nossos trabalhos de ${title.toLowerCase()} - LYTSPOT`;

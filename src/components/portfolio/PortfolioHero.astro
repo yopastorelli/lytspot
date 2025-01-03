@@ -1,4 +1,5 @@
 ---
+// Importação dos componentes necessários
 import Container from '../common/Container';
 import SectionTitle from '../common/SectionTitle.astro';
 
@@ -8,15 +9,17 @@ interface Props {
 
 const { category } = Astro.props;
 
-const categoryTitles = {
+// Definindo as chaves e valores com um tipo explícito para evitar o erro de tipo dinâmico
+const categoryTitles: Record<string, string> = {
   eventos: 'Eventos',
   corporativo: 'Corporativo',
   publicidade: 'Publicidade',
   ensaios: 'Ensaios'
 };
 
-const title = category ? categoryTitles[category] : 'Nosso Portfólio';
-const subtitle = category 
+// Verificando se a categoria está presente, e se sim, pegando o valor correspondente de categoryTitles
+const title = category && categoryTitles[category] ? categoryTitles[category] : 'Nosso Portfólio';
+const subtitle = category && categoryTitles[category] 
   ? `Conheça nossos melhores trabalhos em ${categoryTitles[category].toLowerCase()}`
   : 'Conheça nossos melhores trabalhos';
 ---

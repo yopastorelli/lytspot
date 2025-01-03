@@ -11,37 +11,43 @@ const { drones, cameras } = EQUIPMENT;
       Utilizamos tecnologia de ponta para capturar imagens de alta qualidade. Confira os detalhes do nosso equipamento.
     </p>
 
+    <!-- Drones -->
     <div class="equipment-category">
       <h3>Drones</h3>
       <div class="equipment-grid">
-        {drones.map(drone => (
-          <div class="equipment-card" key={drone.model}>
-            <h4>{drone.model}</h4>
-            <p>{drone.description}</p>
-            <ul>
-              {drone.features.map(feature => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {drones.map((drone, index) => {
+          return (
+            <div class="equipment-card">
+              <h4>{drone.model}</h4>
+              <p>{drone.description}</p>
+              <ul>
+                {drone.features.map((feature, featureIndex) => (
+                  <li>{feature}</li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </div>
     </div>
 
+    <!-- Câmeras -->
     <div class="equipment-category">
       <h3>Câmeras</h3>
       <div class="equipment-grid">
-        {cameras.map(camera => (
-          <div class="equipment-card" key={camera.model}>
-            <h4>{camera.model}</h4>
-            <p>{camera.description}</p>
-            <ul>
-              {camera.features.map(feature => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {cameras.map((camera, index) => {
+          return (
+            <div class="equipment-card">
+              <h4>{camera.model}</h4>
+              <p>{camera.description}</p>
+              <ul>
+                {camera.features.map((feature, featureIndex) => (
+                  <li>{feature}</li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </div>
     </div>
   </div>

@@ -1,9 +1,9 @@
 import React from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import type { PortfolioItem } from '../../data/portfolioItems';
+import type { PortfolioItems } from '../../data/PortfolioItems';
 
 interface PortfolioModalProps {
-  item: PortfolioItem;
+  item: PortfolioItems;
   onClose: () => void;
 }
 
