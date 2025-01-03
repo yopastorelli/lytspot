@@ -1,7 +1,10 @@
 import { defineConfig } from 'vite';
+import path from 'path';
 
 export default defineConfig({
-  optimizeDeps: {
-    include: [], // Exclude unnecessary packages here
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
   },
 });
