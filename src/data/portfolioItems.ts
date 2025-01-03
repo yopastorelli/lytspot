@@ -1,3 +1,4 @@
+// Define the interface for a portfolio item
 export interface PortfolioItem {
     id: string;
     title: string;
@@ -11,6 +12,7 @@ export interface PortfolioItem {
     date: string;
   }
   
+  // Define the actual portfolio items
   const actualPortfolioItems: PortfolioItem[] = [
     {
       id: 'casamento-praia',
@@ -19,7 +21,8 @@ export interface PortfolioItem {
       thumbnail: '/images/portfolio/casamento-thumb.jpg',
       url: '/images/portfolio/casamento.jpg',
       type: 'image',
-      description: 'Cobertura completa de um lindo casamento à beira-mar, com imagens aéreas e terrestres.',
+      description:
+        'Cobertura completa de um lindo casamento à beira-mar, com imagens aéreas e terrestres.',
       tags: ['Casamento', 'Drone', 'Praia'],
       client: 'João e Maria',
       date: '2024-02-15',
@@ -31,7 +34,8 @@ export interface PortfolioItem {
       thumbnail: '/images/portfolio/imovel-thumb.jpg',
       url: '/videos/imovel.mp4',
       type: 'video',
-      description: 'Produção audiovisual para lançamento de empreendimento imobiliário de alto padrão.',
+      description:
+        'Produção audiovisual para lançamento de empreendimento imobiliário de alto padrão.',
       tags: ['Imobiliário', 'Drone', 'Vídeo'],
       client: 'Construtora XYZ',
       date: '2024-01-20',
@@ -43,7 +47,8 @@ export interface PortfolioItem {
       thumbnail: '/images/portfolio/corporate-thumb.jpg',
       url: '/images/portfolio/corporate.jpg',
       type: 'image',
-      description: 'Cobertura fotográfica de evento corporativo para multinacional.',
+      description:
+        'Cobertura fotográfica de evento corporativo para multinacional.',
       tags: ['Corporativo', 'Fotografia', 'Evento'],
       client: 'Empresa ABC',
       date: '2024-03-01',
@@ -62,6 +67,7 @@ export interface PortfolioItem {
     },
   ];
   
+  // Define placeholder portfolio items in case the actual items are not available
   const placeholderPortfolioItems: PortfolioItem[] = [
     {
       id: 'placeholder-1',
@@ -76,6 +82,7 @@ export interface PortfolioItem {
     },
   ];
   
+  // Export the portfolio items
   export const PortfolioItems: PortfolioItem[] =
     actualPortfolioItems.length > 0 ? actualPortfolioItems : placeholderPortfolioItems;
   
