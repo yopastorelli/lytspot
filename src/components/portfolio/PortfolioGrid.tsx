@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import PortfolioFilter from '@/components/portfolio/PortfolioFilter';
 import PortfolioModal from '@/components/portfolio/PortfolioModal';
-import { PortfolioItems as StaticPortfolioItems } from '@/data/PortfolioItems'; // Static Import
+import { PortfolioItems as StaticPortfolioItems } from '../../data/PortfolioItems'; // Static Import
 
 interface PortfolioItem {
   id: string;
