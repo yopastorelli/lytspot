@@ -1,7 +1,45 @@
-import React, { useState } from 'react';
-import PortfolioFilter from '@/components/portfolio/PortfolioFilter'; // Absolute import
-import { PortfolioItems } from '@/data/PortfolioItems'; // Absolute import
-import PortfolioModal from '@/components/portfolio/PortfolioModal'; // Absolute import
+import React, { useState, useEffect } from 'react';
+import PortfolioFilter from '@/components/portfolio/PortfolioFilter';
+import PortfolioModal from '@/components/portfolio/PortfolioModal';
+
+interface PortfolioItem {
+  id: string;
+  title: string;
+  category: 'eventos' | 'corporativo' | 'publicidade' | 'ensaios';
+  thumbnail: string;
+  url: string;
+  type: 'image' | 'video';
+  description: string;
+  tags: string[];
+  client?: string;
+  date: string;
+}
+
+// Placeholder PortfolioItems in case the real file is missing
+const placeholderPortfolioItems: PortfolioItem[] = [
+  {
+    id: 'placeholder',
+    title: 'Placeholder Item',
+    category: 'eventos',
+    thumbnail: '/images/placeholder.jpg',
+    url: '/images/placeholder.jpg',
+    type: 'image',
+    description: 'This is a placeholder portfolio item.',
+    tags: ['Placeholder'],
+    date: '2024-01-01',
+  },
+];
+
+let PortfolioItems: PortfolioItem[] = placeholderPortfolioItems;
+
+(async () => {
+  try {
+    const data = await import('@/data/PortfolioItems');
+    PortfolioItems = data.PortfolioItems || placeholderPortfolioItems;
+  } catch (error) {
+    console.warn('PortfolioItems file is missing. Using placeholder items.');
+  }
+})();
 
 interface PortfolioGridProps {
   initialCategory?: string;
@@ -9,19 +47,20 @@ interface PortfolioGridProps {
 
 export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGridProps) {
   const [activeCategory, setActiveCategory] = useState(initialCategory);
-  const [selectedItem, setSelectedItem] = useState<typeof PortfolioItems[number] | null>(null);
+  const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
+  const [filteredItems, setFilteredItems] = useState<PortfolioItem[]>(PortfolioItems);
 
-  const filteredItems = activeCategory === 'todos'
-    ? PortfolioItems
-    : PortfolioItems.filter((item) => item.category === activeCategory);
+  useEffect(() => {
+    setFilteredItems(
+      activeCategory === 'todos'
+        ? PortfolioItems
+        : PortfolioItems.filter((item) => item.category === activeCategory)
+    );
+  }, [activeCategory]);
 
   return (
     <div className="container mx-auto px-4">
-      <PortfolioFilter
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-      />
-
+      <PortfolioFilter activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
       <div className="portfolio-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredItems.map((item) => (
           <div
@@ -53,13 +92,7 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
           </div>
         ))}
       </div>
-
-      {selectedItem && (
-        <PortfolioModal
-          item={selectedItem}
-          onClose={() => setSelectedItem(null)}
-        />
-      )}
+      {selectedItem && <PortfolioModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
     </div>
   );
 }

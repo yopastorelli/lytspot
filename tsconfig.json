@@ -3,7 +3,7 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "types": ["astro/astro-jsx", "react", "react-dom"],
+    "types": ["astro/astro-jsx", "react", "react-dom", "node"],
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
