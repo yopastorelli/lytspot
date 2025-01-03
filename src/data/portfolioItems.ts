@@ -1,4 +1,4 @@
-export interface PortfolioItems {
+export interface PortfolioItem {
     id: string;
     title: string;
     category: 'eventos' | 'corporativo' | 'publicidade' | 'ensaios';
@@ -11,7 +11,7 @@ export interface PortfolioItems {
     date: string;
   }
   
-  export const PortfolioItems: PortfolioItems[] = [
+  const actualPortfolioItems: PortfolioItem[] = [
     {
       id: 'casamento-praia',
       title: 'Casamento na Praia',
@@ -22,7 +22,7 @@ export interface PortfolioItems {
       description: 'Cobertura completa de um lindo casamento à beira-mar, com imagens aéreas e terrestres.',
       tags: ['Casamento', 'Drone', 'Praia'],
       client: 'João e Maria',
-      date: '2024-02-15'
+      date: '2024-02-15',
     },
     {
       id: 'lancamento-empreendimento',
@@ -34,7 +34,7 @@ export interface PortfolioItems {
       description: 'Produção audiovisual para lançamento de empreendimento imobiliário de alto padrão.',
       tags: ['Imobiliário', 'Drone', 'Vídeo'],
       client: 'Construtora XYZ',
-      date: '2024-01-20'
+      date: '2024-01-20',
     },
     {
       id: 'evento-corporativo',
@@ -46,7 +46,7 @@ export interface PortfolioItems {
       description: 'Cobertura fotográfica de evento corporativo para multinacional.',
       tags: ['Corporativo', 'Fotografia', 'Evento'],
       client: 'Empresa ABC',
-      date: '2024-03-01'
+      date: '2024-03-01',
     },
     {
       id: 'ensaio-moda',
@@ -58,6 +58,24 @@ export interface PortfolioItems {
       description: 'Ensaio fotográfico para coleção de moda verão 2024.',
       tags: ['Moda', 'Fotografia', 'Verão'],
       client: 'Marca Fashion',
-      date: '2024-02-28'
-    }
+      date: '2024-02-28',
+    },
   ];
+  
+  const placeholderPortfolioItems: PortfolioItem[] = [
+    {
+      id: 'placeholder-1',
+      title: 'Placeholder Item',
+      category: 'eventos',
+      thumbnail: '/images/placeholder.jpg',
+      url: '/images/placeholder.jpg',
+      type: 'image',
+      description: 'This is a placeholder item.',
+      tags: ['Placeholder'],
+      date: '2024-01-01',
+    },
+  ];
+  
+  export const PortfolioItems: PortfolioItem[] =
+    actualPortfolioItems.length > 0 ? actualPortfolioItems : placeholderPortfolioItems;
+  

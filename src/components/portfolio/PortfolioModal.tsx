@@ -1,9 +1,9 @@
 import React from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import type { PortfolioItems } from '../../data/PortfolioItems';
+import type { PortfolioItem } from '../../data/PortfolioItems'; // Importing the correct type
 
 interface PortfolioModalProps {
-  item: PortfolioItems;
+  item: PortfolioItem; // Using the type instead of the constant
   onClose: () => void;
 }
 
@@ -41,7 +41,7 @@ export default function PortfolioModal({ item, onClose }: PortfolioModalProps) {
           <div className="space-y-4">
             <p className="text-gray-300">{item.description}</p>
             <div className="flex flex-wrap gap-2">
-              {item.tags.map((tag, index) => (
+              {item.tags.map((tag: string, index: number) => ( // Added explicit types
                 <span
                   key={index}
                   className="px-3 py-1 bg-primary-light/20 rounded-full text-sm text-gray-200"
@@ -56,7 +56,8 @@ export default function PortfolioModal({ item, onClose }: PortfolioModalProps) {
               </p>
             )}
             <p className="text-gray-400">
-              <span className="font-semibold">Data:</span> {new Date(item.date).toLocaleDateString('pt-BR')}
+              <span className="font-semibold">Data:</span>{' '}
+              {new Date(item.date).toLocaleDateString('pt-BR')}
             </p>
           </div>
         </div>

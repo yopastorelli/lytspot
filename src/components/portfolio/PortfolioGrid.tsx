@@ -1,11 +1,7 @@
-// src/components/portfolio/PortfolioGrid.tsx
-
 import React, { useState } from 'react';
-
-// Importações dos componentes
-import PortfolioFilter from './PortfolioFilter';
-import { PortfolioItems } from '../../data/PortfolioItems'; // Corrigindo as importações
-import PortfolioModal from './PortfolioModal';
+import PortfolioFilter from '@/components/portfolio/PortfolioFilter'; // Absolute import
+import { PortfolioItems } from '@/data/PortfolioItems'; // Absolute import
+import PortfolioModal from '@/components/portfolio/PortfolioModal'; // Absolute import
 
 interface PortfolioGridProps {
   initialCategory?: string;
@@ -13,9 +9,8 @@ interface PortfolioGridProps {
 
 export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGridProps) {
   const [activeCategory, setActiveCategory] = useState(initialCategory);
-  const [selectedItem, setSelectedItem] = useState<PortfolioItems | null>(null);
+  const [selectedItem, setSelectedItem] = useState<typeof PortfolioItems[number] | null>(null);
 
-  // Filtrando os itens com base na categoria ativa
   const filteredItems = activeCategory === 'todos'
     ? PortfolioItems
     : PortfolioItems.filter((item) => item.category === activeCategory);
@@ -26,13 +21,13 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
         activeCategory={activeCategory}
         onCategoryChange={setActiveCategory}
       />
-      
+
       <div className="portfolio-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredItems.map((item) => (
           <div
             key={item.id}
-            className="portfolio-item cursor-pointer"
-            onClick={() => setSelectedItem(item)} // Abre o modal ao clicar no item
+            className="portfolio-item relative cursor-pointer"
+            onClick={() => setSelectedItem(item)}
           >
             <img
               src={item.thumbnail}
@@ -45,7 +40,10 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
                 <p className="text-sm text-gray-200">{item.client}</p>
                 <div className="flex gap-2 justify-center mt-3">
                   {item.tags.slice(0, 2).map((tag, index) => (
-                    <span key={index} className="text-xs bg-primary-light/20 px-2 py-1 rounded-full">
+                    <span
+                      key={index}
+                      className="text-xs bg-primary-light/20 px-2 py-1 rounded-full"
+                    >
                       {tag}
                     </span>
                   ))}
@@ -59,7 +57,7 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
       {selectedItem && (
         <PortfolioModal
           item={selectedItem}
-          onClose={() => setSelectedItem(null)} // Fecha o modal
+          onClose={() => setSelectedItem(null)}
         />
       )}
     </div>

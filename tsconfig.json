@@ -1,15 +1,15 @@
 {
   "extends": "astro/tsconfigs/base",
   "compilerOptions": {
-    "jsx": "react-jsx", // Garante compatibilidade com React e Astro
-    "jsxImportSource": "react", // Define React como a fonte de JSX
-    "types": ["astro/astro-jsx", "react", "react-dom"], // Adiciona tipos para Astro e React
-    "strict": true, // Mantém verificações rigorosas do TypeScript
-    "moduleResolution": "node", // Garante que o TypeScript encontre os módulos corretamente
-    "esModuleInterop": true, // Habilita interoperabilidade com módulos CommonJS
-    "baseUrl": "./", // Define o diretório base
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "types": ["astro/astro-jsx", "react", "react-dom"],
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "baseUrl": "./",
     "paths": {
-      "@/*": ["src/*"] // Configura paths para atalhos relativos no projeto
+      "@/*": ["src/*"]
     }
   }
 }
