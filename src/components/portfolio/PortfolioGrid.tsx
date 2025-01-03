@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PortfolioFilter from '@/components/portfolio/PortfolioFilter';
 import PortfolioModal from '@/components/portfolio/PortfolioModal';
+import { PortfolioItems as StaticPortfolioItems } from '@/data/PortfolioItems'; // Static Import
 
 interface PortfolioItem {
   id: string;
@@ -30,33 +31,27 @@ const placeholderPortfolioItems: PortfolioItem[] = [
   },
 ];
 
-let PortfolioItems: PortfolioItem[] = placeholderPortfolioItems;
-
-(async () => {
-  try {
-    const data = await import('@/data/PortfolioItems');
-    PortfolioItems = data.PortfolioItems || placeholderPortfolioItems;
-  } catch (error) {
-    console.warn('PortfolioItems file is missing. Using placeholder items.');
-  }
-})();
-
-interface PortfolioGridProps {
-  initialCategory?: string;
-}
-
-export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGridProps) {
+export default function PortfolioGrid({ initialCategory = 'todos' }: { initialCategory?: string }) {
+  const [PortfolioItems, setPortfolioItems] = useState<PortfolioItem[]>(placeholderPortfolioItems);
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
-  const [filteredItems, setFilteredItems] = useState<PortfolioItem[]>(PortfolioItems);
 
+  // Load PortfolioItems dynamically on mount
   useEffect(() => {
-    setFilteredItems(
-      activeCategory === 'todos'
-        ? PortfolioItems
-        : PortfolioItems.filter((item) => item.category === activeCategory)
-    );
-  }, [activeCategory]);
+    try {
+      setPortfolioItems(StaticPortfolioItems);
+      console.log('PortfolioItems loaded:', StaticPortfolioItems);
+    } catch (error) {
+      console.warn('PortfolioItems file is missing. Using placeholder items.', error);
+      setPortfolioItems(placeholderPortfolioItems);
+    }
+  }, []);
+
+  // Filter items based on active category
+  const filteredItems =
+    activeCategory === 'todos'
+      ? PortfolioItems
+      : PortfolioItems.filter((item) => item.category === activeCategory);
 
   return (
     <div className="container mx-auto px-4">
