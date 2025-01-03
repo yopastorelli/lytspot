@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import PortfolioFilter from '@/components/portfolio/PortfolioFilter';
 import PortfolioModal from '@/components/portfolio/PortfolioModal';
-import type { PortfolioItem } from '@/data/PortfolioItems'; // Type-only import
-import { getPortfolioItems } from '@/data/PortfolioItems';
+import type { PortfolioItem } from '@/data/PortfolioItemsTO'; // Type-only import
+import { getPortfolioItems } from '@/data/PortfolioItemsTO';
 
 interface PortfolioGridProps {
   initialCategory?: string;
