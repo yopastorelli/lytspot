@@ -1,9 +1,10 @@
+// src/components/portfolio/PortfolioGrid.tsx
+
 import React, { useState } from 'react';
 
 // Importações dos componentes
 import PortfolioFilter from './PortfolioFilter';
-import { PortfolioItems } from '../../data/PortfolioItems'; // Importação dos dados do portfólio
-import { PortfolioItems as PortfolioItemsType } from '../../data/PortfolioItems'; // Corrigido: importando a interface
+import { PortfolioItems } from '../../data/PortfolioItems'; // Corrigindo as importações
 import PortfolioModal from './PortfolioModal';
 
 interface PortfolioGridProps {
@@ -12,7 +13,7 @@ interface PortfolioGridProps {
 
 export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGridProps) {
   const [activeCategory, setActiveCategory] = useState(initialCategory);
-  const [selectedItem, setSelectedItem] = useState<PortfolioItemsType | null>(null);
+  const [selectedItem, setSelectedItem] = useState<PortfolioItems | null>(null);
 
   // Filtrando os itens com base na categoria ativa
   const filteredItems = activeCategory === 'todos'

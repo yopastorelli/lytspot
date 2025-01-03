@@ -1,12 +1,10 @@
-// PortfolioItems.tsx
-
-import React from 'react';
+// src/data/PortfolioItems.ts
 
 // Definição do tipo PortfolioItemsType
 export type PortfolioItemsType = {
   id: string;
   title: string;
-  category: string;
+  category: 'web' | 'design' | 'marketing' | 'eventos' | 'corporativo' | 'publicidade' | 'ensaios'; // Definindo as categorias possíveis
   client: string;
   thumbnail: string;
   tags: string[];
@@ -29,6 +27,38 @@ export const PortfolioItems: PortfolioItemsType[] = [
     client: 'Cliente 2',
     thumbnail: 'url_da_imagem_2',
     tags: ['Figma', 'UI/UX'],
+  },
+  {
+    id: '3',
+    title: 'Evento Aéreo',
+    category: 'eventos',
+    client: 'Cliente 3',
+    thumbnail: 'url_da_imagem_3',
+    tags: ['Fotografia', 'Drone'],
+  },
+  {
+    id: '4',
+    title: 'Lançamento Corporativo',
+    category: 'corporativo',
+    client: 'Cliente 4',
+    thumbnail: 'url_da_imagem_4',
+    tags: ['Evento', 'Corporativo'],
+  },
+  {
+    id: '5',
+    title: 'Campanha Publicitária',
+    category: 'publicidade',
+    client: 'Cliente 5',
+    thumbnail: 'url_da_imagem_5',
+    tags: ['Vídeo', 'Publicidade'],
+  },
+  {
+    id: '6',
+    title: 'Ensaio de Moda',
+    category: 'ensaios',
+    client: 'Cliente 6',
+    thumbnail: 'url_da_imagem_6',
+    tags: ['Fotografia', 'Moda'],
   },
   // Adicione mais itens aqui, conforme necessário...
 ];
