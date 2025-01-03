@@ -24,7 +24,7 @@ body {
 }
 
 .btn-primary {
-  @apply bg-primary-light text-white hover:bg-primary;
+  @apply bg-primary-light text-white hover:bg-primary-light/90;
 }
 
 .btn-secondary {
@@ -45,5 +45,40 @@ body {
 }
 
 .section-subtitle {
-  @apply text-xl text-gray-200 mb-8;
+  @apply text-xl text-gray-300 mb-8;
+}
+
+/* Portfolio Grid */
+.portfolio-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.portfolio-item {
+  @apply relative cursor-pointer overflow-hidden rounded-lg;
+}
+
+.portfolio-item img {
+  @apply w-full h-64 object-cover transition-transform duration-300;
+}
+
+.portfolio-item:hover img {
+  @apply scale-110;
+}
+
+.portfolio-item-overlay {
+  @apply absolute inset-0 bg-black/50 opacity-0 transition-opacity 
+         flex items-center justify-center;
+}
+
+.portfolio-item:hover .portfolio-item-overlay {
+  @apply opacity-100;
+}
+
+/* Dark Theme Specific */
+.gradient-dark {
+  @apply bg-gradient-to-b from-gray-900 to-dark;
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-light to-secondary;
 }

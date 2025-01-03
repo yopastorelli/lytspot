@@ -12,7 +12,10 @@ export default {
           DEFAULT: '#2d3b44',
           light: '#3c4454'
         },
-        accent: '#7c8c8c',
+        dark: {
+          DEFAULT: '#041424',
+          lighter: '#1c2c34'
+        },
         gray: {
           100: '#bdc0c4',
           200: '#848c92',
@@ -24,10 +27,6 @@ export default {
           800: '#041424',
           900: '#020a12'
         }
-      },
-      backgroundColor: {
-        dark: '#041424',
-        'dark-lighter': '#1c2c34'
       }
     }
   },

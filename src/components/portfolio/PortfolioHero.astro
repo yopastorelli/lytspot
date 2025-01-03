@@ -1,17 +1,35 @@
 ---
 import Container from '../common/Container';
 import SectionTitle from '../common/SectionTitle.astro';
+
+interface Props {
+  category?: string;
+}
+
+const { category } = Astro.props;
+
+const categoryTitles = {
+  eventos: 'Eventos',
+  corporativo: 'Corporativo',
+  publicidade: 'Publicidade',
+  ensaios: 'Ensaios'
+};
+
+const title = category ? categoryTitles[category] : 'Nosso Portfólio';
+const subtitle = category 
+  ? `Conheça nossos melhores trabalhos em ${categoryTitles[category].toLowerCase()}`
+  : 'Conheça nossos melhores trabalhos';
 ---
 
-<section class="pt-32 pb-20 bg-gray-200">
+<section class="pt-32 pb-20 bg-dark">
   <Container>
     <div class="max-w-3xl mx-auto">
       <SectionTitle
-        titleInverted="Nosso Portfólio"
-        subtitleInverted="Conheça alguns dos nossos melhores trabalhos"
+        title={title}
+        subtitle={subtitle}
         alignment="center"
       />
-      <p class="text-primary text-center mb-4"> <!-- Reduzida a margem inferior -->
+      <p class="text-gray-300 text-center">
         Uma seleção dos nossos projetos mais impressionantes em fotografia aérea,
         filmagens com drone e produções audiovisuais.
       </p>

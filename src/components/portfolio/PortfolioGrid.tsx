@@ -1,31 +1,35 @@
 import React, { useState } from 'react';
-import { portfolioItems } from '../../data/portfolio';
+import { portfolioItems, type PortfolioItem } from '../../data/portfolioItems';
+import PortfolioFilter from './PortfolioFilter';
+import PortfolioItem from './PortfolioItem';
 import PortfolioModal from './PortfolioModal';
 
-export default function PortfolioGrid() {
-  const [selectedItem, setSelectedItem] = useState(null);
+interface PortfolioGridProps {
+  initialCategory?: string;
+}
+
+export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGridProps) {
+  const [activeCategory, setActiveCategory] = useState(initialCategory);
+  const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
+
+  const filteredItems = activeCategory === 'todos'
+    ? portfolioItems
+    : portfolioItems.filter(item => item.category === activeCategory);
 
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {portfolioItems.map((item, index) => (
-          <div
-            key={index}
-            className="relative group cursor-pointer overflow-hidden rounded-lg"
+    <div className="container mx-auto px-4">
+      <PortfolioFilter
+        activeCategory={activeCategory}
+        onCategoryChange={setActiveCategory}
+      />
+      
+      <div className="portfolio-grid">
+        {filteredItems.map((item) => (
+          <PortfolioItem
+            key={item.id}
+            item={item}
             onClick={() => setSelectedItem(item)}
-          >
-            <img
-              src={item.thumbnail}
-              alt={item.title}
-              className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <div className="text-white text-center">
-                <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                <p className="text-sm">{item.category}</p>
-              </div>
-            </div>
-          </div>
+          />
         ))}
       </div>
 
@@ -35,6 +39,6 @@ export default function PortfolioGrid() {
           onClose={() => setSelectedItem(null)}
         />
       )}
-    </>
+    </div>
   );
 }
