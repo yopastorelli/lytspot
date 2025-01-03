@@ -4,19 +4,19 @@ import react from '@astrojs/react';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 
 export default defineConfig({
-  output: 'static', // Configura saída como estática (necessário para GitHub Pages)
-  base: '/', // URL base (para domínios personalizados ou raiz de repositório)
+  output: 'static', // Configures static output (necessary for GitHub Pages)
+  base: '/', // Base URL for custom domains or repo root
   build: {
-    outDir: 'dist', // Define o diretório de saída
+    outDir: 'dist', // Defines the output directory
     async afterBuild() {
       try {
-        // Certifique-se de que o diretório 'dist' existe antes de criar o arquivo CNAME
+        // Ensure 'dist' directory exists before creating the CNAME file
         const distDir = 'dist';
         if (!existsSync(distDir)) {
           mkdirSync(distDir);
         }
 
-        // Gera o arquivo CNAME no diretório de saída
+        // Generate CNAME file in the output directory
         const cnamePath = `${distDir}/CNAME`;
         writeFileSync(cnamePath, 'www.lytspot.com.br', 'utf8');
         console.log(`CNAME file created successfully at ${cnamePath}`);
@@ -26,11 +26,18 @@ export default defineConfig({
     },
   },
   server: {
-    host: true, // Permite que o servidor local seja acessível na rede
-    port: 4321, // Define a porta (ajuste se necessário)
+    host: true, // Allows local server to be accessible on the network
+    port: 4321, // Sets the port (adjust if necessary)
+  },
+  vite: {
+    resolve: {
+      alias: {
+        '@': new URL('./src', import.meta.url).pathname, // Matches @/* to ./src/*
+      },
+    },
   },
   integrations: [
-    tailwind({ config: './tailwind.config.js' }), // Certifique-se de que o Tailwind está configurado corretamente
-    react(), // Integração com Reac
+    tailwind({ config: './tailwind.config.js' }), // Ensure Tailwind is configured correctly
+    react(), // React integration
   ],
 });
