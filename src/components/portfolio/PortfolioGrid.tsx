@@ -3,10 +3,8 @@ import React, { useState } from 'react';
 // Importações dos componentes
 import PortfolioFilter from './PortfolioFilter';
 import { PortfolioItems } from '../../data/PortfolioItems'; // Importação dos dados do portfólio
+import { PortfolioItems as PortfolioItemsType } from '../../data/PortfolioItems'; // Corrigido: importando a interface
 import PortfolioModal from './PortfolioModal';
-
-// Inferindo o tipo de PortfolioItems automaticamente
-type PortfolioItemsType = typeof PortfolioItems[0]; // Inferindo o tipo do primeiro item do array PortfolioItems
 
 interface PortfolioGridProps {
   initialCategory?: string;
