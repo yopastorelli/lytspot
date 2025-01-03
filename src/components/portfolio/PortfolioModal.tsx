@@ -1,6 +1,7 @@
 import React from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import type { PortfolioItem } from '../../data/PortfolioItems'; // Importing the correct type
+import type { PortfolioItem } from '@/data/portfolioItems';
+
 
 interface PortfolioModalProps {
   item: PortfolioItem; // Using the type instead of the constant
