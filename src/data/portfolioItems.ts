@@ -12,7 +12,7 @@ export interface PortfolioItem {
     date: string;
   }
   
-  // Define the actual portfolio items
+  // Define actual portfolio items
   const actualPortfolioItems: PortfolioItem[] = [
     {
       id: 'casamento-praia',
@@ -67,7 +67,7 @@ export interface PortfolioItem {
     },
   ];
   
-  // Define placeholder portfolio items in case the actual items are not available
+  // Define placeholder portfolio items
   const placeholderPortfolioItems: PortfolioItem[] = [
     {
       id: 'placeholder-1',
@@ -82,7 +82,21 @@ export interface PortfolioItem {
     },
   ];
   
-  // Export the portfolio items
+  // Function to get portfolio items dynamically
+  export async function getPortfolioItems(): Promise<PortfolioItem[]> {
+    try {
+      // If actual items are available, return them
+      if (actualPortfolioItems.length > 0) {
+        return actualPortfolioItems;
+      }
+      throw new Error('No actual portfolio items available.');
+    } catch (error) {
+      console.warn('Error loading portfolio items. Using placeholder items as fallback:', error);
+      return placeholderPortfolioItems;
+    }
+  }
+  
+  // Export the portfolio items for static usage
   export const PortfolioItems: PortfolioItem[] =
     actualPortfolioItems.length > 0 ? actualPortfolioItems : placeholderPortfolioItems;
   
