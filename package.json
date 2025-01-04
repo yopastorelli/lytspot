@@ -17,6 +17,8 @@
     "@heroicons/react": "^2.1.1",
     "add": "^2.0.6",
     "astro": "^5.1.2",
+    "axios": "^1.7.9",
+    "express": "^4.21.2",
     "or": "^0.2.0",
     "react": "^18.2.0",
     "react-compiler-runtime": "^19.0.0-beta-55955c9-20241229",
