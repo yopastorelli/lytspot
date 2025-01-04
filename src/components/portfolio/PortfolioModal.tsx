@@ -2,9 +2,8 @@ import React from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import type { PortfolioItem } from '@/data/portfolioItems';
 
-
 interface PortfolioModalProps {
-  item: PortfolioItem; // Using the type instead of the constant
+  item: PortfolioItem;
   onClose: () => void;
 }
 
@@ -22,7 +21,7 @@ export default function PortfolioModal({ item, onClose }: PortfolioModalProps) {
               <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
-          
+
           <div className="aspect-video mb-6">
             {item.type === 'video' ? (
               <video
@@ -42,7 +41,7 @@ export default function PortfolioModal({ item, onClose }: PortfolioModalProps) {
           <div className="space-y-4">
             <p className="text-gray-300">{item.description}</p>
             <div className="flex flex-wrap gap-2">
-              {item.tags.map((tag: string, index: number) => ( // Added explicit types
+              {item.tags.map((tag: string, index: number) => (
                 <span
                   key={index}
                   className="px-3 py-1 bg-primary-light/20 rounded-full text-sm text-gray-200"
