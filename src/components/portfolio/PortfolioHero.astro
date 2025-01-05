@@ -13,8 +13,7 @@ const { category } = Astro.props;
 const categoryTitles: Record<string, string> = {
   eventos: 'Eventos',
   corporativo: 'Corporativo',
-  publicidade: 'Publicidade',
-  ensaios: 'Ensaios'
+  publicidade: 'Projetos'  
 };
 
 // Verificando se a categoria está presente, e se sim, pegando o valor correspondente de categoryTitles
@@ -33,8 +32,7 @@ const subtitle = category && categoryTitles[category]
         alignment="center"
       />
       <p class="text-gray-300 text-center">
-        Uma seleção dos nossos projetos mais impressionantes em fotografia aérea,
-        filmagens com drone e produções audiovisuais.
+        Uma seleção de alguns dos nossos projetos  em fotografia aérea e produções audiovisuais.
       </p>
     </div>
   </Container>
