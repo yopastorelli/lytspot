@@ -29,7 +29,7 @@ const getAccessToken = async () => {
 };
 
 // Endpoint para enviar o e-mail
-app.post('/api/send-message', async (req, res) => { // Alterado para corresponder ao frontend
+app.post('/api/send-message', async (req, res) => {
   const { name, email, phone, service, message } = req.body;
 
   // Validação básica
@@ -41,10 +41,10 @@ app.post('/api/send-message', async (req, res) => { // Alterado para corresponde
     const accessToken = await getAccessToken();
 
     const response = await axios.post(
-      `https://mail.zoho.com/api/accounts/YOUR_ACCOUNT_ID/messages`, // Substitua pelo Account ID correto
+      `https://mail.zoho.com/api/accounts/${process.env.ACCOUNT_ID}/messages`, // Substitua pelo Account ID correto
       {
-        fromAddress: 'seu-email@zoho.com', // Configure corretamente
-        toAddress: 'destinatario@exemplo.com', // Configure corretamente
+        fromAddress: process.env.SENDER_EMAIL, // Configurado no .env
+        toAddress: process.env.RECIPIENT_EMAIL, // Configurado no .env
         subject: 'Nova Mensagem de Contato',
         content: `Nome: ${name}\nEmail: ${email}\nTelefone: ${phone}\nServiço: ${service}\nMensagem: ${message}`,
       },

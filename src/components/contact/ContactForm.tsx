@@ -24,6 +24,7 @@ export default function ContactForm() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -73,7 +74,7 @@ export default function ContactForm() {
       const result = await response.json();
 
       if (response.ok) {
-        alert("Mensagem enviada com sucesso!");
+        setSuccessMessage("Mensagem enviada com sucesso!");
         setFormData({
           name: "",
           email: "",
@@ -82,10 +83,10 @@ export default function ContactForm() {
           message: "",
         });
       } else {
-        alert(result.error || "Erro ao enviar a mensagem.");
+        setSuccessMessage(result.error || "Erro ao enviar a mensagem.");
       }
     } catch (error) {
-      alert("Erro inesperado. Tente novamente mais tarde.");
+      setSuccessMessage("Erro inesperado. Tente novamente mais tarde.");
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -211,6 +212,8 @@ export default function ContactForm() {
       >
         {isSubmitting ? "Enviando..." : "Enviar Mensagem"}
       </button>
+
+      {successMessage && <p className="text-green-500 text-sm mt-4">{successMessage}</p>}
     </form>
   );
 }
