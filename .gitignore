@@ -22,3 +22,24 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+
+# Arquivos de configuração e credenciais
+.env
+
+
+# Logs do sistema ou da aplicação
+*.log
+logs/
+
+# Arquivos gerados automaticamente
+dist/
+build/
+*.class
+*.exe
+
+
+# Arquivos temporários
+*.tmp
+*.swp
+
