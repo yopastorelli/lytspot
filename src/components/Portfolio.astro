@@ -1,17 +1,42 @@
 ---
+import Layout from '../layouts/Layout.astro';
 import PortfolioHero from '../components/portfolio/PortfolioHero.astro';
 import PortfolioGrid from '../components/portfolio/PortfolioGrid';
-import PortfolioCategories from '../components/portfolio/PortfolioCategories.astro';
 import Contact from '../components/Contact.astro';
+import Container from '../components/common/Container';
+import SectionTitle from '../components/common/SectionTitle.astro';
 
-const seoDescription = "Confira nosso portfólio de trabalhos em fotografia aérea, filmagens com drone e vídeos corporativos.";
+const seoDescription = "Explore nosso portfólio de trabalhos em Eventos, Ensaios e Empresas, capturando momentos e projetos impactantes.";
 ---
 
-<PortfolioHero />
-<PortfolioCategories />
-<div class="py-12 bg-dark">
-  <div class="container mx-auto px-4">
-    <PortfolioGrid client:load />
-  </div>
-</div>
-<Contact />
+<Layout title="Portfólio" description={seoDescription}>
+  <PortfolioHero />
+
+  <!-- Debug: Adicione texto temporário para verificar se a seção é renderizada -->
+  <section class="py-20 bg-dark">
+    <Container>
+      <div class="max-w-3xl mx-auto">
+        <SectionTitle
+          title="Nosso Portfólio"
+          subtitle="Explore nossos projetos que capturam momentos inesquecíveis"
+          alignment="center"
+        />
+        <p class="text-gray-300 text-center">
+          Nosso portfólio apresenta uma seleção de trabalhos que refletem nossa dedicação à excelência 
+          em captação de imagens e vídeos. Desde eventos especiais a ensaios artísticos e campanhas 
+          empresariais, criamos conteúdos que inspiram e emocionam.
+        </p>
+      </div>
+    </Container>
+  </section>
+
+  <!-- Se o texto abaixo aparecer, a seção acima está sendo renderizada -->
+  <section class="py-20 bg-light">
+    <p class="text-center text-red-500">Seção PortfolioGrid abaixo funciona corretamente.</p>
+    <PortfolioGrid />
+  </section>
+
+  <section class="py-20 bg-gray">
+    <Contact />
+  </section>
+</Layout>

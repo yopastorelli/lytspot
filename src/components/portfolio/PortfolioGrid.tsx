@@ -9,51 +9,37 @@ interface PortfolioGridProps {
 }
 
 export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGridProps) {
-  const [portfolioItemsState] = useState<PortfolioItem[]>(portfolioItems);
-  const [activeCategory, setActiveCategory] = useState(initialCategory);
+  const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
 
-  const filteredItems =
-    activeCategory === 'todos'
-      ? portfolioItemsState
-      : portfolioItemsState.filter((item) => item.category === activeCategory);
+  const filteredItems: PortfolioItem[] = portfolioItems.filter((item: PortfolioItem) =>
+    activeCategory === 'todos' ? true : item.category === activeCategory
+  );
 
   return (
-    <div className="container mx-auto px-4">
+    <div>
       <PortfolioFilter activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
-      <div className="portfolio-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredItems.map((item) => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+        {filteredItems.map((item: PortfolioItem) => (
           <div
             key={item.id}
-            className="portfolio-item relative cursor-pointer"
+            className="cursor-pointer"
             onClick={() => setSelectedItem(item)}
           >
             <img
-              src={item.thumbnail}
+              src={item.media[0]?.url} // Usa a primeira mídia como thumbnail
               alt={item.title}
-              className="w-full h-48 object-cover rounded-md"
+              className="w-full h-64 object-cover rounded-lg"
             />
-            <div className="portfolio-item-overlay bg-black/50 absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
-              <div className="text-white text-center p-4">
-                <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-200">{item.client || 'No Client Info'}</p>
-                <div className="flex gap-2 justify-center mt-3">
-                  {item.tags.map((tag: string, index: number) => (
-                    <span
-                      key={index}
-                      className="text-xs bg-primary-light/20 px-2 py-1 rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <h3 className="mt-4 text-lg font-semibold">{item.title}</h3>
           </div>
         ))}
       </div>
       {selectedItem && (
-        <PortfolioModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+        <PortfolioModal
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   );

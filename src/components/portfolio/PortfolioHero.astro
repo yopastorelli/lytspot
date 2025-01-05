@@ -1,5 +1,4 @@
 ---
-// Importação dos componentes necessários
 import Container from '../common/Container';
 import SectionTitle from '../common/SectionTitle.astro';
 
@@ -9,31 +8,21 @@ interface Props {
 
 const { category } = Astro.props;
 
-// Definindo as chaves e valores com um tipo explícito para evitar o erro de tipo dinâmico
 const categoryTitles: Record<string, string> = {
   eventos: 'Eventos',
-  corporativo: 'Corporativo',
-  publicidade: 'Projetos'  
+  empresas: 'Empresas',
+  ensaios: 'Ensaios',
+  imobiliário: 'Imobiliário',
 };
 
-// Verificando se a categoria está presente, e se sim, pegando o valor correspondente de categoryTitles
-const title = category && categoryTitles[category] ? categoryTitles[category] : 'Nosso Portfólio';
-const subtitle = category && categoryTitles[category] 
-  ? `Conheça nossos melhores trabalhos em ${categoryTitles[category].toLowerCase()}`
-  : 'Conheça nossos melhores trabalhos';
+const title = category ? categoryTitles[category] : 'Nosso Portfólio';
 ---
 
-<section class="pt-32 pb-20 bg-dark">
+<div class="bg-gray py-12">
   <Container>
-    <div class="max-w-3xl mx-auto">
-      <SectionTitle
-        title={title}
-        subtitle={subtitle}
-        alignment="center"
-      />
-      <p class="text-gray-300 text-center">
-        Uma seleção de alguns dos nossos projetos  em fotografia aérea e produções audiovisuais.
-      </p>
-    </div>
+    <SectionTitle title={title} />
+    <p class="mt-4 text-center text-lg text-gray-700">
+      Explore nossos trabalhos em Eventos, Ensaios Artísticos, Imobiliários e Empresas, capturando momentos inesquecíveis e projetos impactantes.
+    </p>
   </Container>
-</section>
+</div>

@@ -8,24 +8,23 @@ interface PortfolioFilterProps {
 const categories = [
   { id: 'todos', label: 'Todos' },
   { id: 'eventos', label: 'Eventos' },
-  { id: 'corporativo', label: 'Corporativo' },
-  // { id: 'publicidade', label: 'Publicidade' },
+  { id: 'empresas', label: 'Empresas' },
   { id: 'ensaios', label: 'Ensaios' },
+  { id: 'imobiliário', label: 'Imobiliário' },
 ];
 
 export default function PortfolioFilter({ activeCategory, onCategoryChange }: PortfolioFilterProps) {
   return (
-    <div className="flex gap-4 justify-center mb-12 overflow-x-auto pb-4">
-      {categories.map((category, index) => (
+    <div className="flex gap-4 justify-center flex-wrap py-4">
+      {categories.map((category) => (
         <button
-          key={category.id} // Apenas para React
-          data-category-index={index}
-          onClick={() => onCategoryChange(category.id)}
-          className={`px-6 py-2 rounded-full border transition-colors ${
+          key={category.id}
+          className={`px-4 py-2 rounded-lg ${
             activeCategory === category.id
-              ? 'border-primary-light text-primary-light bg-primary-light/10'
-              : 'border-gray-700 text-gray-300 hover:border-primary-light hover:text-primary-light'
+              ? 'bg-black text-white'
+              : 'bg-gray-200 text-black'
           }`}
+          onClick={() => onCategoryChange(category.id)}
         >
           {category.label}
         </button>

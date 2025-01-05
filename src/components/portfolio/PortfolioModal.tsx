@@ -9,57 +9,49 @@ interface PortfolioModalProps {
 
 export default function PortfolioModal({ item, onClose }: PortfolioModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90">
-      <div className="bg-dark-lighter rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-2xl font-bold text-white">{item.title}</h3>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-700/50 rounded-full text-gray-300 hover:text-white"
-            >
-              <XMarkIcon className="w-6 h-6" />
-            </button>
-          </div>
-
-          <div className="aspect-video mb-6">
-            {item.type === 'video' ? (
-              <video
-                src={item.url}
-                controls
-                className="w-full h-full object-cover rounded-lg"
-              />
-            ) : (
-              <img
-                src={item.url}
-                alt={item.title}
-                className="w-full h-full object-cover rounded-lg"
-              />
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <p className="text-gray-300">{item.description}</p>
-            <div className="flex flex-wrap gap-2">
-              {item.tags.map((tag: string, index: number) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-primary-light/20 rounded-full text-sm text-gray-200"
-                >
-                  {tag}
-                </span>
-              ))}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+      <div className="bg-gray-900 text-white rounded-lg shadow-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center border-b border-gray-700 p-4">
+          <h2 className="text-xl font-semibold">{item.title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition"
+          >
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          {item.media.map((media, index) => (
+            <div key={index}>
+              {media.type === 'image' ? (
+                <img
+                  src={media.url}
+                  alt={item.title}
+                  className="w-full h-auto rounded-lg mb-4 border border-gray-700"
+                />
+              ) : (
+                <video
+                  src={media.url}
+                  controls
+                  className="w-full h-auto rounded-lg mb-4 border border-gray-700"
+                />
+              )}
             </div>
+          ))}
+          <p className="text-gray-300 mb-4">{item.description}</p>
+          <ul className="space-y-2 text-sm">
+            <li>
+              <strong className="text-gray-400">Categoria:</strong> {item.category}
+            </li>
             {item.client && (
-              <p className="text-gray-400">
-                <span className="font-semibold">Cliente:</span> {item.client}
-              </p>
+              <li>
+                <strong className="text-gray-400">Cliente:</strong> {item.client}
+              </li>
             )}
-            <p className="text-gray-400">
-              <span className="font-semibold">Data:</span>{' '}
-              {new Date(item.date).toLocaleDateString('pt-BR')}
-            </p>
-          </div>
+            <li>
+              <strong className="text-gray-400">Data:</strong> {item.date}
+            </li>
+          </ul>
         </div>
       </div>
     </div>
