@@ -1,5 +1,4 @@
 ---
-import Layout from '../layouts/Layout.astro';
 import ServicesHero from '../components/services/ServicesHero.astro';
 import ServicesList from '../components/services/ServicesList.astro';
 import Contact from '../components/Contact.astro';
@@ -7,8 +6,6 @@ import Contact from '../components/Contact.astro';
 const seoDescription = "Serviços profissionais de filmagem com drone, fotografia e vídeos corporativos - LYTSPOT";
 ---
 
-<Layout title="Serviços" description={seoDescription}>
-  <ServicesHero />
-  <ServicesList />
-  <Contact />
-</Layout>
+<ServicesHero />
+<ServicesList />
+<Contact />
