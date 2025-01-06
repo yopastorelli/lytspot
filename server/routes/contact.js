@@ -6,8 +6,12 @@ import winston from 'winston';
 // Configuração do logger
 const logger = winston.createLogger({
   level: 'info',
-  format: winston.format.json(),
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(({ timestamp, level, message }) => `${timestamp} [${level.toUpperCase()}]: ${message}`)
+  ),
   transports: [
+    new winston.transports.Console(),
     new winston.transports.File({ filename: 'error.log', level: 'error' }),
     new winston.transports.File({ filename: 'combined.log' }),
   ],
@@ -27,29 +31,30 @@ router.post(
     logger.info('Nova requisição recebida no endpoint /api/contact', {
       endpoint: '/api/contact',
       method: 'POST',
-      body: req.body,
     });
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       logger.warn('Validação falhou', { errors: errors.array() });
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({
+        errors: errors.array().map(err => ({ field: err.param, message: err.msg })),
+      });
     }
 
     const { name, email, message } = req.body;
 
     try {
-      logger.info('Enviando email de contato', { name, email });
-      await sendEmail({
+      logger.info('Tentando enviar email...', { name, email });
+      const result = await sendEmail({
         to: process.env.RECIPIENT_EMAIL,
         subject: `Novo contato de ${name}`,
         text: `Nome: ${name}\nE-mail: ${email}\nMensagem:\n${message}`,
       });
 
-      logger.info('Email enviado com sucesso', { name, email });
+      logger.info('Email enviado com sucesso', { messageId: result.messageId });
       res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
     } catch (error) {
-      logger.error('Erro ao enviar email', { error, body: req.body });
+      logger.error('Erro ao enviar email', { error: error.stack, body: req.body });
       res.status(500).json({
         error: 'Erro ao enviar a mensagem. Tente novamente mais tarde.',
       });
