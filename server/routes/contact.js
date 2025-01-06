@@ -1,3 +1,5 @@
+// /server/routes/contact.js
+
 const express = require('express');
 const { sendEmail } = require('../services/emailService');
 
@@ -20,6 +22,7 @@ router.post('/contact', async (req, res) => {
 
     res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
   } catch (error) {
+    console.error('Erro ao processar o contato:', error);
     res.status(500).json({ error: 'Erro ao enviar mensagem.' });
   }
 });
