@@ -10,7 +10,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest",
-    "server": "node server/server.js" 
+    "server": "node server/server.js"
   },
   "dependencies": {
     "@astrojs/react": "^4.1.2",
@@ -19,15 +19,16 @@
     "add": "^2.0.6",
     "astro": "^5.1.2",
     "axios": "^1.7.9",
+    "concurrently": "^7.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "or": "^0.2.0",
     "react": "^18.2.0",
     "react-compiler-runtime": "^19.0.0-beta-55955c9-20241229",
     "react-dom": "^18.2.0",
     "swiper": "^11.0.6",
-    "yarn": "^1.22.22",
-    "concurrently": "^7.3.0",  
-    "cors": "^2.8.5"  
+    "yarn": "^1.22.22"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",
