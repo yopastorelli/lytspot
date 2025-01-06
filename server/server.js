@@ -1,10 +1,28 @@
-require('dotenv').config();
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
+import dotenv from 'dotenv';
+import express from 'express';
+import axios from 'axios';
+import cors from 'cors';
+
+dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Validação de variáveis de ambiente
+const requiredEnvVars = [
+  'REFRESH_TOKEN',
+  'CLIENT_ID',
+  'CLIENT_SECRET',
+  'ACCOUNT_ID',
+  'SENDER_EMAIL',
+  'RECIPIENT_EMAIL',
+];
+requiredEnvVars.forEach((key) => {
+  if (!process.env[key]) {
+    console.error(`Variável de ambiente ${key} não está configurada.`);
+    process.exit(1);
+  }
+});
 
 // Middleware
 app.use(cors());
@@ -41,10 +59,10 @@ app.post('/api/send-message', async (req, res) => {
     const accessToken = await getAccessToken();
 
     const response = await axios.post(
-      `https://mail.zoho.com/api/accounts/${process.env.ACCOUNT_ID}/messages`, // Substitua pelo Account ID correto
+      `https://mail.zoho.com/api/accounts/${process.env.ACCOUNT_ID}/messages`,
       {
-        fromAddress: process.env.SENDER_EMAIL, // Configurado no .env
-        toAddress: process.env.RECIPIENT_EMAIL, // Configurado no .env
+        fromAddress: process.env.SENDER_EMAIL,
+        toAddress: process.env.RECIPIENT_EMAIL,
         subject: 'Nova Mensagem de Contato',
         content: `Nome: ${name}\nEmail: ${email}\nTelefone: ${phone}\nServiço: ${service}\nMensagem: ${message}`,
       },
@@ -56,10 +74,16 @@ app.post('/api/send-message', async (req, res) => {
       }
     );
 
+    console.log(`E-mail enviado com sucesso: ${response.data.messageId}`);
     res.status(200).json({ message: 'E-mail enviado com sucesso!' });
   } catch (error) {
-    console.error('Erro ao enviar e-mail:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Erro ao enviar o e-mail. Tente novamente mais tarde.' });
+    if (error.response?.status === 401) {
+      console.error('Erro de autenticação no Zoho Mail:', error.response?.data || error.message);
+      res.status(401).json({ error: 'Falha de autenticação. Verifique suas credenciais.' });
+    } else {
+      console.error('Erro ao enviar e-mail:', error.response?.data || error.message);
+      res.status(500).json({ error: 'Erro ao enviar o e-mail. Tente novamente mais tarde.' });
+    }
   }
 });
 

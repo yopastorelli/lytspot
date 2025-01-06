@@ -1,9 +1,9 @@
 // /server/routes/contact.js
 
-const express = require('express');
-const { sendEmail } = require('../services/emailService');
+import { Router } from 'express';
+import { sendEmail } from '../services/emailService.js';
 
-const router = express.Router();
+const router = Router();
 
 // Rota para envio de e-mail
 router.post('/contact', async (req, res) => {
@@ -27,4 +27,4 @@ router.post('/contact', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

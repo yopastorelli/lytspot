@@ -1,6 +1,6 @@
 // /server/services/emailService.js
 
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 /**
  * Função para enviar e-mails.
@@ -10,7 +10,7 @@ const nodemailer = require('nodemailer');
  * @param {string} options.text - Texto do e-mail.
  * @throws {Error} Lança erro caso o envio falhe.
  */
-async function sendEmail({ to, subject, text }) {
+export async function sendEmail({ to, subject, text }) {
   // Configuração do transporte SMTP usando variáveis de ambiente
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -39,5 +39,3 @@ async function sendEmail({ to, subject, text }) {
     throw new Error('Falha ao enviar o e-mail.');
   }
 }
-
-module.exports = { sendEmail };
