@@ -69,13 +69,14 @@ export default function ContactForm() {
     console.info("Tentativa de envio do formulário", formData);
 
     try {
-      const response = await fetch("/api/contact", { // Ajuste da rota aqui
+      const response = await fetch("https://lytspot.onrender.com/api/contact", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
+      
 
       const result = await response.json();
 

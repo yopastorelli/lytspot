@@ -54,7 +54,10 @@ try {
   // Middleware
   logger.info('Configurando middleware...');
   console.log('Configurando middleware...');
-  app.use(cors());
+  app.use(cors({
+    origin: ['https://lytspot.com.br', 'https://lytspot.onrender.com'], // Domínios permitidos
+    methods: ['POST', 'GET', 'OPTIONS'], // Métodos permitidos
+  }));  
   app.use(express.json());
   logger.info('Middleware configurado.');
   console.log('Middleware configurado.');
