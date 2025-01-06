@@ -25,6 +25,7 @@ export default function ContactForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -61,6 +62,8 @@ export default function ContactForm() {
     }
 
     setIsSubmitting(true);
+    setSuccessMessage("");
+    setErrorMessage("");
 
     try {
       const response = await fetch("/api/send-message", {
@@ -83,10 +86,10 @@ export default function ContactForm() {
           message: "",
         });
       } else {
-        setSuccessMessage(result.error || "Erro ao enviar a mensagem.");
+        setErrorMessage(result.error || "Erro ao enviar a mensagem.");
       }
     } catch (error) {
-      setSuccessMessage("Erro inesperado. Tente novamente mais tarde.");
+      setErrorMessage("Erro inesperado. Tente novamente mais tarde.");
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -214,6 +217,7 @@ export default function ContactForm() {
       </button>
 
       {successMessage && <p className="text-green-500 text-sm mt-4">{successMessage}</p>}
+      {errorMessage && <p className="text-red-500 text-sm mt-4">{errorMessage}</p>}
     </form>
   );
 }

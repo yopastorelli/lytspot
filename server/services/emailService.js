@@ -1,41 +1,45 @@
 // /server/services/emailService.js
-
 import nodemailer from 'nodemailer';
 
 /**
- * Função para enviar e-mails.
- * @param {Object} options - Opções de envio do e-mail.
- * @param {string} options.to - Endereço do destinatário.
- * @param {string} options.subject - Assunto do e-mail.
- * @param {string} options.text - Texto do e-mail.
- * @throws {Error} Lança erro caso o envio falhe.
+ * Cria e retorna o transportador SMTP configurado.
  */
-export async function sendEmail({ to, subject, text }) {
-  // Configuração do transporte SMTP usando variáveis de ambiente
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT || 587,
-    secure: process.env.SMTP_SECURE === 'true', // true para porta 465, false para outras
+function createTransporter() {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE } = process.env;
+
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    throw new Error('Configurações SMTP ausentes. Verifique as variáveis de ambiente.');
+  }
+
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: parseInt(SMTP_PORT, 10) || 587,
+    secure: SMTP_SECURE === 'true',
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: SMTP_USER,
+      pass: SMTP_PASS,
     },
   });
+}
 
-  // Opções do e-mail
+/**
+ * Envia um e-mail com base nas opções fornecidas.
+ * @param {Object} options - Opções para envio do e-mail.
+ * @param {string} options.to - Destinatário do e-mail.
+ * @param {string} options.subject - Assunto do e-mail.
+ * @param {string} options.text - Corpo do e-mail em texto simples.
+ * @param {string} [options.html] - Corpo do e-mail em HTML (opcional).
+ */
+export async function sendEmail({ to, subject, text, html }) {
+  const transporter = createTransporter();
+
   const mailOptions = {
-    from: process.env.EMAIL_FROM, // Endereço do remetente
+    from: process.env.EMAIL_FROM || 'no-reply@example.com',
     to,
     subject,
     text,
+    html, // Opcional: suporta HTML no e-mail.
   };
 
-  try {
-    // Envia o e-mail
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`E-mail enviado com sucesso: ${info.messageId}`);
-  } catch (error) {
-    console.error('Erro ao enviar e-mail:', error);
-    throw new Error('Falha ao enviar o e-mail.');
-  }
+  return transporter.sendMail(mailOptions);
 }
