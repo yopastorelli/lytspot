@@ -2,11 +2,23 @@ import dotenv from 'dotenv';
 import express from 'express';
 import axios from 'axios';
 import cors from 'cors';
+import winston from 'winston';
+import contactRoutes from './routes/contact.js';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Configuração do logger
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+  ],
+});
 
 // Validação de variáveis de ambiente
 const requiredEnvVars = [
@@ -19,7 +31,7 @@ const requiredEnvVars = [
 ];
 requiredEnvVars.forEach((key) => {
   if (!process.env[key]) {
-    console.error(`Variável de ambiente ${key} não está configurada.`);
+    logger.error(`Variável de ambiente ${key} não está configurada.`);
     process.exit(1);
   }
 });
@@ -41,7 +53,9 @@ const getAccessToken = async () => {
     });
     return response.data.access_token;
   } catch (error) {
-    console.error('Erro ao obter o Access Token:', error.response?.data || error.message);
+    logger.error('Erro ao obter o Access Token', {
+      error: error.response?.data || error.message,
+    });
     throw new Error('Falha ao obter o Access Token.');
   }
 };
@@ -52,6 +66,7 @@ app.post('/api/send-message', async (req, res) => {
 
   // Validação básica
   if (!name || !email || !phone || !service || !message) {
+    logger.warn('Validação de campos falhou no endpoint /api/send-message', { body: req.body });
     return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
   }
 
@@ -74,19 +89,30 @@ app.post('/api/send-message', async (req, res) => {
       }
     );
 
-    console.log(`E-mail enviado com sucesso: ${response.data.messageId}`);
+    logger.info('E-mail enviado com sucesso', { messageId: response.data.messageId });
     res.status(200).json({ message: 'E-mail enviado com sucesso!' });
   } catch (error) {
     if (error.response?.status === 401) {
-      console.error('Erro de autenticação no Zoho Mail:', error.response?.data || error.message);
+      logger.error('Erro de autenticação no Zoho Mail', { error: error.response?.data || error.message });
       res.status(401).json({ error: 'Falha de autenticação. Verifique suas credenciais.' });
     } else {
-      console.error('Erro ao enviar e-mail:', error.response?.data || error.message);
+      logger.error('Erro ao enviar e-mail', { error: error.response?.data || error.message });
       res.status(500).json({ error: 'Erro ao enviar o e-mail. Tente novamente mais tarde.' });
     }
   }
 });
 
+// Rotas de contato
+app.use('/api/contact', contactRoutes);
+
+// Middleware para capturar erros globais
+app.use((err, req, res, next) => {
+  logger.error('Erro inesperado no servidor', { error: err.message, stack: err.stack });
+  res.status(500).json({ error: 'Erro interno no servidor' });
+});
+
+// Inicialização do servidor
 app.listen(port, () => {
+  logger.info(`Servidor backend rodando na porta ${port}`);
   console.log(`Servidor backend rodando na porta ${port}`);
 });

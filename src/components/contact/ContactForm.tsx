@@ -58,12 +58,15 @@ export default function ContactForm() {
     e.preventDefault();
 
     if (!validateForm()) {
+      console.warn("Tentativa de envio com validação falha", formData);
       return;
     }
 
     setIsSubmitting(true);
     setSuccessMessage("");
     setErrorMessage("");
+
+    console.info("Tentativa de envio do formulário", formData);
 
     try {
       const response = await fetch("/api/send-message", {
@@ -77,6 +80,7 @@ export default function ContactForm() {
       const result = await response.json();
 
       if (response.ok) {
+        console.info("Mensagem enviada com sucesso", result);
         setSuccessMessage("Mensagem enviada com sucesso!");
         setFormData({
           name: "",
@@ -86,11 +90,12 @@ export default function ContactForm() {
           message: "",
         });
       } else {
+        console.error("Erro no envio da mensagem", result.error);
         setErrorMessage(result.error || "Erro ao enviar a mensagem.");
       }
     } catch (error) {
+      console.error("Erro inesperado no envio", error);
       setErrorMessage("Erro inesperado. Tente novamente mais tarde.");
-      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
