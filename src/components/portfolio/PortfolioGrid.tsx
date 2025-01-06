@@ -19,7 +19,7 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
   return (
     <div>
       <PortfolioFilter activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4">
         {filteredItems.map((item: PortfolioItem) => (
           <div
             key={item.id}

@@ -10,8 +10,10 @@ const seoDescription = "Explore nosso portfólio de trabalhos em Eventos, Ensaio
 ---
 
 <Layout title="Portfólio" description={seoDescription}>
+  <!-- Seção Hero com Introdução -->
   <PortfolioHero />
-  
+
+  <!-- Seção Intermediária com Texto Explicativo -->
   <section class="py-20 bg-dark">
     <Container>
       <div class="max-w-3xl mx-auto">
@@ -20,7 +22,7 @@ const seoDescription = "Explore nosso portfólio de trabalhos em Eventos, Ensaio
           subtitle="Explore nossos projetos que capturam momentos inesquecíveis"
           alignment="center"
         />
-        <p class="text-gray-300 text-center">
+        <p class="text-gray-300 text-center mt-4">
           Nosso portfólio apresenta uma seleção de trabalhos que refletem nossa dedicação à excelência 
           em captação de imagens e vídeos. Desde eventos especiais a ensaios artísticos e campanhas 
           empresariais, criamos conteúdos que inspiram e emocionam.
@@ -28,11 +30,15 @@ const seoDescription = "Explore nosso portfólio de trabalhos em Eventos, Ensaio
       </div>
     </Container>
   </section>
-  
+
+  <!-- Grid do Portfólio -->
   <section class="py-20 bg-light">
-    <PortfolioGrid />
+    <Container>
+      <PortfolioGrid />
+    </Container>
   </section>
-  
+
+  <!-- Seção de Contato -->
   <section class="py-20 bg-gray">
     <Contact />
   </section>

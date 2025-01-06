@@ -45,12 +45,12 @@ body {
 }
 
 .section-subtitle {
-  @apply text-xl text-gray-300 mb-8;
+  @apply text-xl text-gray-300 mb-4; /* Reduzimos de mb-8 para mb-4 */
 }
 
 /* Portfolio Grid */
 .portfolio-grid {
-  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4; /* Reduzimos a margem superior */
 }
 
 .portfolio-item {

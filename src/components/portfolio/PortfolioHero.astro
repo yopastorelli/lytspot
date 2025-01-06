@@ -18,12 +18,18 @@ const categoryTitles: Record<string, string> = {
 const title = category ? categoryTitles[category] : 'Nosso Portfólio';
 ---
 
-<div class="bg-gray py-12">
+<section class="pt-32 pb-20 bg-dark">
   <Container>
-    <SectionTitle 
-      title={title} 
-      subtitle="Explore nossos trabalhos em diversas áreas, capturando momentos inesquecíveis e projetos impactantes." 
-      alignment="center" 
-    />
+    <div class="max-w-3xl mx-auto">
+      <SectionTitle 
+        title={title} 
+        subtitle="Explore nossos trabalhos e projetos que destacam nossa paixão por qualidade" 
+        alignment="center" 
+      />
+      <p class="text-gray-300 text-center mt-4">
+        Navegue por categorias que capturam momentos únicos e projetos impactantes. Descubra como 
+        nossos trabalhos podem transformar ideias em realidade.
+      </p>
+    </div>
   </Container>
-</div>
+</section>
