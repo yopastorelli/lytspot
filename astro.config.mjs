@@ -35,7 +35,7 @@ export default defineConfig({
     server: {
       proxy: {
         '/api': {
-          target: 'http://127.0.0.1:3000', // Garante o uso de IPv4
+          target: 'https://lytspot-backend.onrender.com', // Garante o uso de IPv4
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, '/api'), // Mantém o caminho original
         },
