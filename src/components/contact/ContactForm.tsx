@@ -69,7 +69,7 @@ export default function ContactForm() {
     console.info("Tentativa de envio do formulário", formData);
 
     try {
-      const response = await fetch("/api/send-message", {
+      const response = await fetch("/api/contact", { // Ajuste da rota aqui
         method: "POST",
         headers: {
           "Content-Type": "application/json",

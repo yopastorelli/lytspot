@@ -4,19 +4,16 @@ import react from '@astrojs/react';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 
 export default defineConfig({
-  output: 'static', // Configures static output (necessary for GitHub Pages)
-  base: '/', // Base URL for custom domains or repo root
+  output: 'static', // Configuração para saída estática
+  base: '/', // Base para o domínio
   build: {
-    outDir: 'dist', // Defines the output directory
+    outDir: 'dist', // Diretório de saída
     async afterBuild() {
       try {
-        // Ensure 'dist' directory exists before creating the CNAME file
         const distDir = 'dist';
         if (!existsSync(distDir)) {
           mkdirSync(distDir);
         }
-
-        // Generate CNAME file in the output directory
         const cnamePath = `${distDir}/CNAME`;
         writeFileSync(cnamePath, 'www.lytspot.com.br', 'utf8');
         console.log(`CNAME file created successfully at ${cnamePath}`);
@@ -26,18 +23,27 @@ export default defineConfig({
     },
   },
   server: {
-    host: true, // Allows local server to be accessible on the network
-    port: 4321, // Sets the port (adjust if necessary)
+    host: true, // Permite acesso pela rede local
+    port: 4321, // Porta do servidor de desenvolvimento
   },
   vite: {
     resolve: {
       alias: {
-        '@': new URL('./src', import.meta.url).pathname, // Matches @/* to ./src/*
+        '@': new URL('./src', import.meta.url).pathname, // Atalho para "src"
+      },
+    },
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:3000', // Garante o uso de IPv4
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, '/api'), // Mantém o caminho original
+        },
       },
     },
   },
   integrations: [
-    tailwind({ config: './tailwind.config.js' }), // Ensure Tailwind is configured correctly
-    react(), // React integration
+    tailwind({ config: './tailwind.config.js' }), // Configuração do Tailwind
+    react(), // Integração com React
   ],
 });

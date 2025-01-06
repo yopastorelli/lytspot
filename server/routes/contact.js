@@ -16,7 +16,7 @@ const logger = winston.createLogger({
 const router = Router();
 
 router.post(
-  '/contact',
+  '/',
   [
     // Validações
     body('name').notEmpty().withMessage('O nome é obrigatório.'),
@@ -24,8 +24,8 @@ router.post(
     body('message').notEmpty().withMessage('A mensagem é obrigatória.'),
   ],
   async (req, res) => {
-    logger.info('Nova requisição recebida no endpoint /contact', {
-      endpoint: '/contact',
+    logger.info('Nova requisição recebida no endpoint /api/contact', {
+      endpoint: '/api/contact',
       method: 'POST',
       body: req.body,
     });
