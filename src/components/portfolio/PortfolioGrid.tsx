@@ -18,41 +18,43 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
   );
 
   return (
-    <div>
-      {/* Filtro para alternar categorias */}
+    <div className="p-4">
+      {/* Componente de filtro para alternar categorias */}
       <PortfolioFilter activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
-
-      {/* Grid de itens do portfólio */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4 bg-gray-800">
+      
+      {/* Grid de portfólio */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6 bg-gray-900 p-4 rounded-lg">
         {filteredItems.map((item: PortfolioItem) => (
           <div
             key={item.id}
-            className="cursor-pointer"
+            className="cursor-pointer border border-gray-700 rounded-lg overflow-hidden hover:shadow-lg"
             onClick={() => setSelectedItem(item)}
           >
             {item.media[0]?.type === 'image' ? (
-              // Renderiza imagem como thumbnail
+              // Renderiza a imagem como thumbnail
               <img
                 src={item.media[0]?.url}
                 alt={item.title}
-                className="w-full h-64 object-cover rounded-lg border border-gray-300"
+                className="w-full h-48 object-cover"
               />
             ) : (
-              // Renderiza vídeo como thumbnail
+              // Renderiza o vídeo como thumbnail
               <video
                 src={item.media[0]?.url}
-                className="w-full h-64 object-cover rounded-lg border border-gray-300"
+                className="w-full h-48 object-cover"
                 autoPlay
                 muted
                 loop
               />
             )}
-            <h3 className="mt-4 text-lg font-semibold text-white">{item.title}</h3>
+            <div className="p-4 bg-gray-800">
+              <h3 className="text-lg font-semibold text-white">{item.title}</h3>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Modal para exibir detalhes do item */}
+      {/* Modal para exibir detalhes do item selecionado */}
       {selectedItem && (
         <PortfolioModal
           item={selectedItem}
