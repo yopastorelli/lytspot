@@ -19,7 +19,7 @@ export const SERVICES = [
     id: 'drone',
     title: 'Filmagem com Drones',
     description: 'Captação aérea profissional para eventos, publicidade, programas e projetos únicos.',
-    image: '//public/images/drone.png',
+    image: '/images/drone.png',
     features: [
       'Imagens em 4K 60fps',
       'Drones profissionais',
@@ -32,7 +32,7 @@ export const SERVICES = [
     id: 'photo',
     title: 'Fotografia Profissional',
     description: 'Ensaios fotográficos, eventos corporativos e campanhas publicitárias.',
-    image: '//public/images/photo.png',
+    image: '/images/photo.png',
     features: [
       'Equipamentos Profissionais',
       'Fotógrafos com ampla experiência',
@@ -44,7 +44,7 @@ export const SERVICES = [
     id: 'video',
     title: 'Projetos especiais',
     description: 'Produção audiovisual para projetos personalizados',
-    image: '//public/images/project.png',
+    image: '/images/project.png',
     features: [
       'Roteirização',
       'Captação em alta definição',
@@ -70,7 +70,7 @@ export const TEAM_MEMBERS = [
   {
     name: "João Silva",
     role: "Diretor de Fotografia",
-    image: "//public/images/team/joao.jpg",
+    image: "/images/team/joao.jpg",
     bio: "Especialista em fotografia aérea com mais de 10 anos de experiência.",
     social: [
       { platform: "LinkedIn", url: "https://linkedin.com/in/joaosilva" },
@@ -80,7 +80,7 @@ export const TEAM_MEMBERS = [
   {
     name: "Maria Santos",
     role: "Piloto de Drone",
-    image: "//public/images/team/maria.jpg",
+    image: "/images/team/maria.jpg",
     bio: "Piloto certificada pela ANAC com especialização em captação cinematográfica.",
     social: [
       { platform: "LinkedIn", url: "https://linkedin.com/in/mariasantos" },
@@ -90,7 +90,7 @@ export const TEAM_MEMBERS = [
   {
     name: "Pedro Costa",
     role: "Editor de Vídeo",
-    image: "//public/images/team/pedro.jpg",
+    image: "/images/team/pedro.jpg",
     bio: "Profissional premiado em edição e pós-produção de vídeos.",
     social: [
       { platform: "LinkedIn", url: "https://linkedin.com/in/pedrocosta" },
