@@ -6,28 +6,25 @@ interface PortfolioFilterProps {
 }
 
 const categories = [
-  { id: 'todos', label: 'Todos' },
-  { id: 'festas', label: 'Festas' },
-  { id: 'empresas', label: 'Empresas' },
-  { id: 'imobiliário', label: 'Imobiliário' },
-  { id: 'projetos', label: 'Projetos' },
+  { key: 'todos', label: 'Todos' },
+  { key: 'festas', label: 'Festas' },
+  { key: 'empresas', label: 'Empresas' },
+  { key: 'imobiliário', label: 'Imobiliário' },
+  { key: 'projetos', label: 'Projetos' },
 ];
 
-export default function PortfolioFilter({
-  activeCategory,
-  onCategoryChange,
-}: PortfolioFilterProps) {
+export default function PortfolioFilter({ activeCategory, onCategoryChange }: PortfolioFilterProps) {
   return (
-    <div className="flex flex-wrap gap-4 justify-center mb-6">
+    <div className="flex justify-center gap-4 my-4">
       {categories.map((category) => (
         <button
-          key={category.id}
-          onClick={() => onCategoryChange(category.id)}
-          className={`px-4 py-2 text-sm font-semibold rounded-lg focus:outline-none ${
-            activeCategory === category.id
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+          key={category.key}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            activeCategory === category.key
+              ? 'bg-primary text-white shadow-lg'
+              : 'bg-gray-700 text-gray-300 hover:bg-primary hover:text-white'
           }`}
+          onClick={() => onCategoryChange(category.key)}
         >
           {category.label}
         </button>

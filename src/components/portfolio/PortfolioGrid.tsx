@@ -18,16 +18,16 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
   );
 
   return (
-    <div className="p-4">
+    <div>
       {/* Componente de filtro para alternar categorias */}
       <PortfolioFilter activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
-      
+
       {/* Grid de portfólio */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6 bg-gray-900 p-4 rounded-lg">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4 bg-gray-800 p-4 rounded-lg">
         {filteredItems.map((item: PortfolioItem) => (
           <div
             key={item.id}
-            className="cursor-pointer border border-gray-700 rounded-lg overflow-hidden hover:shadow-lg"
+            className="cursor-pointer group"
             onClick={() => setSelectedItem(item)}
           >
             {item.media[0]?.type === 'image' ? (
@@ -35,21 +35,21 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
               <img
                 src={item.media[0]?.url}
                 alt={item.title}
-                className="w-full h-48 object-cover"
+                className="w-full h-64 object-cover rounded-lg border border-gray-300 group-hover:opacity-80 transition-opacity"
               />
             ) : (
               // Renderiza o vídeo como thumbnail
               <video
                 src={item.media[0]?.url}
-                className="w-full h-48 object-cover"
+                className="w-full h-64 object-cover rounded-lg border border-gray-300 group-hover:opacity-80 transition-opacity"
                 autoPlay
                 muted
                 loop
               />
             )}
-            <div className="p-4 bg-gray-800">
-              <h3 className="text-lg font-semibold text-white">{item.title}</h3>
-            </div>
+            <h3 className="mt-4 text-lg font-semibold text-white group-hover:text-primary transition-colors">
+              {item.title}
+            </h3>
           </div>
         ))}
       </div>

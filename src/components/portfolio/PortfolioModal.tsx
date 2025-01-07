@@ -9,70 +9,62 @@ interface PortfolioModalProps {
 export default function PortfolioModal({ item, onClose }: PortfolioModalProps) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-gray-900 rounded-lg shadow-lg p-6 max-w-4xl w-full overflow-y-auto">
-        {/* Botão de Fechar */}
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-white absolute top-4 right-4 text-2xl font-semibold"
-          aria-label="Fechar"
-        >
-          &times;
-        </button>
-
-        {/* Título do Item */}
-        <h2 className="text-2xl font-bold text-white mb-4">{item.title}</h2>
-
-        {/* Mídia Principal */}
-        <div className="mb-6">
-          {item.media.map((mediaItem, index) =>
-            mediaItem.type === 'image' ? (
-              <img
-                key={index}
-                src={mediaItem.url}
-                alt={`${item.title} media ${index + 1}`}
-                className="w-full h-auto rounded-lg mb-4"
-              />
-            ) : (
-              <video
-                key={index}
-                src={mediaItem.url}
-                controls
-                className="w-full h-auto rounded-lg mb-4"
-              />
-            )
-          )}
+      <div className="bg-gray-800 rounded-lg overflow-hidden max-w-4xl w-full">
+        <div className="flex justify-between items-center p-4 border-b border-gray-700">
+          <h2 className="text-lg font-bold text-white">{item.title}</h2>
+          <button
+            className="text-gray-400 hover:text-white"
+            onClick={onClose}
+          >
+            ✕
+          </button>
         </div>
+        <div className="p-4 space-y-4">
+          {/* Exibição de mídia */}
+          <div className="relative">
+            {item.media.map((mediaItem, index) =>
+              mediaItem.type === 'image' ? (
+                <img
+                  key={index}
+                  src={mediaItem.url}
+                  alt={`Media ${index + 1}`}
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+              ) : (
+                <video
+                  key={index}
+                  src={mediaItem.url}
+                  className="w-full h-64 object-cover rounded-lg"
+                  controls
+                />
+              )
+            )}
+          </div>
 
-        {/* Descrição */}
-        <p className="text-gray-300 mb-4">{item.description}</p>
-
-        {/* Tags */}
-        {item.tags.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-white mb-2">Tags:</h3>
-            <div className="flex flex-wrap gap-2">
+          {/* Descrição e informações adicionais */}
+          <div>
+            <p className="text-gray-300">{item.description}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
               {item.tags.map((tag, index) => (
                 <span
                   key={index}
-                  className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full"
+                  className="px-2 py-1 bg-primary text-white text-sm rounded-full"
                 >
                   {tag}
                 </span>
               ))}
             </div>
           </div>
-        )}
 
-        {/* Data e Cliente */}
-        <div className="text-gray-400 text-sm">
-          <p>
-            <strong>Data:</strong> {item.date}
-          </p>
+          {/* Informações do cliente e data */}
           {item.client && (
-            <p>
+            <p className="text-gray-400 text-sm">
               <strong>Cliente:</strong> {item.client}
             </p>
           )}
+          <p className="text-gray-400 text-sm">
+            <strong>Data:</strong> {item.date}
+          </p>
         </div>
       </div>
     </div>
