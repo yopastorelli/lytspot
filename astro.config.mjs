@@ -4,8 +4,8 @@ import react from '@astrojs/react';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 
 export default defineConfig({
-  output: 'static', // Geração de saída estática
-  base: '/', // Ajuste este valor para '/' (domínio raiz) ou '/subdiretorio/' (subdiretório de deploy)
+  output: 'static', // Configuração para saída estática
+  base: process.env.BASE_URL || '/', // Configura a URL base do site
   build: {
     outDir: 'dist', // Diretório de saída
     async afterBuild() {
@@ -24,7 +24,7 @@ export default defineConfig({
   },
   server: {
     host: true, // Permite acesso pela rede local
-    port: 4321, // Porta do servidor local
+    port: 4321, // Porta do servidor de desenvolvimento
   },
   vite: {
     resolve: {
@@ -35,9 +35,9 @@ export default defineConfig({
     server: {
       proxy: {
         '/api': {
-          target: 'https://lytspot.onrender.com', // URL do backend no Render
+          target: 'https://lytspot.onrender.com', // Proxy para o backend
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, '/api'), // Mantém o caminho original
+          rewrite: (path) => path.replace(/^\/api/, '/api'),
         },
       },
     },
