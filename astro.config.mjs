@@ -5,7 +5,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'fs';
 
 export default defineConfig({
   output: 'static', // Configuração para saída estática
-  base: process.env.BASE_URL || '/lytspot/', // Configura a URL base do site
+  base: process.env.BASE_URL || '/public_html/', // Configura a URL base do site
   build: {
     outDir: 'dist', // Diretório de saída
     async afterBuild() {
