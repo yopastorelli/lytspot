@@ -30,7 +30,7 @@ const realPortfolioItems: PortfolioItem[] = [
     category: 'empresas',
     media: [
       { url: `${import.meta.env.BASE_URL}images/portfolio/empresas/empresas1.jpeg`, type: 'image' },
-      { url: `${import.meta.env.BASE_URL}videos/portfolio/empresas/empresas2.mp4`, type: 'video' },
+      { url: `${import.meta.env.BASE_URL}videos/portfolio/empresas/empresas2.jpg`, type: 'video' },
     ],
     description: 'Cobertura de uma importante conferência empresarial.',
     tags: ['conferência', 'negócios', 'networking'],
@@ -57,6 +57,7 @@ const realPortfolioItems: PortfolioItem[] = [
       { url: `${import.meta.env.BASE_URL}videos/portfolio/projetos/projetos2.mp4`, type: 'video' },
       { url: `${import.meta.env.BASE_URL}videos/portfolio/projetos/projetos3.mp4`, type: 'video' },
       { url: `${import.meta.env.BASE_URL}videos/portfolio/projetos/projetos4.mp4`, type: 'video' },
+      { url: `${import.meta.env.BASE_URL}videos/portfolio/projetos/projetos6.mp4`, type: 'video' },
       { url: `${import.meta.env.BASE_URL}videos/portfolio/projetos/projetos5.mp4`, type: 'video' },
     ],
     description: 'Oportunidades únicas, trabalhos únicos e personalizados.',
