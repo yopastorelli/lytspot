@@ -7,10 +7,10 @@ interface PortfolioFilterProps {
 
 const categories = [
   { id: 'todos', label: 'Todos' },
-  { id: 'eventos', label: 'Eventos' },
+  { id: 'festas', label: 'Festas' },
   { id: 'empresas', label: 'Empresas' },
-  { id: 'ensaios', label: 'Ensaios' },
-  { id: 'imobiliário', label: 'Imobiliário' },
+  { id: 'imobiliário', label: 'Imobiliario' },
+  { id: 'projetos', label: 'Projetos' },
 ];
 
 export default function PortfolioFilter({ activeCategory, onCategoryChange }: PortfolioFilterProps) {

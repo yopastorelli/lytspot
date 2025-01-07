@@ -2,7 +2,7 @@
 export interface PortfolioItem {
   id: string;
   title: string;
-  category: 'eventos' | 'empresas' | 'ensaios' | 'imobiliário';
+  category: 'festas' | 'empresas' | 'imobiliário' | 'projetos';
   media: { url: string; type: 'image' | 'video' }[];
   description: string;
   tags: string[];
@@ -12,54 +12,58 @@ export interface PortfolioItem {
 
 const realPortfolioItems: PortfolioItem[] = [
   {
-    id: 'eventos',
+    id: 'festas',
     title: 'Festas',
-    category: 'eventos',
+    category: 'festas',
     media: [
-      { url: '/images/portfolio/festas1.jpg', type: 'image' },
-      { url: '/images/portfolio/festas2.jpg', type: 'image' },
+      { url: '/images/portfolio/festas/festas1.jpg', type: 'image' },
+      { url: '/images/portfolio/festas/festas2.jpg', type: 'image' },
     ],
     description: 'Festa de Aniversário em condições ideais.',
     tags: ['infantil', 'festa', 'aniversário'],
-    client: 'TBD',
-    date: '2024-05-01',
+    client: '.',
+    date: '2023/2024',
   },
   {
     id: 'empresas',
     title: 'Divulgação empresarial',
     category: 'empresas',
     media: [
-      { url: '/images/portfolio/empresas1.jpg', type: 'image' },
-      { url: '/videos/portfolio/empresas_promo.mp4', type: 'video' },
+      { url: '/images/portfolio/empresas/empresas1.jpg', type: 'image' },
+      { url: '/videos/portfolio/empresas/empresas_promo.mp4', type: 'video' },
     ],
     description: 'Cobertura de uma importante conferência empresarial.',
     tags: ['conferência', 'negócios', 'networking'],
     client: 'ABC Corp',
-    date: '2023-04-15',
-  },
-  {
-    id: 'ensaios',
-    title: 'Ensaio Artístico',
-    category: 'ensaios',
-    media: [
-      { url: '/images/portfolio/ensaios1.jpg', type: 'image' },
-      { url: '/images/portfolio/ensaios2.jpg', type: 'image' },
-    ],
-    description: 'Ensaio artístico capturando emoções e cores.',
-    tags: ['arte', 'fotografia', 'emoção'],
-    date: '2023-06-10',
+    date: '2023/2024',
   },
   {
     id: 'imobiliário',
     title: 'Ensaio Imobiliário',
     category: 'imobiliário',
     media: [
-      { url: '/images/portfolio/imobiliario1.jpg', type: 'image' },
-      { url: '/videos/portfolio/imobiliario_tour.mp4', type: 'video' },
+      { url: '/images/portfolio/imobiliário/imobiliário1.jpg', type: 'image' },
+      { url: '/images/portfolio/imobiliário/imobiliário2.jpg', type: 'image' },
     ],
-    description: 'Ensaio para melhor exposição das virtudes do imóvel.',
-    tags: ['imóvel', 'fotografia', 'arquitetura'],
-    date: '2023-06-10',
+    description: 'Fotos e videos de imóveis à venda, aluguel ou divulgação.',
+    tags: ['imóveis', 'profissionalismo', 'imagens'],
+    date: '2023/2024',
+  },
+  {
+    id: 'projetos',
+    title: 'Projetos Especiais',
+    category: 'projetos',
+    media: [
+      { url: '/videos/portfolio/projetos/projetos1.mp4', type: 'video' },
+      { url: '/videos/portfolio/projetos/projetos2.mp4', type: 'video' },
+      { url: '/videos/portfolio/projetos/projetos3.mp4', type: 'video' },
+      { url: '/videos/portfolio/projetos/projetos4.mp4', type: 'video' },
+      { url: '/videos/portfolio/projetos/projetos5.mp4', type: 'video' },
+      { url: '/videos/portfolio/projetos/projetos6.mp4', type: 'video' },
+    ],
+    description: 'Oportunidades únicas, trabalhos únicos e personalizados.',
+    tags: ['projetos', 'personalizado', 'oportunidade'],
+    date: '2023/2024',
   },
 ];
 
