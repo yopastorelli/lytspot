@@ -2,11 +2,8 @@
 name: Deploy Astro site to Pages
 
 on:
-  # Executa no push para a branch principal
   push:
     branches: ["main"]
-
-  # Permite rodar o workflow manualmente
   workflow_dispatch:
 
 permissions:
@@ -14,7 +11,6 @@ permissions:
   pages: write
   id-token: write
 
-# Garante que apenas uma execução de deploy ocorra por vez
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -40,13 +36,11 @@ jobs:
             echo "command=install" >> $GITHUB_OUTPUT
             echo "runner=yarn" >> $GITHUB_OUTPUT
             echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
-            exit 0
           elif [ -f "${{ github.workspace }}/package.json" ]; then
             echo "manager=npm" >> $GITHUB_OUTPUT
             echo "command=ci" >> $GITHUB_OUTPUT
             echo "runner=npx --no-install" >> $GITHUB_OUTPUT
             echo "lockfile=package-lock.json" >> $GITHUB_OUTPUT
-            exit 0
           else
             echo "Unable to determine package manager"
             exit 1
@@ -77,11 +71,6 @@ jobs:
       - name: Verificar conteúdo do build
         run: ls -R ${{ env.BUILD_PATH }}/dist
 
-      - name: Verificar imagens do public no build
-        run: |
-          ls ${{ env.BUILD_PATH }}/public/images/portfolio || echo "Imagens ausentes!"
-          echo "Imagens verificadas com sucesso!"
-
       - name: Upload do artefato para o GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
@@ -108,8 +97,6 @@ jobs:
             git rm -rf .
             git commit --allow-empty -m "Criar branch gh-pages"
             git push origin gh-pages
-          else
-            echo "Branch gh-pages já existe"
           fi
 
       - name: Deploy para GitHub Pages
