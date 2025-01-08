@@ -73,11 +73,6 @@ jobs:
             --base "${{ steps.pages.outputs.base_path }}"
         working-directory: ${{ env.BUILD_PATH }}
 
-      - name: Garantir cópia de arquivos estáticos (public) para o build
-        run: |
-          echo "Copiando arquivos estáticos da pasta public para o build..."
-          cp -R public/* dist/
-
       - name: Verificar conteúdo do build
         run: |
           echo "Conteúdo do build (dist/):"
