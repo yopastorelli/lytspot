@@ -21,7 +21,7 @@ function getAssetUrl(path: string): string {
 export const portfolioItems: PortfolioItem[] = [
   {
     id: 'festas',
-    title: 'Festas',
+    title: 'festas',
     category: 'festas',
     media: [
       { url: getAssetUrl('images/portfolio/festas/festas1.jpg'), type: 'image' },

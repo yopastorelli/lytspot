@@ -1,12 +1,12 @@
 export const portfolioItemss = [
   {
-    title: 'Eventos',
-    category: 'Eventos',
+    title: 'eventos',
+    category: 'eventos',
     thumbnail: '/images/portfolio/eventos.jpg',
     url: '/videos/eventos.mp4',
     type: 'video',
     description: 'Cobertura completa de eventos, com imagens aéreas e terrestres.',
-    tags: ['Eventos', 'Drone', 'Profissional']
+    tags: ['eventos', 'Drone', 'Profissional']
   },
   {
     title: 'Campanha Imobiliária',
