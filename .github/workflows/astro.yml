@@ -61,6 +61,11 @@ jobs:
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
         working-directory: ${{ env.BUILD_PATH }}
 
+      - name: Verificar conteúdo da pasta public antes do build
+        run: |
+          echo "Conteúdo da pasta public:"
+          ls -R public
+
       - name: Build com Astro
         run: |
           ${{ steps.detect-package-manager.outputs.runner }} astro build \
@@ -68,8 +73,15 @@ jobs:
             --base "${{ steps.pages.outputs.base_path }}"
         working-directory: ${{ env.BUILD_PATH }}
 
+      - name: Garantir cópia de arquivos estáticos (public) para o build
+        run: |
+          echo "Copiando arquivos estáticos da pasta public para o build..."
+          cp -R public/* dist/
+
       - name: Verificar conteúdo do build
-        run: ls -R ${{ env.BUILD_PATH }}/dist
+        run: |
+          echo "Conteúdo do build (dist/):"
+          ls -R ${{ env.BUILD_PATH }}/dist
 
       - name: Upload do artefato para o GitHub Pages
         uses: actions/upload-pages-artifact@v3
@@ -97,6 +109,8 @@ jobs:
             git rm -rf .
             git commit --allow-empty -m "Criar branch gh-pages"
             git push origin gh-pages
+          else
+            echo "Branch gh-pages já existe"
           fi
 
       - name: Deploy para GitHub Pages
@@ -107,4 +121,5 @@ jobs:
         run: |
           git fetch origin gh-pages
           git checkout gh-pages
+          echo "Arquivos no gh-pages:"
           ls -R
