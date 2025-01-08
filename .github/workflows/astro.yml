@@ -28,6 +28,11 @@ jobs:
         with:
           fetch-depth: 0 # Garante acesso ao histórico completo e todas as branches
 
+      - name: Verificar conteúdo da pasta public antes do build
+        run: |
+          echo "Conteúdo da pasta public antes do build:"
+          ls -R public
+
       - name: Detectar gerenciador de pacotes
         id: detect-package-manager
         run: |
@@ -60,11 +65,6 @@ jobs:
       - name: Instalar dependências
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
         working-directory: ${{ env.BUILD_PATH }}
-
-      - name: Verificar conteúdo da pasta public antes do build
-        run: |
-          echo "Conteúdo da pasta public:"
-          ls -R public
 
       - name: Build com Astro
         run: |

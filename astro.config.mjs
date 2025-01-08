@@ -6,7 +6,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'fs';
 export default defineConfig({
   output: 'static', // Gera um site estático
   base: process.env.BASE_URL || '/', // Define a URL base correta
-  publicDir: 'public', // Garante que a pasta "public" seja usada
+  publicDir: 'public', // Garante que a pasta "public" seja usada corretamente
   build: {
     outDir: 'dist', // Diretório de saída
     async afterBuild() {
