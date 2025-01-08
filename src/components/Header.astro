@@ -2,6 +2,7 @@
 import Container from './common/Container';
 import Button from './common/Button';
 
+// Define os itens do menu
 const menuItems = [
   { href: '/', text: 'Home' },
   { href: '/servicos', text: 'Serviços' },
@@ -10,7 +11,8 @@ const menuItems = [
   { href: '/contato', text: 'Contato' }
 ];
 
-const currentPath = Astro.url.pathname; // Isso deve funcionar corretamente em um componente .astro
+// Acessa o pathname da URL atual corretamente
+const currentPath = Astro.request.url.pathname;
 ---
 <header class="bg-dark/80 backdrop-blur-md fixed w-full z-50 border-b border-gray-700/50">
   <Container>
@@ -18,7 +20,7 @@ const currentPath = Astro.url.pathname; // Isso deve funcionar corretamente em u
       <a href="/" class="text-2xl font-bold text-white flex items-center gap-2">
         <img src="/images/Branco fundo transparente.png" alt="LYTSPOT" class="h-16" />
       </a>
-      
+
       <nav class="hidden md:flex space-x-6">
         {menuItems.map(item => (
           <a 
@@ -33,7 +35,6 @@ const currentPath = Astro.url.pathname; // Isso deve funcionar corretamente em u
       <Button variant="primary" href="/contato">
         Orçamento
       </Button>
-      
     </div>
   </Container>
 </header>

@@ -59,7 +59,8 @@ try {
   app.use(cors({
     origin: [baseUrl, 'https://lytspot.com.br', 'https://lytspot.onrender.com'], // Domínios permitidos
     methods: ['POST', 'GET', 'OPTIONS'], // Métodos permitidos
-  }));  
+    allowedHeaders: ['Content-Type', 'Authorization'], // Cabeçalhos permitidos
+  }));
   app.use(express.json());
   logger.info('Middleware configurado.');
   console.log('Middleware configurado.');

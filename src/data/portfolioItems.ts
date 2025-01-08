@@ -22,7 +22,7 @@ export const portfolioItems: PortfolioItem[] = [
   {
     id: 'festas',
     title: 'Festas e comemorações',
-    category: 'Festas',
+    category: 'festas',
     media: [
       { url: getAssetUrl('images/portimages/festas/festas1.jpg'), type: 'image' },
       { url: getAssetUrl('images/portimages/festas/festas2.jpg'), type: 'image' },
