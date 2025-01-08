@@ -80,6 +80,11 @@ jobs:
         with:
           path: ${{ env.BUILD_PATH }}/dist
 
+      - name: Verificar imagens do public no build
+        run: |
+          ls ${{ env.BUILD_PATH }}/public/images/portfolio
+          echo "Imagens verificadas com sucesso!"
+
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
