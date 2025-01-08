@@ -1,7 +1,9 @@
 {
   "extends": "astro/tsconfigs/base",
   "compilerOptions": {
-    "jsx": "react-jsx",
+    "target": "es5",
+    "lib": ["dom", "esnext"],
+    "jsx": "react-jsx",  // Use the new JSX transform
     "jsxImportSource": "react",
     "types": ["astro/astro-jsx", "react", "react-dom", "node"],
     "strict": true,
