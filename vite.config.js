@@ -14,12 +14,17 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: process.env.API_URL || 'https://lytspot.onrender.com', // Proxy para o backend
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        changeOrigin: true, // Permite proxy em hosts diferentes
+        rewrite: (path) => path.replace(/^\/api/, '/api'), // Reescreve o caminho
       },
     },
   },
   build: {
     outDir: 'dist', // Diretório de saída
+    emptyOutDir: true, // Limpa o diretório de saída antes de construir
+  },
+  // Configuração adicional para compatibilidade com diferentes ambientes
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
   },
 });
