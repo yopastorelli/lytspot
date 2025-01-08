@@ -12,7 +12,7 @@ export interface PortfolioItem {
 
 // Função utilitária para gerar URLs com base no ambiente
 function getAssetUrl(path: string): string {
-  // Adiciona 'public/' explicitamente para garantir o carregamento correto
+  // Retorna a URL correta sem 'public/'
   const baseUrl = import.meta.env?.BASE_URL || '/';
   return `${baseUrl}${path}`;
 }
