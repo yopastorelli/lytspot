@@ -48,3 +48,4 @@ export default defineConfig({
     react(), // Integração com React
   ],
 });
+//sera so imaginacao
