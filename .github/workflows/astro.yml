@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Garante acesso ao histórico completo e todas as branches
 
       - name: Detectar gerenciador de pacotes
         id: detect-package-manager
@@ -75,15 +77,15 @@ jobs:
       - name: Verificar conteúdo do build
         run: ls -R ${{ env.BUILD_PATH }}/dist
 
+      - name: Verificar imagens do public no build
+        run: |
+          ls ${{ env.BUILD_PATH }}/public/images/portfolio || echo "Imagens ausentes!"
+          echo "Imagens verificadas com sucesso!"
+
       - name: Upload do artefato para o GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ env.BUILD_PATH }}/dist
-
-      - name: Verificar imagens do public no build
-        run: |
-          ls ${{ env.BUILD_PATH }}/public/images/portfolio
-          echo "Imagens verificadas com sucesso!"
 
   deploy:
     name: Deploy
@@ -93,13 +95,22 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Limpar branch gh-pages (opcional)
+      - name: Checkout completo do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Criar branch gh-pages (se necessário)
         run: |
-          git fetch origin gh-pages
-          git checkout gh-pages || git checkout --orphan gh-pages
-          git rm -rf .
-          git commit -m "Limpar branch"
-          git push origin gh-pages
+          if ! git ls-remote --exit-code origin gh-pages; then
+            echo "Criando branch gh-pages"
+            git checkout --orphan gh-pages
+            git rm -rf .
+            git commit --allow-empty -m "Criar branch gh-pages"
+            git push origin gh-pages
+          else
+            echo "Branch gh-pages já existe"
+          fi
 
       - name: Deploy para GitHub Pages
         id: deployment
