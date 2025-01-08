@@ -37,7 +37,6 @@ export const portfolioItems: PortfolioItem[] = [
     category: 'empresas',
     media: [
       { url: getAssetUrl('images/portimages/empresas/empresas1.jpeg'), type: 'image' },
-      { url: getAssetUrl('videos/portvideos/empresas/empresas2.mp4'), type: 'video' },
     ],
     description: 'Cobertura de uma importante conferência empresarial.',
     tags: ['conferência', 'negócios', 'networking'],
