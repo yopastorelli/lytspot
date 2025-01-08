@@ -78,6 +78,11 @@ jobs:
           echo "Conteúdo do build (dist/):"
           ls -R ${{ env.BUILD_PATH }}/dist
 
+      - name: Garantir que a pasta public seja incluída no dist
+        run: |
+          echo "Garantindo que a pasta public seja incluída no dist/"
+          cp -R public/* dist/
+
       - name: Upload do artefato para o GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
