@@ -36,6 +36,7 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
                 src={item.media[0]?.url}
                 alt={item.title}
                 className="w-full h-64 object-cover rounded-lg border border-gray-300"
+                loading="lazy"
               />
             ) : (
               // Renderiza vídeo como thumbnail
