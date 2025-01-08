@@ -1,4 +1,4 @@
-// Define a interface para os itens do portfólio
+// Define a interface para os itens do portfolio
 export interface PortfolioItem {
   id: string;
   title: string;
@@ -17,7 +17,7 @@ function getAssetUrl(path: string): string {
   return `${baseUrl}${path}`;
 }
 
-// Itens reais do portfólio
+// Itens reais do portfolio
 export const portfolioItems: PortfolioItem[] = [
   {
     id: 'festas',

@@ -12,7 +12,7 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
 
-  // Filtra os itens do portfólio com base na categoria ativa
+  // Filtra os itens do portfolio com base na categoria ativa
   const filteredItems: PortfolioItem[] = portfolioItems.filter((item: PortfolioItem) =>
     activeCategory === 'todos' ? true : item.category === activeCategory
   );
@@ -22,7 +22,7 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
       {/* Filtro para alternar categorias */}
       <PortfolioFilter activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
 
-      {/* Grid de itens do portfólio */}
+      {/* Grid de itens do portfolio */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4 bg-gray-800">
         {filteredItems.map((item: PortfolioItem) => (
           <div
