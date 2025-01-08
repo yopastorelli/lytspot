@@ -2,7 +2,7 @@
 export interface PortfolioItem {
   id: string;
   title: string;
-  category: 'festas' | 'empresas' | 'imobiliário' | 'projetos';
+  category: 'festas' | 'empresas' | 'imobiliario' | 'projetos';
   media: { url: string; type: 'image' | 'video' }[];
   description: string;
   tags: string[];
@@ -44,12 +44,12 @@ export const portfolioItems: PortfolioItem[] = [
     date: '2023/2024',
   },
   {
-    id: 'imobiliário',
-    title: 'Ensaio Imobiliário',
-    category: 'imobiliário',
+    id: 'imobiliario',
+    title: 'Ensaio imobiliario',
+    category: 'imobiliario',
     media: [
-      { url: getAssetUrl('images/portfolio/imobiliário/imobiliário1.jpg'), type: 'image' },
-      { url: getAssetUrl('images/portfolio/imobiliário/imobiliário2.jpg'), type: 'image' },
+      { url: getAssetUrl('images/portfolio/imobiliario/imobiliario1.jpg'), type: 'image' },
+      { url: getAssetUrl('images/portfolio/imobiliario/imobiliario2.jpg'), type: 'image' },
     ],
     description: 'Fotos e vídeos de imóveis à venda, aluguel ou divulgação.',
     tags: ['imóveis', 'profissionalismo', 'imagens'],

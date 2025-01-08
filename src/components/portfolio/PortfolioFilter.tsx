@@ -9,7 +9,7 @@ const categories = [
   { id: 'todos', label: 'Todos' },
   { id: 'festas', label: 'Festas' },
   { id: 'empresas', label: 'Empresas' },
-  { id: 'imobiliário', label: 'Imobiliário' },
+  { id: 'imobiliario', label: 'imobiliario' },
   { id: 'projetos', label: 'Projetos' },
 ];
 

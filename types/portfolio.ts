@@ -14,8 +14,8 @@ export const portfolioItemss = [
     thumbnail: '/images/portfolio/imobiliaria.jpg',
     url: 'videos/imobiliaria.mp4',
     type: 'video',
-    description: 'Produção audiovisual para lançamento de empreendimentos imobiliário com alto impacto.',
-    tags: ['Imobiliário', 'Drone', 'Vídeo']
+    description: 'Produção audiovisual para lançamento de empreendimentos imobiliario com alto impacto.',
+    tags: ['imobiliario', 'Drone', 'Vídeo']
   },
   {
     title: 'Projetos Especiais',
