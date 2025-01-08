@@ -4,8 +4,8 @@ import react from '@astrojs/react';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 
 export default defineConfig({
-  output: 'static', // Configuração para saída estática
-  base: process.env.BASE_URL || '/public_html/', // Configura a URL base do site
+  output: 'static', // Gera um site estático
+  base: process.env.BASE_URL || '/', // Define a URL base correta para sites na raiz ou subdiretórios
   build: {
     outDir: 'dist', // Diretório de saída
     async afterBuild() {
@@ -23,8 +23,8 @@ export default defineConfig({
     },
   },
   server: {
-    host: true, // Permite acesso pela rede local
-    port: 4321, // Porta do servidor de desenvolvimento
+    host: true, // Permite conexões externas no servidor local
+    port: 4321, // Porta de desenvolvimento
   },
   vite: {
     resolve: {
@@ -35,7 +35,7 @@ export default defineConfig({
     server: {
       proxy: {
         '/api': {
-          target: 'https://lytspot.onrender.com', // Proxy para o backend
+          target: process.env.API_URL || 'https://lytspot.onrender.com', // Proxy para o backend
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, '/api'),
         },
@@ -43,7 +43,7 @@ export default defineConfig({
     },
   },
   integrations: [
-    tailwind({ config: './tailwind.config.js' }), // Configuração do Tailwind
+    tailwind({ config: './tailwind.config.js' }), // Integração com Tailwind CSS
     react(), // Integração com React
   ],
 });

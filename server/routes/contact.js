@@ -37,24 +37,24 @@ router.post(
     if (!errors.isEmpty()) {
       logger.warn('Validação falhou', { errors: errors.array() });
       return res.status(400).json({
-        errors: errors.array().map(err => ({ field: err.param, message: err.msg })),
+        errors: errors.array().map((err) => ({ field: err.param, message: err.msg })),
       });
     }
 
     const { name, email, message } = req.body;
 
     try {
-      logger.info('Tentando enviar email...', { name, email });
+      logger.info('Tentando enviar e-mail...', { name, email });
       const result = await sendEmail({
-        to: process.env.RECIPIENT_EMAIL,
+        to: process.env.RECIPIENT_EMAIL, // Destinatário configurado na variável de ambiente
         subject: `Novo contato de ${name}`,
         text: `Nome: ${name}\nE-mail: ${email}\nMensagem:\n${message}`,
       });
 
-      logger.info('Email enviado com sucesso', { messageId: result.messageId });
+      logger.info('E-mail enviado com sucesso', { messageId: result.messageId });
       res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
     } catch (error) {
-      logger.error('Erro ao enviar email', { error: error.stack, body: req.body });
+      logger.error('Erro ao enviar e-mail', { error: error.stack, body: req.body });
       res.status(500).json({
         error: 'Erro ao enviar a mensagem. Tente novamente mais tarde.',
       });

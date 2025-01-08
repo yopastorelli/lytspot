@@ -11,6 +11,7 @@ console.log("Inicializando o servidor...");
 
 const app = express();
 const port = process.env.PORT || 3000;
+const baseUrl = process.env.BASE_URL || '/'; // Configuração dinâmica de BASE_URL
 
 // Configuração do logger
 const logger = winston.createLogger({
@@ -20,7 +21,7 @@ const logger = winston.createLogger({
     winston.format.printf(({ timestamp, level, message }) => `${timestamp} [${level.toUpperCase()}]: ${message}`)
   ),
   transports: [
-    new winston.transports.Console(), // Exibe logs no console
+    new winston.transports.Console(),
     new winston.transports.File({ filename: 'error.log', level: 'error' }),
     new winston.transports.File({ filename: 'combined.log' }),
   ],
@@ -34,6 +35,7 @@ try {
   logger.info('Validando variáveis de ambiente...');
   console.log('Validando variáveis de ambiente...');
   const requiredEnvVars = [
+    'BASE_URL',
     'REFRESH_TOKEN',
     'CLIENT_ID',
     'CLIENT_SECRET',
@@ -55,7 +57,7 @@ try {
   logger.info('Configurando middleware...');
   console.log('Configurando middleware...');
   app.use(cors({
-    origin: ['https://lytspot.com.br', 'https://lytspot.onrender.com'], // Domínios permitidos
+    origin: [baseUrl, 'https://lytspot.com.br', 'https://lytspot.onrender.com'], // Domínios permitidos
     methods: ['POST', 'GET', 'OPTIONS'], // Métodos permitidos
   }));  
   app.use(express.json());

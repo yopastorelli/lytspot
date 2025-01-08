@@ -1,12 +1,12 @@
-/// <reference types="astro/client" />
+/// <reference types="vite/client" />
 
-// Define as variáveis de ambiente
+// Declaração de variáveis do ambiente
 interface ImportMetaEnv {
-    readonly BASE_URL: string; // Adicione outras variáveis, se necessário
-    readonly SITE: string;     // Por exemplo, se `SITE` for usada
+    readonly BASE_URL: string; // Adicione outras variáveis conforme necessário
+    readonly [key: string]: string | undefined; // Permite variáveis adicionais
   }
   
   interface ImportMeta {
-    readonly env: ImportMetaEnv;
+    readonly env: ImportMetaEnv; // Extensão da interface para incluir "env"
   }
   

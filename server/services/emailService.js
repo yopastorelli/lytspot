@@ -4,8 +4,12 @@ import winston from 'winston';
 // Configuração do logger
 const logger = winston.createLogger({
   level: 'info',
-  format: winston.format.json(),
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(({ timestamp, level, message }) => `${timestamp} [${level.toUpperCase()}]: ${message}`)
+  ),
   transports: [
+    new winston.transports.Console(),
     new winston.transports.File({ filename: 'error.log', level: 'error' }),
     new winston.transports.File({ filename: 'combined.log' }),
   ],
@@ -30,8 +34,8 @@ function createTransporter() {
 
   return nodemailer.createTransport({
     host: SMTP_HOST,
-    port: parseInt(SMTP_PORT, 10) || 587,
-    secure: SMTP_SECURE === 'true',
+    port: parseInt(SMTP_PORT, 10) || 587, // Porta padrão 587 para SMTP
+    secure: SMTP_SECURE === 'true', // Conexão segura baseada na variável de ambiente
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
@@ -59,12 +63,12 @@ export async function sendEmail({ to, subject, text, html }) {
   };
 
   try {
-    logger.info('Iniciando envio de email', { to, subject });
+    logger.info('Iniciando envio de e-mail', { to, subject });
     const result = await transporter.sendMail(mailOptions);
-    logger.info('Email enviado com sucesso', { messageId: result.messageId });
+    logger.info('E-mail enviado com sucesso', { messageId: result.messageId });
     return result;
   } catch (error) {
-    logger.error('Erro ao enviar email', { to, subject, error });
-    throw error;
+    logger.error('Erro ao enviar e-mail', { to, subject, error: error.message });
+    throw new Error('Erro ao enviar e-mail. Verifique as configurações e tente novamente.');
   }
 }
