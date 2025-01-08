@@ -21,8 +21,8 @@ function getAssetUrl(path: string): string {
 export const portfolioItems: PortfolioItem[] = [
   {
     id: 'festas',
-    title: 'festas',
-    category: 'festas',
+    title: 'Festas e comemorações',
+    category: 'Festas',
     media: [
       { url: getAssetUrl('images/portimages/festas/festas1.jpg'), type: 'image' },
       { url: getAssetUrl('images/portimages/festas/festas2.jpg'), type: 'image' },
@@ -33,7 +33,7 @@ export const portfolioItems: PortfolioItem[] = [
   },
   {
     id: 'empresas',
-    title: 'Divulgação empresarial',
+    title: 'Imagens empresariais',
     category: 'empresas',
     media: [
       { url: getAssetUrl('images/portimages/empresas/empresas1.jpeg'), type: 'image' },
@@ -44,7 +44,7 @@ export const portfolioItems: PortfolioItem[] = [
   },
   {
     id: 'imobiliario',
-    title: 'Ensaio imobiliario',
+    title: 'Registros imobiliários',
     category: 'imobiliario',
     media: [
       { url: getAssetUrl('images/portimages/imobiliario/imobiliario1.jpg'), type: 'image' },

@@ -10,9 +10,8 @@ const menuItems = [
   { href: '/contato', text: 'Contato' }
 ];
 
-const currentPath = Astro.url.pathname; // Pega o caminho atual da URL
+const currentPath = Astro.url.pathname; // Isso deve funcionar corretamente em um componente .astro
 ---
-
 <header class="bg-dark/80 backdrop-blur-md fixed w-full z-50 border-b border-gray-700/50">
   <Container>
     <div class="py-4 flex justify-between items-center">
