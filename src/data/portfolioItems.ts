@@ -14,7 +14,7 @@ export interface PortfolioItem {
 function getAssetUrl(path: string): string {
   // Adiciona 'public/' explicitamente para garantir o carregamento correto
   const baseUrl = import.meta.env?.BASE_URL || '/';
-  return `${baseUrl}public/${path}`;
+  return `${baseUrl}${path}`;
 }
 
 // Itens reais do portfólio
