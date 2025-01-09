@@ -11,7 +11,7 @@ html {
 }
 
 body {
-  @apply bg-gray-900 text-gray-100 font-sans leading-relaxed; /* Substitui bg-dark */
+  @apply bg-gray-900 text-gray-100 font-sans leading-relaxed;
 }
 
 .container {
@@ -29,11 +29,10 @@ body {
 
 /* Grades */
 .grid {
-  @apply gap-8; /* Remove grid direto */
+  @apply gap-8;
 }
 
 .grid-cols-2 {
-  /* Removida a aplicação de @apply md:grid-cols-2 */
   display: grid;
   grid-template-columns: repeat(1, 1fr);
 }
@@ -45,7 +44,6 @@ body {
 }
 
 .grid-cols-3 {
-  /* Removida a aplicação de @apply md:grid-cols-3 */
   display: grid;
   grid-template-columns: repeat(1, 1fr);
 }
@@ -100,6 +98,10 @@ small {
   @apply border-2 border-primary text-primary hover:bg-primary hover:text-white hover:shadow-md;
 }
 
+.btn:focus {
+  @apply outline-none ring-2 ring-offset-2 ring-primary;
+}
+
 /* Cartões e Seções */
 .card {
   @apply bg-neutral-light rounded-lg p-6 shadow-lg transition-transform duration-200;
@@ -121,18 +123,18 @@ small {
 .portfolio-grid {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(1, 1fr); /* Configuração inicial */
+  grid-template-columns: repeat(1, 1fr);
 }
 
 @media (min-width: 768px) {
   .portfolio-grid {
-    grid-template-columns: repeat(2, 1fr); /* Configuração para telas médias */
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (min-width: 1024px) {
   .portfolio-grid {
-    grid-template-columns: repeat(3, 1fr); /* Configuração para telas grandes */
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
