@@ -190,8 +190,10 @@ export default function ContactForm() {
           }`}
         >
           <option value="">Selecione um serviço</option>
-          <option value="Serviço 1">Serviço 1</option>
-          <option value="Serviço 2">Serviço 2</option>
+          <option value="Festas">Serviço 1</option>
+          <option value="Empresa">Serviço 2</option>
+          <option value="Imobiliario">Serviço 3</option>
+          <option value="Projetos">Serviço 4</option>
         </select>
         {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
       </div>
