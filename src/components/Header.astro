@@ -11,7 +11,7 @@ const menuItems = [
 ];
 
 // Acessa o pathname da URL atual corretamente
-const currentPath = Astro.request.url.pathname;
+const currentPath = new URL(Astro.request.url).pathname;
 ---
 <header class="bg-dark/80 backdrop-blur-md fixed w-full z-50 border-b border-gray-700/50">
   <Container>
