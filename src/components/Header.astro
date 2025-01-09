@@ -16,10 +16,12 @@ const currentPath = new URL(Astro.request.url).pathname;
 <header class="bg-dark/80 backdrop-blur-md fixed w-full z-50 border-b border-gray-700/50">
   <Container>
     <div class="py-4 flex justify-between items-center">
+      <!-- Logo -->
       <a href="/" class="text-2xl font-bold text-white flex items-center gap-2">
         <img src="/images/Branco fundo transparente.png" alt="LYTSPOT" class="h-16" />
       </a>
 
+      <!-- Menu Desktop -->
       <nav class="hidden md:flex space-x-6">
         {menuItems.map(item => (
           <a 
@@ -31,11 +33,12 @@ const currentPath = new URL(Astro.request.url).pathname;
         ))}
       </nav>
 
+      <!-- Botão Desktop -->
       <Button variant="primary" href="/contato">
         Orçamento
       </Button>
 
-      <!-- Adicionar botão de menu para dispositivos móveis -->
+      <!-- Botão de Menu Mobile -->
       <div class="md:hidden">
         <button id="mobile-menu-button" aria-label="Abrir menu" class="text-white focus:outline-none focus:ring-2 focus:ring-primary">
           <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -44,5 +47,32 @@ const currentPath = new URL(Astro.request.url).pathname;
         </button>
       </div>
     </div>
+
+    <!-- Menu Mobile -->
+    <nav id="mobile-menu" class="hidden md:hidden bg-dark w-full py-4 space-y-4">
+      {menuItems.map(item => (
+        <a 
+          href={item.href}
+          class={`block text-gray-200 hover:text-white transition-colors px-4 ${item.href === currentPath ? 'text-white font-semibold underline' : ''}`}
+        >
+          {item.text}
+        </a>
+      ))}
+    </nav>
   </Container>
+
+  <!-- Script de alternância -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const menuButton = document.getElementById('mobile-menu-button');
+      const mobileMenu = document.getElementById('mobile-menu');
+
+      if (menuButton && mobileMenu) {
+        menuButton.addEventListener('click', () => {
+          mobileMenu.classList.toggle('hidden');
+          mobileMenu.classList.toggle('block');
+        });
+      }
+    });
+  </script>
 </header>
