@@ -11,50 +11,133 @@ html {
 }
 
 body {
-  @apply bg-dark text-gray-100;
+  @apply bg-gray-900 text-gray-100 font-sans leading-relaxed; /* Substitui bg-dark */
 }
 
 .container {
   @apply max-w-7xl mx-auto px-4;
 }
 
-/* Custom Components */
+/* Espaçamento Global */
+.section {
+  @apply py-12;
+}
+
+.section + .section {
+  @apply mt-12;
+}
+
+/* Grades */
+.grid {
+  @apply gap-8; /* Remove grid direto */
+}
+
+.grid-cols-2 {
+  /* Removida a aplicação de @apply md:grid-cols-2 */
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+}
+
+@media (min-width: 768px) {
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.grid-cols-3 {
+  /* Removida a aplicação de @apply md:grid-cols-3 */
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+}
+
+@media (min-width: 768px) {
+  .grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Tipografia */
+h1 {
+  @apply text-4xl font-bold leading-tight text-primary;
+}
+
+h2 {
+  @apply text-3xl font-semibold leading-snug text-secondary;
+}
+
+h3 {
+  @apply text-2xl font-medium leading-normal text-neutral-dark;
+}
+
+p {
+  @apply text-base leading-relaxed text-gray-300;
+}
+
+small {
+  @apply text-sm leading-normal text-gray-500;
+}
+
+/* Botões */
 .btn {
-  @apply px-6 py-3 rounded-lg font-medium transition-colors duration-200;
+  @apply px-6 py-3 rounded-lg font-medium transition-colors duration-200 shadow-md;
 }
 
 .btn-primary {
-  @apply bg-primary-light text-white hover:bg-primary-light/90;
+  @apply bg-primary text-white hover:bg-primary-dark hover:shadow-lg;
 }
 
 .btn-secondary {
-  @apply bg-secondary text-white hover:bg-secondary-light;
+  @apply bg-secondary text-white hover:bg-secondary-dark hover:shadow-lg;
 }
 
 .btn-outline {
-  @apply border-2 border-primary-light text-primary-light hover:bg-primary-light hover:text-white;
+  @apply border-2 border-primary text-primary hover:bg-primary hover:text-white hover:shadow-md;
 }
 
-/* Cards and Sections */
+/* Cartões e Seções */
 .card {
-  @apply bg-dark-lighter rounded-lg p-6 shadow-lg;
+  @apply bg-neutral-light rounded-lg p-6 shadow-lg transition-transform duration-200;
+}
+
+.card:hover {
+  @apply transform scale-105 shadow-xl;
 }
 
 .section-title {
-  @apply text-3xl md:text-4xl font-bold mb-4 text-white;
+  @apply text-3xl md:text-4xl font-bold mb-4 text-primary;
 }
 
 .section-subtitle {
-  @apply text-xl text-gray-300 mb-4; /* Reduzimos de mb-8 para mb-4 */
+  @apply text-xl text-secondary mb-4;
 }
 
-/* Portfolio Grid */
+/* Portfólio */
 .portfolio-grid {
-  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4; /* Reduzimos a margem superior */
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(1, 1fr); /* Configuração inicial */
+}
+
+@media (min-width: 768px) {
+  .portfolio-grid {
+    grid-template-columns: repeat(2, 1fr); /* Configuração para telas médias */
+  }
+}
+
+@media (min-width: 1024px) {
+  .portfolio-grid {
+    grid-template-columns: repeat(3, 1fr); /* Configuração para telas grandes */
+  }
 }
 
 .portfolio-item {
-  @apply relative cursor-pointer overflow-hidden rounded-lg;
+  @apply relative cursor-pointer overflow-hidden rounded-lg shadow-md;
 }
 
 .portfolio-item img {
@@ -66,19 +149,18 @@ body {
 }
 
 .portfolio-item-overlay {
-  @apply absolute inset-0 bg-black/50 opacity-0 transition-opacity 
-         flex items-center justify-center;
+  @apply absolute inset-0 bg-black/50 opacity-0 transition-opacity flex items-center justify-center;
 }
 
 .portfolio-item:hover .portfolio-item-overlay {
   @apply opacity-100;
 }
 
-/* Dark Theme Specific */
+/* Tema Escuro */
 .gradient-dark {
-  @apply bg-gradient-to-b from-gray-900 to-dark;
+  @apply bg-gradient-to-b from-gray-900 to-gray-800;
 }
 
 .text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-light to-secondary;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
 }

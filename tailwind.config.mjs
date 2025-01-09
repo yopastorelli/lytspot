@@ -5,27 +5,29 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#041424',
-          light: '#3c4c54',
+          DEFAULT: '#1A73E8', // Novo azul primário mais vibrante
+          light: '#4A90E2', // Tom claro para contrastar
+          dark: '#0C47A1', // Tom mais escuro para elementos destacados
         },
         secondary: {
-          DEFAULT: '#2d3b44',
-          light: '#3c4454',
+          DEFAULT: '#FFB74D', // Novo laranja secundário para contraste
+          light: '#FFD080',
+          dark: '#E6932D',
+        },
+        neutral: {
+          light: '#F5F5F5', // Tons neutros reformulados
+          DEFAULT: '#E0E0E0',
+          dark: '#9E9E9E',
+        },
+        success: {
+          DEFAULT: '#4CAF50', // Verde para feedback positivo
         },
         dark: {
-          DEFAULT: '#041424',
-          lighter: '#1c2c34',
+          DEFAULT: '#121212', // Um tom escuro para o fundo
+          lighter: '#1E1E1E', // Alternativa mais clara, se necessário
         },
-        gray: {
-          100: '#bdc0c4',
-          200: '#848c92',
-          300: '#7c848c',
-          400: '#606b71',
-          500: '#3c4c54',
-          600: '#2d3b44',
-          700: '#1c2c34',
-          800: '#041424',
-          900: '#020a12',
+        error: {
+          DEFAULT: '#F44336', // Vermelho para feedback negativo
         },
       },
       fontFamily: {
