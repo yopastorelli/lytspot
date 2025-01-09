@@ -194,6 +194,7 @@ export default function ContactForm() {
           <option value="Serviço 2">Imagens corporativas</option>
           <option value="Serviço 3">Registros imobiliários</option>
           <option value="Serviço 4">Projetos especiais</option>
+          <option value="Serviço 5">Outros assuntos</option>
         </select>
         {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
       </div>
