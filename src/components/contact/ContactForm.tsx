@@ -192,7 +192,7 @@ export default function ContactForm() {
           <option value="">Selecione um serviço</option>
           <option value="Serviço 1">Festas e comemorações</option>
           <option value="Serviço 2">Imagens corporativas</option>
-          <option value="Serviço 3">Registros imobiliários</option>
+          <option value="Serviço 3">Registros Arquiteturas</option>
           <option value="Serviço 4">Projetos especiais</option>
           <option value="Serviço 5">Outros assuntos</option>
         </select>

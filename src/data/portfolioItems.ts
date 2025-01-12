@@ -2,7 +2,7 @@
 export interface PortfolioItem {
   id: string;
   title: string;
-  category: 'festas' | 'empresas' | 'imobiliario' | 'projetos';
+  category: 'festas' | 'empresas' | 'arquitetura' | 'projetos';
   media: { url: string; type: 'image' | 'video' }[];
   description: string;
   tags: string[];
@@ -43,12 +43,12 @@ export const portfolioItems: PortfolioItem[] = [
     date: '2023/2024',
   },
   {
-    id: 'imobiliario',
-    title: 'Registros imobiliários',
-    category: 'imobiliario',
+    id: 'arquitetura',
+    title: 'Registros Arquiteturas',
+    category: 'arquitetura',
     media: [
-      { url: getAssetUrl('images/portimages/imobiliario/imobiliario1.jpg'), type: 'image' },
-      { url: getAssetUrl('images/portimages/imobiliario/imobiliario2.jpg'), type: 'image' },
+      { url: getAssetUrl('images/portimages/arquitetura/arquitetura1.jpg'), type: 'image' },
+      { url: getAssetUrl('images/portimages/arquitetura/arquitetura2.jpg'), type: 'image' },
     ],
     description: 'Fotos e vídeos de imóveis à venda, aluguel ou divulgação.',
     tags: ['imóveis', 'profissionalismo', 'imagens'],
