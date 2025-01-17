@@ -69,7 +69,7 @@ export const portfolioItems: PortfolioItem[] = [
     title: 'Palco e Festivais',
     category: 'palco',
     media: [
-      { url: getAssetUrl('images/portimages/arquitetura/palco1.jpeg'), type: 'image' },
+      { url: getAssetUrl('images/portimages/palco/palco1.jpeg'), type: 'image' },
     ],
     description: 'Shows, festivais e apresentações de todo tipo',
     tags: ['shows', 'festivais', 'apresentações'],
