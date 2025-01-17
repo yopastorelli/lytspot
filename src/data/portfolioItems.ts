@@ -67,7 +67,7 @@ export const portfolioItems: PortfolioItem[] = [
   {
     id: 'palco',
     title: 'Palco e Festivais',
-    category: 'arquitetura',
+    category: 'palco',
     media: [
       { url: getAssetUrl('images/portimages/arquitetura/palco1.jpeg'), type: 'image' },
     ],
