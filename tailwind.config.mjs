@@ -1,13 +1,19 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}', './public/**/*.html'],
+  content: [
+    './src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}',
+    './public/**/*.html',
+    './index.astro',
+    './src/components/**/*.{astro,js,jsx,ts,tsx}',
+    './src/layouts/**/*.{astro,js,jsx,ts,tsx}'
+  ],
   theme: {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#1A73E8', // Novo azul primário mais vibrante
+          DEFAULT: '#000430', // Novo azul primário mais vibrante
           light: '#4A90E2', // Tom claro para contrastar
-          dark: '#0C47A1', // Tom mais escuro para elementos destacados
+          dark: '#051520', // Tom mais escuro para elementos destacados
         },
         secondary: {
           DEFAULT: '#FFB74D', // Novo laranja secundário para contraste
@@ -24,14 +30,14 @@ export default {
         },
         dark: {
           DEFAULT: '#121212', // Um tom escuro para o fundo
-          lighter: '#1E1E1E', // Alternativa mais clara, se necessário
+          lighter: '#051520', // Alternativa mais clara, se necessário
         },
         error: {
           DEFAULT: '#F44336', // Vermelho para feedback negativo
         },
       },
       fontFamily: {
-        sans: ['Inter', 'Arial', 'sans-serif'],
+        sans: ['Nunito', 'Arial', 'sans-serif'],
         serif: ['Merriweather', 'Georgia', 'serif'],
       },
     },

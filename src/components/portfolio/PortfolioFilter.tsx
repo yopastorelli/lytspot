@@ -19,7 +19,7 @@ export default function PortfolioFilter({
   onCategoryChange,
 }: PortfolioFilterProps) {
   return (
-    <div className="flex flex-wrap gap-4 justify-center mb-6">
+    <div className="flex flex-wrap gap-4 justify-center mt-0 mb-6">
       {categories.map((category) => (
         <button
           key={category.id}
