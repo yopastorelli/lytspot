@@ -6,6 +6,7 @@ import Button from './common/Button';
 <section class="relative h-screen flex items-center justify-center">
   <div class="absolute inset-0 z-0">
     <video 
+      id="hero-video"
       autoplay 
       loop 
       muted 
@@ -35,4 +36,17 @@ import Button from './common/Button';
       </div>
     </div>
   </Container>
+
+  <!-- Script para definir ponto de início aleatório -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const video = document.getElementById('hero-video') as HTMLVideoElement;
+      if (video) {
+        video.addEventListener('loadedmetadata', () => {
+          const randomTime = Math.random() * video.duration;
+          video.currentTime = randomTime;
+        });
+      }
+    });
+  </script>
 </section>
