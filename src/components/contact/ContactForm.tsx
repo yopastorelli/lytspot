@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { validateEmail, validatePhone, validateRequired } from "../../utils/validation";
+import React, { useState } from 'react';
+import { validateEmail, validatePhone, validateRequired } from '../../utils/validation';
 
 interface FormData {
   name: string;
@@ -123,7 +123,7 @@ export default function ContactForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Nome */}
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-200 mb-1">
+        <label htmlFor="name" className="block text-sm font-medium text-dark-lighter mb-1">
           Nome
         </label>
         <input
@@ -141,7 +141,7 @@ export default function ContactForm() {
 
       {/* E-mail */}
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1">
+        <label htmlFor="email" className="block text-sm font-medium text-dark-lighter mb-1">
           E-mail
         </label>
         <input
@@ -159,7 +159,7 @@ export default function ContactForm() {
 
       {/* Telefone */}
       <div>
-        <label htmlFor="phone" className="block text-sm font-medium text-gray-200 mb-1">
+        <label htmlFor="phone" className="block text-sm font-medium text-dark-lighter mb-1">
           Telefone
         </label>
         <input
@@ -177,7 +177,7 @@ export default function ContactForm() {
 
       {/* Serviço */}
       <div>
-        <label htmlFor="service" className="block text-sm font-medium text-gray-200 mb-1">
+        <label htmlFor="service" className="block text-sm font-medium text-dark-lighter mb-1">
           Serviço
         </label>
         <select
@@ -192,16 +192,18 @@ export default function ContactForm() {
           <option value="">Selecione um serviço</option>
           <option value="Serviço 1">Festas e comemorações</option>
           <option value="Serviço 2">Imagens corporativas</option>
-          <option value="Serviço 3">Registros Arquiteturas</option>
+          <option value="Serviço 3">Arquitetura</option>
           <option value="Serviço 4">Projetos especiais</option>
-          <option value="Serviço 5">Outros assuntos</option>
+          <option value="Serviço 5">Aventuras em família</option>
+          <option value="Serviço 6">Aventuras entre amigos</option>
+          <option value="Serviço 7">Outros assuntos</option>
         </select>
         {errors.service && <p className="text-red-500 text-sm mt-1">{errors.service}</p>}
       </div>
 
       {/* Mensagem */}
       <div>
-        <label htmlFor="message" className="block text-sm font-medium text-gray-200 mb-1">
+        <label htmlFor="message" className="block text-sm font-medium text-dark-lighter mb-1">
           Mensagem
         </label>
         <textarea

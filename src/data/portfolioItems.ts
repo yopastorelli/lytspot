@@ -54,7 +54,7 @@ export const portfolioItems: PortfolioItem[] = [
   },
   {
     id: 'arquitetura',
-    title: 'Registros Arquiteturas',
+    title: 'Arquitetura',
     category: 'arquitetura',
     media: [
       { url: getAssetUrl('images/portimages/arquitetura/arquitetura1.jpeg'), type: 'image' },

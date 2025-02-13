@@ -29,11 +29,11 @@ export default {
           DEFAULT: '#4CAF50', // Verde para feedback positivo
         },
         dark: {
-          DEFAULT: '#121212', // Um tom escuro para o fundo
+          DEFAULT: '#ffffff', // Um tom escuro para o fundo
           lighter: '#051520', // Alternativa mais clara, se necessário
         },
         error: {
-          DEFAULT: '#F44336', // Vermelho para feedback negativo
+          DEFAULT: '#F44336', // Vermelho para feedback negativo.
         },
       },
       fontFamily: {

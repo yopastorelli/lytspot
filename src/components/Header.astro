@@ -17,8 +17,8 @@ const currentPath = new URL(Astro.request.url).pathname;
   <Container>
     <div class="py-4 flex justify-between items-center">
       <!-- Logo -->
-      <a href="/" class="text-2xl font-bold text-white flex items-center gap-2">
-        <img src="/images/Branco fundo transparente.png" alt="LYTSPOT" class="h-16" />
+      <a href="/" class="text-2xl font-bold text-dark-lighter flex items-center gap-2">
+        <img src="/images/azul fundo branco.png" alt="LYTSPOT" class="h-16" />
       </a>
 
       <!-- Menu Desktop -->
@@ -26,7 +26,7 @@ const currentPath = new URL(Astro.request.url).pathname;
         {menuItems.map(item => (
           <a 
             href={item.href}
-            class={`text-gray-200 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${item.href === currentPath ? 'text-white font-semibold underline' : ''}`}
+            class={`text-gray-200 hover:text-primary-light transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${item.href === currentPath ? 'text-primary-light font-semibold underline' : ''}`}
           >
             {item.text}
           </a>
@@ -40,7 +40,7 @@ const currentPath = new URL(Astro.request.url).pathname;
 
       <!-- Botão de Menu Mobile -->
       <div class="md:hidden">
-        <button id="mobile-menu-button" aria-label="Abrir menu" class="text-white focus:outline-none focus:ring-2 focus:ring-primary">
+        <button id="mobile-menu-button" aria-label="Abrir menu" class="text-dark-lighter focus:outline-none focus:ring-2 focus:ring-primary">
           <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
@@ -53,7 +53,7 @@ const currentPath = new URL(Astro.request.url).pathname;
       {menuItems.map(item => (
         <a 
           href={item.href}
-          class={`block text-gray-200 hover:text-white transition-colors px-4 ${item.href === currentPath ? 'text-white font-semibold underline' : ''}`}
+          class={`block text-dark-lighter hover:black transition-colors px-4 ${item.href === currentPath ? 'text-primary-light font-semibold underline' : ''}`}
         >
           {item.text}
         </a>
