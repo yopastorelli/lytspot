@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 
 const basePath = path.resolve(__dirname, '../public/images/portimages');
 const categories = ['aventuras', 'arquitetura', 'empresas', 'festasepalco', 'projetos'];
@@ -34,7 +34,7 @@ const generatePortfolioItems = (): PortfolioItem[] => {
     if (fs.existsSync(categoryPath)) {
       const files = fs.readdirSync(categoryPath);
 
-      files.forEach((file) => {
+      files.forEach((file: string) => {
         const filePath = path.join(categoryPath, file);
         const fileType = path.extname(file).toLowerCase() === '.mp4' ? 'video' : 'image';
         media.push({ url: getAssetUrl(`images/portimages/${category}/${file}`), type: fileType });

@@ -2,11 +2,11 @@
   "name": "lytspot",
   "version": "1.0.0",
   "scripts": {
-    "dev": "nodemon --watch public/images/portimages --exec \"npm run generate-portfolio\"",
+    "dev": "npm run generate-portfolio && astro dev",
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "astro build && npx gh-pages -d dist -b gh-pages",
-    "generate-portfolio": "node scripts/generatePortfolioItems.ts",
+    "generate-portfolio": "ts-node scripts/generatePortfolioItems.ts",
     "start": "npm run generate-portfolio && your-start-script-here"
   },
   "dependencies": {
@@ -32,7 +32,8 @@
     "@types/react-dom": "^18.3.5",
     "typescript": "^5.1.6",
     "vitest": "^0.30.0",
-    "nodemon": "^2.0.15"
+    "nodemon": "^2.0.15",
+    "ts-node": "^10.9.1"
   },
   "resolutions": {
     "@types/react": "^18.0.38",

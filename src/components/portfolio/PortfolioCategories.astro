@@ -1,4 +1,5 @@
 ---
+// filepath: /C:/Users/danie/OneDrive/Documentos/GitHub/lytspot/src/components/portfolio/PortfolioCategories.astro
 import Container from '../common/Container';
 
 const categories = [
@@ -17,7 +18,7 @@ const categories = [
       {categories.map(category => (
         <button
           class="px-6 py-2 rounded-full bg-white text-black hover:bg-gray-200"
-          {...{ key: category.id }}
+          onclick={`showAllPhotos('${category.id}')`}
         >
           {category.label}
         </button>
@@ -25,3 +26,31 @@ const categories = [
     </div>
   </Container>
 </div>
+
+<div class="photo-gallery"></div>
+
+<script>
+  function showAllPhotos(category: string) {
+    const allPhotos: { [key: string]: string[] } = {
+      aventuras: ['aventura1.jpg', 'aventura2.jpg'],
+      arquitetura: ['arquitetura1.jpg'],
+      empresas: ['empresa1.jpg'],
+      festasepalco: ['festa1.jpg'],
+      projetos: ['projeto1.jpg'],
+    };
+
+    let photosToShow: string[] = [];
+    if (category === 'todos') {
+      photosToShow = Object.values(allPhotos).flat();
+    } else {
+      photosToShow = allPhotos[category] || [];
+    }
+
+    const photoGallery = document.querySelector('.photo-gallery');
+    if (photoGallery) {
+      photoGallery.innerHTML = photosToShow
+        .map((photo: string) => `<img src="${photo}" alt="${photo}" class="portfolio-imagem" />`)
+        .join('');
+    }
+  }
+</script>
