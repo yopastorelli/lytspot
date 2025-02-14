@@ -2,7 +2,7 @@
 export interface PortfolioItem {
   id: string;
   title: string;
-  category: 'festas' | 'empresas' | 'arquitetura' | 'palco' | 'projetos';
+  category: 'aventuras' | 'festasepalco' | 'empresas' | 'arquitetura' | 'palco' | 'projetos';
   media: { url: string; type: 'image' | 'video' }[];
   description: string;
   tags: string[];
@@ -20,21 +20,31 @@ function getAssetUrl(path: string): string {
 // Itens reais do portfolio
 export const portfolioItems: PortfolioItem[] = [
   {
-    id: 'festas',
-    title: 'Festas e comemorações',
-    category: 'festas',
+    id: '1',
+    title: 'aventuras',
+    category: 'aventuras',
     media: [
-      { url: getAssetUrl('images/portimages/festas/festas1.jpeg'), type: 'image' },
-      { url: getAssetUrl('images/portimages/festas/festas2.jpeg'), type: 'image' },
-      { url: getAssetUrl('images/portimages/festas/festas3.jpeg'), type: 'image' },
-      { url: getAssetUrl('images/portimages/festas/festas4.jpeg'), type: 'image' },
+      { url: getAssetUrl('images/portimages/aventuras/aventuras1.jpeg'), type: 'image' },
+      { url: getAssetUrl('images/portimages/aventuras/aventuras2.jpeg'), type: 'image' },
     ],
-    description: 'Festa de Aniversário em condições ideais.',
-    tags: ['infantil', 'festa', 'aniversário'],
+    description: 'aventuras e viagens incríveis capturadas em fotos e vídeos.',
+    tags: ['viagem', 'aventuras', 'familia', 'amigos'],
+    date: '2025',
+  },
+  {
+    id: '2',
+    title: 'Arquitetura',
+    category: 'arquitetura',
+    media: [
+      { url: getAssetUrl('images/portimages/arquitetura/arquitetura1.jpeg'), type: 'image' },
+      { url: getAssetUrl('images/portimages/arquitetura/arquitetura2.jpeg'), type: 'image' },
+    ],
+    description: 'Fotos e vídeos de imóveis à venda, aluguel ou divulgação.',
+    tags: ['imóveis', 'profissionalismo', 'imagens'],
     date: '2023/2024',
   },
   {
-    id: 'empresas',
+    id: '3',
     title: 'Imagens empresariais',
     category: 'empresas',
     media: [
@@ -53,30 +63,22 @@ export const portfolioItems: PortfolioItem[] = [
     date: '2023/2024',
   },
   {
-    id: 'arquitetura',
-    title: 'Arquitetura',
-    category: 'arquitetura',
+    id: '4',
+    title: 'Festas e Palco',
+    category: 'festasepalco',
     media: [
-      { url: getAssetUrl('images/portimages/arquitetura/arquitetura1.jpeg'), type: 'image' },
-      { url: getAssetUrl('images/portimages/arquitetura/arquitetura2.jpeg'), type: 'image' },
-    ],
-    description: 'Fotos e vídeos de imóveis à venda, aluguel ou divulgação.',
-    tags: ['imóveis', 'profissionalismo', 'imagens'],
-    date: '2023/2024',
-  },
-  {
-    id: 'palco',
-    title: 'Palco e Festivais',
-    category: 'palco',
-    media: [
+      { url: getAssetUrl('images/portimages/festas/festas1.jpeg'), type: 'image' },
+      { url: getAssetUrl('images/portimages/festas/festas2.jpeg'), type: 'image' },
+      { url: getAssetUrl('images/portimages/festas/festas3.jpeg'), type: 'image' },
+      { url: getAssetUrl('images/portimages/festas/festas4.jpeg'), type: 'image' },
       { url: getAssetUrl('images/portimages/palco/palco1.jpeg'), type: 'image' },
     ],
-    description: 'Shows, festivais e apresentações de todo tipo',
-    tags: ['shows', 'festivais', 'apresentações'],
+    description: 'Festa de Aniversário em condições ideais.',
+    tags: ['infantil', 'festa', 'aniversário', 'palco', 'shows', 'festivais', 'apresentações'],
     date: '2023/2024',
   },
   {
-    id: 'projetos',
+    id: '5',
     title: 'Projetos Especiais',
     category: 'projetos',
     media: [

@@ -2,10 +2,12 @@
   "name": "lytspot",
   "version": "1.0.0",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "nodemon --watch public/images/portimages --exec \"npm run generate-portfolio\"",
     "build": "astro build",
     "preview": "astro preview",
-    "deploy": "astro build && npx gh-pages -d dist -b gh-pages"
+    "deploy": "astro build && npx gh-pages -d dist -b gh-pages",
+    "generate-portfolio": "node scripts/generatePortfolioItems.ts",
+    "start": "npm run generate-portfolio && your-start-script-here"
   },
   "dependencies": {
     "@astrojs/react": "^3.0.0",
@@ -29,7 +31,8 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "typescript": "^5.1.6",
-    "vitest": "^0.30.0"
+    "vitest": "^0.30.0",
+    "nodemon": "^2.0.15"
   },
   "resolutions": {
     "@types/react": "^18.0.38",

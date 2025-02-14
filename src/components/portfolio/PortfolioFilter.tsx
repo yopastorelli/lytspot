@@ -7,10 +7,10 @@ interface PortfolioFilterProps {
 
 const categories = [
   { id: 'todos', label: 'TODOS' },
-  { id: 'festas', label: 'Festas' },
-  { id: 'empresas', label: 'Empresas' },
+  { id: 'aventuras', label: 'Aventuras' },
   { id: 'arquitetura', label: 'Arquitetura' },
-  { id: 'palco', label: 'Palco' },
+  { id: 'empresas', label: 'Empresas' },
+  { id: 'festasepalco', label: 'Festas e Palco' },
   { id: 'projetos', label: 'Projetos' },
 ];
 
