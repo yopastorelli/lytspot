@@ -20,10 +20,10 @@ const currentPath = new URL(Astro.request.url).pathname;
         <img src="/images/azul fundo branco.png" alt="LYTSPOT" class="h-14" />
       </a>
 
-      <!-- Mobile menu button -->
+      <!-- Mobile menu button - Melhorado -->
       <button
         id="menu-toggle"
-        class="md:hidden text-neutral hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary p-2"
+        class="md:hidden text-neutral hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary p-2 rounded-md transition-all duration-300 ease-in-out"
         aria-label="Toggle menu"
       >
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,6 +32,7 @@ const currentPath = new URL(Astro.request.url).pathname;
             stroke-linejoin="round"
             stroke-width="2"
             d="M4 6h16M4 12h16M4 18h16"
+            class="transition-transform duration-300"
           ></path>
         </svg>
       </button>
@@ -50,61 +51,99 @@ const currentPath = new URL(Astro.request.url).pathname;
           Contato
         </Button>
       </div>
-
-      <!-- Mobile menu -->
-      <div
-        id="mobile-menu"
-        class="hidden fixed inset-0 z-50 bg-light/95 backdrop-blur-sm md:hidden"
-      >
-        <Container>
-          <div class="flex flex-col items-center justify-center min-h-screen gap-8 py-20">
-            <!-- Close button -->
-            <button
-              id="close-menu"
-              class="absolute top-6 right-6 text-neutral hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary p-2"
-              aria-label="Close menu"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                ></path>
-              </svg>
-            </button>
-
-            {menuItems.map(item => (
-              <a 
-                href={item.href}
-                class={`text-xl text-neutral hover:text-primary transition-colors ${item.href === currentPath ? 'text-primary font-semibold' : ''}`}
-              >
-                {item.text}
-              </a>
-            ))}
-            <Button variant="primary" href="/contato" size="lg">
-              Contato
-            </Button>
-          </div>
-        </Container>
-      </div>
     </nav>
   </Container>
+
+  <!-- Mobile menu - Completamente redesenhado -->
+  <div
+    id="mobile-menu"
+    class="hidden fixed top-0 right-0 w-full md:w-80 h-screen z-50 bg-light shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out md:hidden"
+  >
+    <div class="flex flex-col h-full p-6 overflow-y-auto">
+      <div class="flex justify-between items-center mb-8">
+        <a href="/" class="text-xl font-bold text-primary">
+          <img src="/images/azul fundo branco.png" alt="LYTSPOT" class="h-10" />
+        </a>
+        <!-- Close button - Melhorado -->
+        <button
+          id="close-menu"
+          class="text-neutral hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary p-2 rounded-full transition-all duration-300 ease-in-out transform hover:rotate-90"
+          aria-label="Close menu"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            ></path>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Menu Items - Redesenhado -->
+      <div class="flex flex-col space-y-6 mt-4">
+        {menuItems.map(item => (
+          <a 
+            href={item.href}
+            class={`text-lg font-medium text-neutral hover:text-primary transition-colors border-b border-gray-200 pb-2 ${item.href === currentPath ? 'text-primary font-semibold' : ''}`}
+          >
+            {item.text}
+          </a>
+        ))}
+        <div class="pt-4">
+          <Button variant="primary" href="/contato" size="lg" class="w-full justify-center">
+            Contato
+          </Button>
+        </div>
+      </div>
+      
+      <!-- Informações de contato no menu -->
+      <div class="mt-auto pt-8 border-t border-gray-200">
+        <p class="text-sm text-neutral mb-2 font-medium">Entre em contato:</p>
+        <a href="mailto:contato@lytspot.com.br" class="text-sm text-primary hover:underline block mb-1">
+          contato@lytspot.com.br
+        </a>
+        <a href="tel:+5541998880303" class="text-sm text-primary hover:underline block">
+          +55 (41) 99888-0303
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay para o fundo quando o menu está aberto -->
+  <div id="menu-overlay" class="hidden fixed inset-0 bg-dark/50 z-40 md:hidden backdrop-blur-sm"></div>
 
   <script>
     const menuToggle = document.getElementById('menu-toggle');
     const mobileMenu = document.getElementById('mobile-menu');
     const closeMenu = document.getElementById('close-menu');
+    const menuOverlay = document.getElementById('menu-overlay');
 
     function toggleMenu(show: boolean) {
-      if (!mobileMenu) return;
+      if (!mobileMenu || !menuOverlay) return;
       
       if (show) {
+        // Mostrar o overlay primeiro
+        menuOverlay.classList.remove('hidden');
+        
+        // Mostrar o menu com animação de deslizamento
         mobileMenu.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
+        // Pequeno delay para permitir a transição
+        setTimeout(() => {
+          mobileMenu.classList.remove('translate-x-full');
+          document.body.classList.add('overflow-hidden');
+        }, 10);
       } else {
-        mobileMenu.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
+        // Esconder o menu com animação de deslizamento
+        mobileMenu.classList.add('translate-x-full');
+        
+        // Aguardar a transição terminar antes de esconder completamente
+        setTimeout(() => {
+          mobileMenu.classList.add('hidden');
+          menuOverlay.classList.add('hidden');
+          document.body.classList.remove('overflow-hidden');
+        }, 300);
       }
     }
 
@@ -116,13 +155,9 @@ const currentPath = new URL(Astro.request.url).pathname;
       closeMenu.addEventListener('click', () => toggleMenu(false));
     }
 
-    // Close menu when clicking outside
-    if (mobileMenu) {
-      mobileMenu.addEventListener('click', (e) => {
-        if (e.target === mobileMenu) {
-          toggleMenu(false);
-        }
-      });
+    // Close menu when clicking on overlay
+    if (menuOverlay) {
+      menuOverlay.addEventListener('click', () => toggleMenu(false));
     }
 
     // Close menu on window resize if desktop breakpoint is reached
@@ -131,5 +166,13 @@ const currentPath = new URL(Astro.request.url).pathname;
         toggleMenu(false);
       }
     });
+    
+    // Fechar o menu quando um link é clicado
+    const menuLinks = mobileMenu?.querySelectorAll('a');
+    if (menuLinks) {
+      menuLinks.forEach(link => {
+        link.addEventListener('click', () => toggleMenu(false));
+      });
+    }
   </script>
 </header>

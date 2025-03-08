@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import PortfolioFilter from '../components/portfolio/PortfolioFilter';
-import { portfolioItems } from '../data/portfolioItems';
+import PortfolioFilter from './PortfolioFilter';
+import { portfolioItems } from '../../data/portfolioItems';
 // Certifique-se de que o caminho do módulo esteja correto
-import Container from '../components/common/Container';
+import Container from '../common/Container';
 
 const allPhotos: { [key: string]: string[] } = {
   aventuras: ['aventura1.jpg', 'aventura2.jpg'],
