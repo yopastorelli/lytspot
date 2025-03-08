@@ -1,47 +1,56 @@
 ---
 import Container from '../common/Container';
-// import { ABOUT_CONTENT } from '../../utils/constants'; //
+import SectionTitle from '../common/SectionTitle.astro';
+import { ABOUT_CONTENT } from '../../utils/constants';
 
-// const { mission, vision, values } = ABOUT_CONTENT; //
+const { mission, vision, values } = ABOUT_CONTENT;
 ---
 
-<!--section class="py-20 bg-dark-lighter">
+<section class="py-20 bg-light-darker">
   <Container>
-    <div class="grid md:grid-cols-3 gap-12">
-      <div class="text-center">
-        <div class="w-16 h-16 bg-primary-light/10 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
+    <div class="max-w-5xl mx-auto">
+      <SectionTitle
+        title="Nossa Missão e Valores"
+        subtitle="Conheça o que nos move e inspira"
+        alignment="center"
+      />
+      
+      <div class="grid md:grid-cols-3 gap-12 mt-12">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold mb-4 text-neutral">Missão</h3>
+          <p class="text-neutral/80">{mission}</p>
         </div>
-        <h3 class="text-2xl font-bold mb-4 text-white">Missão</h3>
-        <p class="text-gray-300">{mission}</p>
-      </div>
 
-      <div class="text-center">
-        <div class="w-16 h-16 bg-primary-light/10 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
+        <div class="text-center">
+          <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold mb-4 text-neutral">Visão</h3>
+          <p class="text-neutral/80">{vision}</p>
         </div>
-        <h3 class="text-2xl font-bold mb-4 text-white">Visão</h3>
-        <p class="text-gray-300">{vision}</p>
-      </div>
 
-      <div class="text-center">
-        <div class="w-16 h-16 bg-primary-light/10 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+        <div class="text-center">
+          <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold mb-4 text-neutral">Valores</h3>
+          <ul class="space-y-2">
+            {values.map(value => (
+              <li class="text-neutral/80">{value}</li>
+            ))}
+          </ul>
         </div>
-        <h3 class="text-2xl font-bold mb-4 text-white">Valores</h3>
-        <ul class="space-y-2">
-          {values.map(value => (
-            <li class="text-gray-300">{value}</li>
-          ))}
-        </ul>
-      </div-->
+      </div>
     </div>
   </Container>
 </section>

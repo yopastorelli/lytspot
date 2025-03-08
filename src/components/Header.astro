@@ -4,74 +4,131 @@ import Button from './common/Button';
 
 // Define os itens do menu
 const menuItems = [
-  { href: '/', text: 'Home' },
-  { href: '/servicos', text: 'Serviços' },
   { href: '/portfolio', text: 'Portfolio' },
-  { href: '/contato', text: 'Contato' }
+  { href: '/sobre', text: 'Sobre' },
+  { href: '/servicos', text: 'Serviços' },
 ];
 
 // Acessa o pathname da URL atual corretamente
 const currentPath = new URL(Astro.request.url).pathname;
 ---
-<header class="bg-dark/80 backdrop-blur-md fixed w-full z-50 border-b border-gray-700/50">
+<header class="fixed w-full z-50 bg-light/90 backdrop-blur-sm shadow-soft">
   <Container>
-    <div class="py-4 flex justify-between items-center">
+    <nav class="flex items-center justify-between py-4">
       <!-- Logo -->
-      <a href="/" class="text-2xl font-bold text-dark-lighter flex items-center gap-2">
-        <img src="/images/azul fundo branco.png" alt="LYTSPOT" class="h-16" />
+      <a href="/" class="text-2xl font-bold text-primary flex items-center gap-2">
+        <img src="/images/azul fundo branco.png" alt="LYTSPOT" class="h-14" />
       </a>
 
-      <!-- Menu Desktop -->
-      <nav class="hidden md:flex space-x-6">
+      <!-- Mobile menu button -->
+      <button
+        id="menu-toggle"
+        class="md:hidden text-neutral hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary p-2"
+        aria-label="Toggle menu"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"
+          ></path>
+        </svg>
+      </button>
+
+      <!-- Desktop menu -->
+      <div class="hidden md:flex items-center gap-8">
         {menuItems.map(item => (
           <a 
             href={item.href}
-            class={`text-gray-200 hover:text-primary-light transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${item.href === currentPath ? 'text-primary-light font-semibold underline' : ''}`}
+            class={`text-neutral hover:text-primary transition-colors ${item.href === currentPath ? 'text-primary font-semibold' : ''}`}
           >
             {item.text}
           </a>
         ))}
-      </nav>
-
-      <!-- Botão Desktop -->
-      <Button variant="primary" href="/contato">
-        Orçamento
-      </Button>
-
-      <!-- Botão de Menu Mobile -->
-      <div class="md:hidden">
-        <button id="mobile-menu-button" aria-label="Abrir menu" class="text-dark-lighter focus:outline-none focus:ring-2 focus:ring-primary">
-          <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+        <Button variant="primary" href="/contato">
+          Contato
+        </Button>
       </div>
-    </div>
 
-    <!-- Menu Mobile -->
-    <nav id="mobile-menu" class="hidden md:hidden bg-dark w-full py-4 space-y-4">
-      {menuItems.map(item => (
-        <a 
-          href={item.href}
-          class={`block text-dark-lighter hover:black transition-colors px-4 ${item.href === currentPath ? 'text-primary-light font-semibold underline' : ''}`}
-        >
-          {item.text}
-        </a>
-      ))}
+      <!-- Mobile menu -->
+      <div
+        id="mobile-menu"
+        class="hidden fixed inset-0 z-50 bg-light/95 backdrop-blur-sm md:hidden"
+      >
+        <Container>
+          <div class="flex flex-col items-center justify-center min-h-screen gap-8 py-20">
+            <!-- Close button -->
+            <button
+              id="close-menu"
+              class="absolute top-6 right-6 text-neutral hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary p-2"
+              aria-label="Close menu"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                ></path>
+              </svg>
+            </button>
+
+            {menuItems.map(item => (
+              <a 
+                href={item.href}
+                class={`text-xl text-neutral hover:text-primary transition-colors ${item.href === currentPath ? 'text-primary font-semibold' : ''}`}
+              >
+                {item.text}
+              </a>
+            ))}
+            <Button variant="primary" href="/contato" size="lg">
+              Contato
+            </Button>
+          </div>
+        </Container>
+      </div>
     </nav>
   </Container>
 
-  <!-- Script de alternância -->
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const menuButton = document.getElementById('mobile-menu-button');
-      const mobileMenu = document.getElementById('mobile-menu');
+    const menuToggle = document.getElementById('menu-toggle');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const closeMenu = document.getElementById('close-menu');
 
-      if (menuButton && mobileMenu) {
-        menuButton.addEventListener('click', () => {
-          mobileMenu.classList.toggle('hidden');
-          mobileMenu.classList.toggle('block');
-        });
+    function toggleMenu(show: boolean) {
+      if (!mobileMenu) return;
+      
+      if (show) {
+        mobileMenu.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+      } else {
+        mobileMenu.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+      }
+    }
+
+    if (menuToggle) {
+      menuToggle.addEventListener('click', () => toggleMenu(true));
+    }
+
+    if (closeMenu) {
+      closeMenu.addEventListener('click', () => toggleMenu(false));
+    }
+
+    // Close menu when clicking outside
+    if (mobileMenu) {
+      mobileMenu.addEventListener('click', (e) => {
+        if (e.target === mobileMenu) {
+          toggleMenu(false);
+        }
+      });
+    }
+
+    // Close menu on window resize if desktop breakpoint is reached
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768) { // md breakpoint
+        toggleMenu(false);
       }
     });
   </script>

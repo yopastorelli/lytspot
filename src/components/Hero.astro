@@ -3,50 +3,111 @@ import Container from './common/Container';
 import Button from './common/Button';
 ---
 
-<section class="relative h-screen flex items-center justify-center">
-  <div class="absolute inset-0 z-0">
+<section class="relative h-screen flex items-center justify-center overflow-hidden">
+  <div class="absolute inset-0 z-0 bg-light">
     <video 
       id="hero-video"
       autoplay 
       loop 
       muted 
       playsinline 
-      class="w-full h-full object-cover"
+      class="absolute inset-0 w-full h-full object-cover"
+      style={{
+        opacity: 0,
+        transform: 'scale(1.01)',
+        transition: 'opacity 0.5s ease-in-out'
+      }}
     >
-      <source src="/videos/drone-hero.mp4" type="video/mp4">
+      <source src="/videos/drone-hero.mp4" type="video/mp4" />
     </video>
-    <div class="absolute inset-0 bg-dark/0"></div>
+    <div class="absolute inset-0 bg-primary/30"></div>
   </div>
 
   <Container>
-    <div class="relative z-10 text-center text-white">
-      <h1 class="text-white text-5xl md:text-7xl font-bold mb-6" style="text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);">
+    <div class="relative z-10 text-center max-w-4xl mx-auto">
+      <h1 class="text-light text-5xl md:text-7xl font-bold mb-6 font-sans tracking-wider uppercase" style="text-shadow: 0px 3px 5px rgba(0, 0, 0, 0.6);">
         Capturando momentos únicos
       </h1>
-      <p class="text-xl md:text-2xl mb-8 max-w-2xl mx-auto text-gray-100">
+      <p class="text-xl md:text-2xl mb-8 max-w-2xl mx-auto text-light font-light" style="text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.5);">
         Filmagens aéreas e fotografia profissional para a sua família, amigos e empresa.
       </p>
-      <div class="flex gap-4 justify-center">
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
         <Button variant="primary" size="lg" client:load href="/portfolio">
           Ver portfolio
         </Button>
-        <Button variant="outline" size="lg" client:load href="/contato">
+        <Button variant="accent" size="lg" client:load href="/contato">
           Fale Conosco
         </Button>
       </div>
     </div>
   </Container>
 
-  <!-- Script para definir ponto de início aleatório -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const video = document.getElementById('hero-video') as HTMLVideoElement;
-      if (video) {
-        video.addEventListener('loadedmetadata', () => {
-          const randomTime = Math.random() * video.duration;
-          video.currentTime = randomTime;
-        });
+      const videoElement = document.getElementById('hero-video') as HTMLVideoElement;
+      
+      if (!videoElement) return;
+      
+      let videoLoaded = false;
+
+      // Configurar o ponto de início aleatório do vídeo quando estiver pronto
+      const setRandomStartTime = () => {
+        // Verifica se o vídeo foi carregado e tem uma duração válida
+        if (videoElement.duration && !isNaN(videoElement.duration) && videoElement.duration > 0) {
+          // Define um ponto aleatório entre 0 e a duração total menos 5 segundos
+          // (para evitar que comece muito perto do final)
+          const maxStartTime = Math.max(0, videoElement.duration - 5);
+          const randomStartTime = Math.random() * maxStartTime;
+          
+          // Define o tempo de início e inicia a reprodução
+          videoElement.currentTime = randomStartTime;
+          videoElement.play()
+            .then(() => {
+              videoElement.style.opacity = '1';
+              videoLoaded = true;
+            })
+            .catch(error => {
+              console.error('Erro ao reproduzir vídeo com início aleatório:', error);
+            });
+        }
+      };
+
+      const showVideo = () => {
+        if (!videoLoaded && videoElement) {
+          videoElement.style.opacity = '1';
+          videoLoaded = true;
+        }
+      };
+
+      const attemptPlayVideo = () => {
+        if (!videoElement) return;
+        
+        // Aguarda o metadata estar carregado para obter a duração do vídeo
+        if (videoElement.readyState >= 1) {
+          setRandomStartTime();
+        } else {
+          videoElement.addEventListener('loadedmetadata', setRandomStartTime, { once: true });
+        }
+      };
+
+      // Tenta reproduzir assim que os metadados estiverem carregados
+      if (videoElement.readyState >= 2) {
+        attemptPlayVideo();
+      } else {
+        videoElement.addEventListener('loadeddata', attemptPlayVideo, { once: true });
       }
+
+      // Força o carregamento do vídeo se ainda não tiver começado
+      if (videoElement.networkState === HTMLMediaElement.NETWORK_EMPTY) {
+        videoElement.load();
+      }
+      
+      // Fallback para interação do usuário caso o autoplay falhe
+      document.addEventListener('click', () => {
+        if (videoElement && !videoLoaded) {
+          setRandomStartTime();
+        }
+      }, { once: true });
     });
   </script>
 </section>

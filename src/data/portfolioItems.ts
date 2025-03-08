@@ -1,4 +1,17 @@
-export const portfolioItems = [
+export interface PortfolioItem {
+  id: string;
+  title: string;
+  category: string;
+  media: {
+    url: string;
+    type: 'image' | 'video';
+  }[];
+  description: string;
+  tags: string[];
+  date: string;
+}
+
+export const portfolioItems: PortfolioItem[] = [
   {
     "id": "2",
     "title": "Arquitetura",

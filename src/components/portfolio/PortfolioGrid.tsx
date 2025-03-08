@@ -23,37 +23,43 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
       <PortfolioFilter activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
 
       {/* Grid de itens do portfolio */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4 bg-gray-800">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2 bg-gray-800">
         {filteredItems.map((item: PortfolioItem) => (
           <div
             key={item.id}
             className="cursor-pointer"
             onClick={() => setSelectedItem(item)}
           >
-            {item.media[0]?.type === 'image' ? (
-              // Renderiza imagem como thumbnail
-              <img
-                src={item.media[0]?.url}
-                alt={item.title}
-                className="w-full h-64 object-cover rounded-lg border border-gray-300"
-                loading="lazy"
-              />
-            ) : (
-              // Renderiza vídeo como thumbnail
-              <video
-                src={item.media[0]?.url}
-                className="w-full h-64 object-cover rounded-lg border border-gray-300"
-                autoPlay
-                muted
-                loop
-              />
-            )}
-            <h3 className="mt-4 text-lg font-semibold text-white">{item.title}</h3>
+            {/* Container externo com background azul */}
+            <div className="h-64 p-[4px] bg-blue-700 rounded-lg" style={{ boxShadow: 'none' }}>
+              {/* Container interno para a imagem */}
+              <div className="h-full w-full overflow-hidden rounded-md bg-blue-800">
+                {item.media[0]?.type === 'image' ? (
+                  <img
+                    src={item.media[0]?.url}
+                    alt={item.title}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    style={{ display: 'block', margin: '0', border: 'none', boxShadow: 'none' }}
+                  />
+                ) : (
+                  <video
+                    src={item.media[0]?.url}
+                    className="h-full w-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    style={{ display: 'block', margin: '0', border: 'none', boxShadow: 'none' }}
+                  />
+                )}
+              </div>
+            </div>
+            <h3 className="mt-3 text-lg font-semibold text-white">{item.title}</h3>
           </div>
         ))}
       </div>
 
-      {/* Modal para exibir detalhes do item */}
+      {/* Modal com detalhes do item selecionado */}
       {selectedItem && (
         <PortfolioModal
           item={selectedItem}

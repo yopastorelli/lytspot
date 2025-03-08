@@ -1,15 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
-
-
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html {
@@ -17,8 +13,8 @@ html {
 }
 
 body {
-  @apply bg-primary-dark text-gray-100 font-sans leading-relaxed;
-  font-family: 'Monserrat', sans-serif; /* Força a fonte Nunito */
+  @apply bg-light text-neutral font-sans leading-relaxed;
+  font-family: 'Nunito', sans-serif;
 }
 
 .container {
@@ -69,40 +65,40 @@ body {
 
 /* Tipografia */
 h1 {
-  @apply text-4xl font-bold leading-tight text-gray-500;
+  @apply text-4xl font-bold leading-tight text-neutral;
 }
 
 h2 {
-  @apply text-3xl font-semibold leading-snug text-secondary;
+  @apply text-3xl font-semibold leading-snug text-accent;
 }
 
 h3 {
-  @apply text-2xl font-medium leading-normal text-neutral-dark;
+  @apply text-2xl font-medium leading-normal text-neutral;
 }
 
 p {
-  @apply text-base leading-relaxed text-gray-300;
+  @apply text-base leading-relaxed text-neutral-light;
 }
 
 small {
-  @apply text-sm leading-normal text-gray-500;
+  @apply text-sm leading-normal text-neutral/70;
 }
 
 /* Botões */
 .btn {
-  @apply px-6 py-3 rounded-lg font-medium transition-colors duration-200 shadow-md;
+  @apply px-6 py-3 rounded-md font-medium transition-colors duration-200 shadow-soft;
 }
 
 .btn-primary {
-  @apply bg-primary text-white hover:bg-primary-dark hover:shadow-lg;
+  @apply bg-primary text-light hover:bg-primary-light hover:shadow-medium;
 }
 
-.btn-secondary {
-  @apply bg-secondary text-white hover:bg-secondary-dark hover:shadow-lg;
+.btn-accent {
+  @apply bg-accent text-light hover:bg-accent-light hover:shadow-medium;
 }
 
 .btn-outline {
-  @apply border-2 border-primary text-primary hover:bg-primary hover:text-white hover:shadow-md;
+  @apply border-2 border-primary text-primary hover:bg-primary/5 hover:shadow-soft;
 }
 
 .btn:focus {
@@ -111,19 +107,19 @@ small {
 
 /* Cartões e Seções */
 .card {
-  @apply bg-neutral-light rounded-lg p-6 shadow-lg transition-transform duration-200;
+  @apply bg-white rounded-lg p-6 shadow-soft transition-transform duration-200;
 }
 
 .card:hover {
-  @apply transform scale-105 shadow-xl;
+  @apply transform scale-105 shadow-medium;
 }
 
 .section-title {
-  @apply text-3xl md:text-4xl font-bold mb-4 text-gray-500;
+  @apply text-3xl md:text-4xl font-bold mb-4 text-neutral;
 }
 
 .section-subtitle {
-  @apply text-xl text-secondary mb-4;
+  @apply text-xl text-accent mb-4;
 }
 
 /* Portfólio */
@@ -146,7 +142,7 @@ small {
 }
 
 .portfolio-item {
-  @apply relative cursor-pointer overflow-hidden rounded-lg shadow-md;
+  @apply relative cursor-pointer overflow-hidden rounded-lg shadow-soft;
 }
 
 .portfolio-item img {
@@ -158,18 +154,18 @@ small {
 }
 
 .portfolio-item-overlay {
-  @apply absolute inset-0 bg-black/50 opacity-0 transition-opacity flex items-center justify-center;
+  @apply absolute inset-0 bg-primary/50 opacity-0 transition-opacity flex items-center justify-center;
 }
 
 .portfolio-item:hover .portfolio-item-overlay {
   @apply opacity-100;
 }
 
-/* Tema Escuro */
-.gradient-dark {
-  @apply bg-gradient-to-b from-gray-900 to-gray-800;
+/* Gradientes */
+.gradient-light {
+  @apply bg-gradient-to-b from-light to-light-darker;
 }
 
 .text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
 }

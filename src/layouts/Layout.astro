@@ -12,6 +12,8 @@ const {
   title, 
   description = 'LYTSPOT - Captura de imagens profissionais com drones e câmeras'
 } = Astro.props;
+
+const videoPath = '/videos/drone-hero.mp4';
 ---
 
 <!doctype html>
@@ -19,14 +21,56 @@ const {
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#041424" />
+    <meta name="theme-color" content="#F5F5F5" />
     <title>{title} | LYTSPOT</title>
+    
+    <!-- Preload hero video -->
+    <link rel="preload" href={videoPath} as="video" type="video/mp4" fetchpriority="high" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- PWA meta tags -->
+    <meta name="application-name" content="LYTSPOT" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="LYTSPOT" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={`${title} | LYTSPOT`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="LYTSPOT" />
+    
+    <!-- Preconnect to video origin -->
+    <link rel="preconnect" href="/" />
+    <link rel="dns-prefetch" href="/" />
+    
+    <!-- Ajuste de escala inicial -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        // Força o site a abrir em 100% de visualização
+        const metaViewport = document.querySelector('meta[name="viewport"]');
+        if (metaViewport) {
+          metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
+        }
+        
+        // Desativa o zoom em dispositivos móveis para melhor experiência
+        document.addEventListener('gesturestart', function(e) {
+          e.preventDefault();
+        });
+      });
+    </script>
   </head>
-  <body class="min-h-screen flex flex-col bg-dark text-gray-500">
+  <body class="min-h-screen flex flex-col bg-light text-neutral font-sans">
     <Header />
-    <main class="flex-grow">
+    <main class="flex-grow pt-20">
       <slot />
     </main>
     <Footer />

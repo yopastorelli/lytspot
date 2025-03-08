@@ -1,84 +1,44 @@
 ---
 import { TEAM_MEMBERS } from '../../utils/constants';
+import Container from '../common/Container';
+import SectionTitle from '../common/SectionTitle.astro';
 
 const teamMembers = TEAM_MEMBERS;
 ---
 
-<section id="team" class="team-section">
-  <div class="container">
-    <h2 class="section-title">Nossa Equipe</h2>
-    <p class="section-description">
-      Conheça os profissionais dedicados que tornam nossos projetos possíveis.
-    </p>
-    <div class="team-grid">
-      {teamMembers.map(member => {
-        return (
-          <div class="team-card">
-            <img src={member.image} alt={`Foto de ${member.name}`} class="team-image" />
-            <div class="team-info">
-              <h3 class="team-name">{member.name}</h3>
-              <p class="team-role">{member.role}</p>
-              <p class="team-bio">{member.bio}</p>
-              <div class="team-social">
+<section class="py-20 bg-light-darker">
+  <Container>
+    <div class="max-w-5xl mx-auto">
+      <SectionTitle
+        title="Nossa Equipe"
+        subtitle="Conheça os profissionais dedicados que tornam nossos projetos possíveis"
+        alignment="center"
+      />
+      
+      <div class="grid md:grid-cols-3 gap-8 mt-12">
+        {teamMembers.map(member => (
+          <div class="bg-light rounded-lg shadow-soft overflow-hidden transition-all duration-300 hover:shadow-medium">
+            <img src={member.image} alt={`Foto de ${member.name}`} class="w-full h-64 object-cover object-center" />
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-neutral mb-1">{member.name}</h3>
+              <p class="text-accent mb-3 font-medium">{member.role}</p>
+              <p class="text-neutral/80 text-sm mb-4">{member.bio}</p>
+              <div class="flex gap-4">
                 {member.social.map(social => (
-                  <a href={social.url} target="_blank" rel="noopener noreferrer" class="social-link">
+                  <a 
+                    href={social.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    class="text-accent hover:text-primary transition-colors"
+                  >
                     {social.platform}
                   </a>
                 ))}
               </div>
             </div>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
-  </div>
+  </Container>
 </section>
-
-<style>
-  .team-section {
-    padding: 4rem 2rem;
-    background-color: #f9f9f9;
-  }
-  .team-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-  }
-  .team-card {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    text-align: center;
-  }
-  .team-image {
-    width: 100%;
-    height: auto;
-  }
-  .team-info {
-    padding: 1rem;
-  }
-  .team-name {
-    font-size: 1.5rem;
-    font-weight: bold;
-  }
-  .team-role {
-    color: #555;
-    margin-bottom: 0.5rem;
-  }
-  .team-bio {
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
-    color: #666;
-  }
-  .team-social {
-    display: flex;
-    justify-content: center;
-    gap: 0.5rem;
-  }
-  .social-link {
-    text-decoration: none;
-    font-size: 0.9rem;
-    color: #0073e6;
-  }
-</style>

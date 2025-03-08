@@ -1,86 +1,75 @@
 ---
 import { EQUIPMENT } from '../../utils/constants';
+import Container from '../common/Container';
+import SectionTitle from '../common/SectionTitle.astro';
 
 const { drones, cameras } = EQUIPMENT;
 ---
 
-<section id="equipment" class="equipment-section">
-  <div class="container">
-    <h2 class="section-title">Nosso Equipamento</h2>
-    <p class="section-description">
-      Utilizamos tecnologia de ponta para capturar imagens de alta qualidade. Confira os detalhes do nosso equipamento.
-    </p>
+<section class="py-20 bg-light">
+  <Container>
+    <div class="max-w-5xl mx-auto">
+      <SectionTitle
+        title="Nosso Equipamento"
+        subtitle="Utilizamos tecnologia de ponta para capturar imagens de alta qualidade"
+        alignment="center"
+      />
 
-    <!-- Drones -->
-    <div class="equipment-category">
-      <h3>Drones</h3>
-      <div class="equipment-grid">
-        {drones.map((drone, index) => {
-          return (
-            <div class="equipment-card">
-              <h4>{drone.model}</h4>
-              <p>{drone.description}</p>
-              <ul>
-                {drone.features.map((feature, featureIndex) => (
-                  <li>{feature}</li>
+      <!-- Drones -->
+      <div class="mt-16 mb-12">
+        <h3 class="text-2xl font-bold text-neutral mb-6 flex items-center">
+          <span class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-primary">
+              <path d="M12 2L4.5 9.5 6 11l2-2-2 10h8l-2-10 2 2 1.5-1.5L12 2z"></path>
+            </svg>
+          </span>
+          Drones
+        </h3>
+        <div class="grid md:grid-cols-2 gap-6">
+          {drones.map((drone) => (
+            <div class="bg-light-darker p-6 rounded-lg shadow-soft">
+              <h4 class="text-xl font-semibold text-primary mb-2">{drone.model}</h4>
+              <p class="text-neutral/80 mb-4">{drone.description}</p>
+              <ul class="space-y-2">
+                {drone.features.map((feature) => (
+                  <li class="flex items-start">
+                    <span class="text-accent mr-2">•</span>
+                    <span class="text-neutral/90">{feature}</span>
+                  </li>
                 ))}
               </ul>
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
-    </div>
 
-    <!-- Câmeras -->
-    <div class="equipment-category">
-      <h3>Câmeras</h3>
-      <div class="equipment-grid">
-        {cameras.map((camera, index) => {
-          return (
-            <div class="equipment-card">
-              <h4>{camera.model}</h4>
-              <p>{camera.description}</p>
-              <ul>
-                {camera.features.map((feature, featureIndex) => (
-                  <li>{feature}</li>
+      <!-- Câmeras -->
+      <div class="mt-12">
+        <h3 class="text-2xl font-bold text-neutral mb-6 flex items-center">
+          <span class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-primary">
+              <path d="M12 9a3 3 0 100-6 3 3 0 000 6zm0 2a5 5 0 100-10 5 5 0 000 10zm6.5 3c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm-13 0c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm6.5 2c-2.03 0-3.8 1.11-4.75 2.75-.19.33-.19.75 0 1.08C7.2 21.89 7.99 22 8.25 22h7.5c.26 0 1.05-.11 1.5-1.17.19-.33.19-.75 0-1.08C16.3 18.11 14.53 17 12 17z"></path>
+            </svg>
+          </span>
+          Câmeras
+        </h3>
+        <div class="grid md:grid-cols-2 gap-6">
+          {cameras.map((camera) => (
+            <div class="bg-light-darker p-6 rounded-lg shadow-soft">
+              <h4 class="text-xl font-semibold text-primary mb-2">{camera.model}</h4>
+              <p class="text-neutral/80 mb-4">{camera.description}</p>
+              <ul class="space-y-2">
+                {camera.features.map((feature) => (
+                  <li class="flex items-start">
+                    <span class="text-accent mr-2">•</span>
+                    <span class="text-neutral/90">{feature}</span>
+                  </li>
                 ))}
               </ul>
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
-  </div>
+  </Container>
 </section>
-
-<style>
-  .equipment-section {
-    padding: 4rem 2rem;
-    background-color: #f0f0f0;
-  }
-  .equipment-category {
-    margin-bottom: 3rem;
-  }
-  .equipment-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-  }
-  .equipment-card {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 1rem;
-  }
-  .equipment-card h4 {
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-  }
-  .equipment-card ul {
-    list-style: disc;
-    margin-left: 1.5rem;
-  }
-  .equipment-card ul li {
-    margin-bottom: 0.5rem;
-  }
-</style>

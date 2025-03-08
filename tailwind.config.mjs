@@ -11,34 +11,38 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#000430', // Novo azul primário mais vibrante
-          light: '#4A90E2', // Tom claro para contrastar
-          dark: '#051520', // Tom mais escuro para elementos destacados
+          DEFAULT: '#000430',
+          light: '#4A90E2',
+          dark: '#051520',
         },
-        secondary: {
-          DEFAULT: '#FFB74D', // Novo laranja secundário para contraste
-          light: '#FFD080',
-          dark: '#E6932D',
+        accent: {
+          DEFAULT: '#3B82F6',
+          light: '#60A5FA',
+          dark: '#2563EB',
         },
         neutral: {
-          light: '#F5F5F5', // Tons neutros reformulados
-          DEFAULT: '#E0E0E0',
-          dark: '#9E9E9E',
+          light: '#041424',
+          DEFAULT: '#1A1A1A',
+          dark: '#333333',
         },
         success: {
-          DEFAULT: '#4CAF50', // Verde para feedback positivo
+          DEFAULT: '#4CAF50',
         },
-        dark: {
-          DEFAULT: '#ffffff', // Um tom escuro para o fundo
-          lighter: '#051520', // Alternativa mais clara, se necessário
+        light: {
+          DEFAULT: '#F5F5F5',
+          darker: '#E0E0E0',
         },
         error: {
-          DEFAULT: '#F44336', // Vermelho para feedback negativo.
+          DEFAULT: '#F44336',
         },
       },
       fontFamily: {
         sans: ['Nunito', 'Arial', 'sans-serif'],
         serif: ['Merriweather', 'Georgia', 'serif'],
+      },
+      boxShadow: {
+        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        'medium': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
       },
     },
   },

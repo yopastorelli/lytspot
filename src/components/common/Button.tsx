@@ -2,12 +2,12 @@ import React from 'react';
 
 interface ButtonProps {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'accent' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   onClick?: () => void;
   type?: 'button' | 'submit';
-  href?: string; // Declaração da propriedade href
+  href?: string;
 }
 
 export default function Button({
@@ -19,12 +19,12 @@ export default function Button({
   type = 'button',
   href,
 }: ButtonProps) {
-  const baseStyles = 'rounded-full transition-colors font-medium';
+  const baseStyles = 'rounded-md transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-soft hover:shadow-medium';
 
   const variants = {
-    primary: 'bg-primary text-white hover:bg-primary/90',
-    secondary: 'bg-white text-primary hover:bg-gray-100',
-    outline: 'border-2 border-white text-white hover:bg-primary/10',
+    primary: 'bg-primary text-light hover:bg-primary-light focus:ring-primary',
+    accent: 'bg-accent text-light hover:bg-accent-light focus:ring-accent',
+    outline: 'border-2 border-primary text-primary hover:bg-primary/5 focus:ring-primary',
   };
 
   const sizes = {

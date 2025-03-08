@@ -22,24 +22,24 @@ const footerLinks = {
 };
 ---
 
-<footer class="bg-dark-lighter text-gray-200 pt-16 pb-8 border-t border-gray-700/50">
+<footer class="bg-light-darker text-neutral pt-16 pb-8 border-t border-neutral/10 shadow-soft">
   <div class="container">
     <div class="grid md:grid-cols-4 gap-8 mb-12">
       <div>
-        <img src="/images/Branco fundo transparente.png" alt="LYTSPOT" class="h-8 mb-4" />
-        <p class="text-gray-300">
+        <img src="/images/azul fundo branco.png" alt="LYTSPOT" class="h-10 mb-4" />
+        <p class="text-neutral/80">
           Especialistas em captura de imagens profissionais com drones e câmeras de alta performance.
         </p>
       </div>
 
       <div>
-        <h3 class="text-lg font-bold mb-4 text-white">Empresa</h3>
+        <h3 class="text-lg font-bold mb-4 text-primary">Empresa</h3>
         <ul class="space-y-2">
           {footerLinks.empresa.map(link => (
             <li>
               <a
                 href={link.href}
-                class="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                class="text-neutral/80 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {link.text}
               </a>
@@ -49,13 +49,13 @@ const footerLinks = {
       </div>
 
       <div>
-        <h3 class="text-lg font-bold mb-4 text-white">Serviços</h3>
+        <h3 class="text-lg font-bold mb-4 text-primary">Serviços</h3>
         <ul class="space-y-2">
           {footerLinks.servicos.map(link => (
             <li>
               <a
                 href={link.href}
-                class="text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                class="text-neutral/80 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {link.text}
               </a>
@@ -65,7 +65,7 @@ const footerLinks = {
       </div>
 
       <div>
-        <h3 class="text-lg font-bold mb-4 text-white">Redes Sociais</h3>
+        <h3 class="text-lg font-bold mb-4 text-primary">Redes Sociais</h3>
         <ul class="space-y-2">
           {footerLinks.social.map(link => (
             <li>
@@ -73,7 +73,7 @@ const footerLinks = {
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                class="flex items-center text-neutral/80 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <img src={link.icon} alt={link.text} class="h-5 w-5 mr-2" />
                 {link.text}
@@ -84,9 +84,9 @@ const footerLinks = {
       </div>
     </div>
 
-    <div class="border-t border-gray-700/50 pt-8">
-      <p class="text-center text-gray-400">
-        © {new Date().getFullYear()} LYTSPOT. Todos os direitos reservados.
+    <div class="border-t border-neutral/10 pt-8">
+      <p class="text-center text-neutral/60">
+        {new Date().getFullYear()} LYTSPOT. Todos os direitos reservados.
       </p>
     </div>
   </div>
