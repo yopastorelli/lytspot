@@ -56,7 +56,7 @@ export const SERVICES = [
 
 export const ABOUT_CONTENT = {
   mission: "Proporcionar experiências visuais extraordinárias através da captura de imagens de alta qualidade, utilizando tecnologia de ponta e criatividade.",
-  vision: "Ser referência nacional em captação de imagens aéreas e terrestres, reconhecida pela excelência, inovação e compromisso com a satisfação do cliente.",
+  vision: "Ser referência em captação de imagens aéreas e terrestres, reconhecida pela excelência, inovação e compromisso com a satisfação do cliente.",
   values: [
     "Excelência técnica",
     "Inovação constante",
@@ -68,33 +68,23 @@ export const ABOUT_CONTENT = {
 
 export const TEAM_MEMBERS = [
   {
-    name: "João Silva",
-    role: "Diretor de Fotografia",
-    image: "/images/team/joao.jpg",
-    bio: "Especialista em fotografia aérea com mais de 10 anos de experiência.",
+    name: "Lucas",
+    role: "Imagens terrestres",
+    image: "/images/black.PNG",
+    bio: "Especialista em fotografia profissional com mais de 18 anos de experiência.",
     social: [
-      { platform: "LinkedIn", url: "https://linkedin.com/in/joaosilva" },
-      { platform: "Instagram", url: "https://instagram.com/joaosilva" }
+      { platform: "LinkedIn", url: "https://www.linkedin.com/in/lucas-ferreira-3a15039b/" },
+      { platform: "Instagram", url: "https://www.instagram.com/lucasferreirafotografo" }
     ]
   },
   {
-    name: "Maria Santos",
-    role: "Piloto de Drone",
-    image: "/images/team/maria.jpg",
-    bio: "Piloto certificada pela ANAC com especialização em captação cinematográfica.",
+    name: "Daniel",
+    role: "Imagens aéreas",
+    image: "/images/red.PNG",
+    bio: "Especialista em tecnologia e apaixonado por imagens e máquinas aéreas.",
     social: [
-      { platform: "LinkedIn", url: "https://linkedin.com/in/mariasantos" },
-      { platform: "Instagram", url: "https://instagram.com/mariasantos" }
-    ]
-  },
-  {
-    name: "Pedro Costa",
-    role: "Editor de Vídeo",
-    image: "/images/team/pedro.jpg",
-    bio: "Profissional premiado em edição e pós-produção de vídeos.",
-    social: [
-      { platform: "LinkedIn", url: "https://linkedin.com/in/pedrocosta" },
-      { platform: "Instagram", url: "https://instagram.com/pedrocosta" }
+      { platform: "LinkedIn", url: "https://www.linkedin.com/in/dfdelgado/" },
+      { platform: "Instagram", url: "https://www.instagram.com/dfdelgado" }
     ]
   }
 ];
