@@ -13,6 +13,7 @@
     "@astrojs/react": "^4.2.1",
     "@astrojs/tailwind": "^6.0.0",
     "@heroicons/react": "^2.0.18",
+    "@prisma/client": "^5.10.2",
     "astro": "^5.4.2",
     "axios": "^1.8.2",
     "bcryptjs": "^2.4.3",
@@ -22,9 +23,12 @@
     "express": "^4.21.2",
     "express-validator": "^6.15.0",
     "jsonwebtoken": "^9.0.0",
+    "node-cache": "^5.1.2",
     "nodemailer": "^6.9.1",
+    "prisma": "^5.10.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "sqlite3": "^5.1.7",
     "winston": "^3.17.0"
   },
   "devDependencies": {
