@@ -1,3 +1,8 @@
+// No início do script render-setup.js
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "file:../database.sqlite";
+  console.log("DATABASE_URL não encontrada, definindo valor padrão:", process.env.DATABASE_URL);
+}
 // Script específico para configuração do ambiente Render
 import { execSync } from 'child_process';
 import fs from 'fs';
