@@ -2,11 +2,22 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // Configuração do axios para apontar para o servidor backend
-// Detecta automaticamente se está em produção ou desenvolvimento
-const api = axios.create({
-  baseURL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? 'http://localhost:3000' 
-    : 'https://lytspot.onrender.com',
+// Inicialização segura que funciona tanto no servidor quanto no cliente
+const getApiBaseUrl = () => {
+  // Durante o build do Astro, window não está disponível
+  if (typeof window === 'undefined') {
+    return 'https://lytspot.onrender.com'; // URL de produção por padrão durante o build
+  }
+  
+  // No cliente, verificamos o hostname
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000'
+    : 'https://lytspot.onrender.com';
+};
+
+// Criamos a instância do axios apenas quando necessário
+const createApi = () => axios.create({
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -40,6 +51,8 @@ const PriceSimulator = () => {
         setErro(null);
         
         console.log('Buscando serviços da API...');
+        // Criamos a instância do api apenas quando estamos no cliente
+        const api = createApi();
         // Buscar os serviços da API
         const response = await api.get('/api/pricing');
         console.log('Serviços recebidos:', response.data);
@@ -88,7 +101,11 @@ const PriceSimulator = () => {
       <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-6 text-center">
         <p className="text-red-300">{erro}</p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.location.reload();
+            }
+          }}
           className="mt-4 bg-accent text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-accent-light"
         >
           Tentar novamente
