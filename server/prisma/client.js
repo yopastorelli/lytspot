@@ -1,3 +1,5 @@
+// Importar o script de configuração do Render
+import './render-setup.js';
 import { PrismaClient } from '@prisma/client';
 
 // Criando uma instância global do Prisma Client para evitar múltiplas conexões

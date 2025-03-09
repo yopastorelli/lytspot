@@ -6,6 +6,12 @@ import contactRoutes from './routes/contact.js';
 import pricingRoutes from './routes/pricing.js';
 import authRoutes from './routes/auth.js';
 
+// Identificar se estamos no ambiente Render
+if (process.env.RENDER) {
+  console.log("Detectado ambiente Render. Configurando variáveis específicas...");
+  process.env.RENDER = 'true';
+}
+
 console.log("Iniciando carregamento das variáveis de ambiente...");
 dotenv.config();
 

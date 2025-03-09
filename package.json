@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "npm run generate-portfolio && astro dev",
-    "build": "astro build",
+    "build": "npx prisma generate && astro build",
     "preview": "astro preview",
     "deploy": "astro build && npx gh-pages -d dist -b gh-pages",
     "generate-portfolio": "ts-node scripts/generatePortfolioItems.ts",
-    "start": "node server/server.js"
+    "start": "node server/server.js",
+    "postinstall": "npx prisma generate && npx prisma db push --accept-data-loss"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",
