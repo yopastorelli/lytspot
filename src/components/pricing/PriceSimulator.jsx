@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // Configuração do axios para apontar para o servidor backend
+// Detecta automaticamente se está em produção ou desenvolvimento
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:3000' 
+    : 'https://lytspot.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },
