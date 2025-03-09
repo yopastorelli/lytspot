@@ -7,6 +7,34 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Caminho para o schema do Prisma
+const schemaPath = path.join(__dirname, 'schema.prisma');
+
+// Verificar se o schema existe
+if (!fs.existsSync(schemaPath)) {
+  console.error(`ERRO: Schema do Prisma não encontrado em: ${schemaPath}`);
+  console.log('Estrutura de diretórios:');
+  try {
+    // Listar diretórios para debug
+    console.log('Conteúdo do diretório atual:');
+    console.log(fs.readdirSync(process.cwd()));
+    console.log('Conteúdo do diretório server:');
+    if (fs.existsSync(path.join(process.cwd(), 'server'))) {
+      console.log(fs.readdirSync(path.join(process.cwd(), 'server')));
+    } else {
+      console.log('Diretório server não encontrado');
+    }
+    console.log('Conteúdo do diretório server/prisma (se existir):');
+    if (fs.existsSync(path.join(process.cwd(), 'server', 'prisma'))) {
+      console.log(fs.readdirSync(path.join(process.cwd(), 'server', 'prisma')));
+    } else {
+      console.log('Diretório server/prisma não encontrado');
+    }
+  } catch (err) {
+    console.error('Erro ao listar diretórios:', err);
+  }
+}
+
 // Verificar se estamos no ambiente Render
 const isRender = process.env.RENDER === 'true';
 
@@ -29,24 +57,29 @@ if (isRender) {
     fs.mkdirSync(dbDir, { recursive: true });
   }
   
-  // Executar o comando prisma generate
-  try {
-    console.log('Executando prisma generate...');
-    execSync('npx prisma generate', { stdio: 'inherit' });
-    console.log('prisma generate executado com sucesso!');
-  } catch (error) {
-    console.error('Erro ao executar prisma generate:', error);
-    process.exit(1);
-  }
-  
-  // Executar o comando prisma db push
-  try {
-    console.log('Executando prisma db push...');
-    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
-    console.log('prisma db push executado com sucesso!');
-  } catch (error) {
-    console.error('Erro ao executar prisma db push:', error);
-    process.exit(1);
+  // Verificar se o schema existe antes de executar os comandos
+  if (fs.existsSync(schemaPath)) {
+    // Executar o comando prisma generate
+    try {
+      console.log('Executando prisma generate...');
+      execSync(`npx prisma generate --schema=${schemaPath}`, { stdio: 'inherit' });
+      console.log('prisma generate executado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao executar prisma generate:', error);
+      process.exit(1);
+    }
+    
+    // Executar o comando prisma db push
+    try {
+      console.log('Executando prisma db push...');
+      execSync(`npx prisma db push --schema=${schemaPath} --accept-data-loss`, { stdio: 'inherit' });
+      console.log('prisma db push executado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao executar prisma db push:', error);
+      process.exit(1);
+    }
+  } else {
+    console.error('Schema do Prisma não encontrado, pulando comandos prisma generate e db push');
   }
 }
 

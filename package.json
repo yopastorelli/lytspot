@@ -1,14 +1,15 @@
 {
   "name": "lytspot",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "npm run generate-portfolio && astro dev",
-    "build": "npx prisma generate && astro build",
+    "build": "npx prisma generate --schema=server/prisma/schema.prisma && astro build",
     "preview": "astro preview",
     "deploy": "astro build && npx gh-pages -d dist -b gh-pages",
     "generate-portfolio": "ts-node scripts/generatePortfolioItems.ts",
     "start": "node server/server.js",
-    "postinstall": "npx prisma generate && npx prisma db push --accept-data-loss"
+    "postinstall": "node render-setup.js"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",
