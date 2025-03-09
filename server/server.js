@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import winston from 'winston';
 import contactRoutes from './routes/contact.js';
+import pricingRoutes from './routes/pricing.js';
+import authRoutes from './routes/auth.js';
 
 console.log("Iniciando carregamento das variáveis de ambiente...");
 dotenv.config();
@@ -57,26 +59,34 @@ try {
   logger.info('Configurando middleware...');
   console.log('Configurando middleware...');
   app.use(cors({
-    origin: [
-      'https://lytspot.com.br',          // Domínio de produção do frontend
-      'https://lytspot.onrender.com',   // Backend
-      'http://localhost:4321',          // Ambiente de desenvolvimento
-    ],
-    methods: ['POST', 'GET', 'OPTIONS'], // Métodos permitidos
+    origin: '*', // Permitir todas as origens durante o desenvolvimento
+    methods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE'], // Métodos permitidos
     allowedHeaders: ['Content-Type', 'Authorization'], // Cabeçalhos permitidos
-    credentials: true,                   // Permite cookies e credenciais compartilhadas
+    credentials: false, // Desabilitar credenciais para evitar problemas durante o desenvolvimento
   }));
   
   app.use(express.json());
   logger.info('Middleware configurado.');
   console.log('Middleware configurado.');
 
+  // Rotas
+  logger.info('Registrando rotas...');
+  console.log('Registrando rotas...');
+  
   // Rotas de contato
-  logger.info('Registrando rotas de contato...');
-  console.log('Registrando rotas de contato...');
   app.use('/api/contact', contactRoutes);
   logger.info('Rotas de contato registradas.');
   console.log('Rotas de contato registradas.');
+  
+  // Rotas de preços
+  app.use('/api/pricing', pricingRoutes);
+  logger.info('Rotas de preços registradas.');
+  console.log('Rotas de preços registradas.');
+  
+  // Rotas de autenticação
+  app.use('/api/auth', authRoutes);
+  logger.info('Rotas de autenticação registradas.');
+  console.log('Rotas de autenticação registradas.');
 
   // Middleware para capturar erros globais
   app.use((err, req, res, next) => {

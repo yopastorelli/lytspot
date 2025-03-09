@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import PortfolioFilter from '@/components/portfolio/PortfolioFilter';
-import PortfolioModal from '@/components/portfolio/PortfolioModal';
-import { portfolioItems } from '@/data/portfolioItems';
+import PortfolioFilter from './PortfolioFilter';
+import PortfolioModal from './PortfolioModal';
+import { portfolioItems } from '../../data/portfolioItems';
 
 // Define the PortfolioItem type based on the structure in portfolioItems
 interface PortfolioItem {

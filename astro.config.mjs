@@ -30,7 +30,7 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: {
-        '@': new URL('./src', import.meta.url).pathname, // Atalho para "src"
+        '@': '/src', // Simplificando o alias para garantir compatibilidade
       },
     },
     server: {

@@ -1,0 +1,29 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Container from '../components/common/Container';
+import PriceSimulator from '../components/pricing/PriceSimulator';
+---
+
+<Layout title="Simulador de Preços | Lytspot">
+  <section class="py-20 bg-dark">
+    <Container>
+      <div class="text-center mb-12">
+        <h1 class="text-4xl md:text-5xl font-serif font-bold text-primary mb-4">Simulador de Preços</h1>
+        <p class="text-light text-lg max-w-3xl mx-auto">
+          Selecione os serviços desejados e obtenha uma estimativa de preço em tempo real. 
+          Personalize sua experiência fotográfica e cinematográfica com a Lytspot.
+        </p>
+      </div>
+      
+      <div class="bg-dark-lighter rounded-lg border border-gray-700/50 p-8 shadow-lg">
+        <PriceSimulator client:load />
+      </div>
+      
+      <div class="mt-12 text-center">
+        <p class="text-light text-sm mb-4">
+          Os preços apresentados são estimativas e podem variar de acordo com requisitos específicos do projeto.
+        </p>
+      </div>
+    </Container>
+  </section>
+</Layout>
