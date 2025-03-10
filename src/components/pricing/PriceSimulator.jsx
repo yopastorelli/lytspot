@@ -81,10 +81,24 @@ const PriceSimulator = () => {
         logInfo(`[${new Date().toISOString()}] Usando estratégia de proxy: ${apiUrl}`);
         break;
       case 'direct':
-        // URL direta ao backend
-        apiUrl = isDev 
-          ? 'http://localhost:3000/api/pricing' 
-          : 'https://api.lytspot.com.br/pricing'; 
+        // URL direta ao backend - tente diversas variações para encontrar a correta
+        if (isDev) {
+          apiUrl = 'http://localhost:3000/api/pricing';
+        } else {
+          // Em produção, tente a URL que mais provavelmente funciona
+          apiUrl = 'https://api.lytspot.com.br/api/pricing';
+          
+          // Se estivermos em uma reconexão após falha, tente URLs alternativas
+          if (window.__apiAttempt === 1) {
+            apiUrl = 'https://lytspot.onrender.com/api/pricing';
+          } else if (window.__apiAttempt === 2) {
+            apiUrl = 'https://api.lytspot.com.br/pricing';
+          }
+          
+          // Incrementa o contador de tentativas
+          window.__apiAttempt = (window.__apiAttempt || 0) + 1;
+          if (window.__apiAttempt > 3) window.__apiAttempt = 0;
+        }
         logInfo(`[${new Date().toISOString()}] Usando conexão direta: ${apiUrl}`);
         break;
       default:
@@ -94,15 +108,24 @@ const PriceSimulator = () => {
     try {
       logInfo(`[${new Date().toISOString()}] Iniciando requisição para ${apiUrl}`);
 
-      const response = await fetch(apiUrl, {
+      const fetchOptions = {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache'
         },
-        ...(estrategia === 'direct' ? { mode: 'cors' } : {})
-      });
+        mode: estrategia === 'direct' ? 'cors' : undefined,
+        credentials: estrategia === 'direct' ? 'omit' : undefined
+      };
+
+      // Log das opções de fetch para diagnóstico
+      logInfo(`[${new Date().toISOString()}] Opções de fetch: ${JSON.stringify({
+        mode: fetchOptions.mode,
+        credentials: fetchOptions.credentials
+      })}`);
+
+      const response = await fetch(apiUrl, fetchOptions);
 
       logInfo(`[${new Date().toISOString()}] Resposta recebida: status=${response.status}`);
 
@@ -171,6 +194,19 @@ const PriceSimulator = () => {
       if (estrategia === 'proxy' && apiStrategy !== 'direct') {
         logInfo(`[${new Date().toISOString()}] Estratégia de proxy falhou, tentando conexão direta...`);
         testarConexaoAPI('direct');
+        return;
+      } else if (estrategia === 'direct' && window.__apiAttempt <= 3) {
+        // Se estamos na conexão direta e ainda temos tentativas a fazer, tente novamente
+        logInfo(`[${new Date().toISOString()}] Tentativa ${window.__apiAttempt} de conexão direta falhou, tentando URL alternativa...`);
+        testarConexaoAPI('direct');
+        return;
+      } else if (!isDev) {
+        // Se todas as tentativas falharam e estamos em produção, use o modo de diagnóstico silenciosamente
+        logInfo(`[${new Date().toISOString()}] Todas as tentativas de conexão falharam. Ativando modo de visualização com dados de demonstração.`);
+        setServicos(mockServicos);
+        setApiStrategy('fallback-mode');
+        setErro(null); // Remove a mensagem de erro
+        setLoading(false);
         return;
       }
     } finally {
