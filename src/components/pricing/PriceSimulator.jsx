@@ -17,6 +17,8 @@ const PriceSimulator = () => {
   const [erro, setErro] = useState(null);
   // Estado para controlar o processo de debug
   const [debugInfo, setDebugInfo] = useState('');
+  // Estado para controlar qual estratégia de API usar
+  const [apiStrategy, setApiStrategy] = useState('proxy');
 
   // Função para fazer logs
   const logInfo = (msg) => {
@@ -24,56 +26,99 @@ const PriceSimulator = () => {
     setDebugInfo(prev => prev + msg + '\n');
   };
 
-  // Função para buscar serviços usando caminho relativo (usa o proxy do Astro)
-  const buscarServicosComProxy = async () => {
+  // Função para testar conexão com API usando diferentes estratégias
+  const testarConexaoAPI = async (estrategia = 'proxy') => {
     setLoading(true);
     setErro(null);
     setDebugInfo('');
+    setApiStrategy(estrategia);
+
+    // Determinando ambiente (dev vs prod)
+    const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    logInfo(`[${new Date().toISOString()}] Ambiente detectado: ${isDev ? 'Desenvolvimento' : 'Produção'}`);
+
+    let apiUrl;
+    switch (estrategia) {
+      case 'proxy':
+        apiUrl = '/api/pricing';
+        logInfo(`[${new Date().toISOString()}] Usando estratégia de proxy: ${apiUrl}`);
+        break;
+      case 'direct':
+        apiUrl = isDev ? 'http://localhost:3000/api/pricing' : 'https://lytspot.onrender.com/api/pricing';
+        logInfo(`[${new Date().toISOString()}] Usando conexão direta: ${apiUrl}`);
+        break;
+      case 'servico-mock':
+        // Usamos dados "mockados" temporariamente apenas para diagnóstico
+        logInfo(`[${new Date().toISOString()}] Usando dados de serviço de teste para diagnóstico`);
+        setServicos([
+          {
+            id: 1,
+            nome: "Serviço de Teste",
+            descricao: "Este é um serviço de teste usado apenas para diagnóstico.",
+            preco_base: 100.00,
+            duracao_media: 2
+          }
+        ]);
+        setLoading(false);
+        return;
+      default:
+        apiUrl = '/api/pricing';
+    }
 
     try {
-      // Utilizar caminho relativo para usar o proxy configurado no Astro
-      const apiUrl = '/api/pricing';
-      
-      logInfo(`[${new Date().toISOString()}] Tentando buscar serviços via proxy relativo: ${apiUrl}`);
-      
+      logInfo(`[${new Date().toISOString()}] Iniciando requisição para ${apiUrl}`);
+
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-        }
+          'Cache-Control': 'no-cache'
+        },
+        ...(estrategia === 'direct' ? { mode: 'cors' } : {})
       });
-      
+
       logInfo(`[${new Date().toISOString()}] Resposta recebida: status=${response.status}`);
-      
+
       if (!response.ok) {
         throw new Error(`Erro HTTP: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+      logInfo(`[${new Date().toISOString()}] Resposta convertida para JSON`);
+
       if (Array.isArray(data) && data.length > 0) {
-        logInfo(`[${new Date().toISOString()}] Dados recebidos: ${data.length} serviços`);
+        logInfo(`[${new Date().toISOString()}] Dados válidos recebidos: ${data.length} serviços`);
         setServicos(data);
       } else {
-        throw new Error('Resposta não contém dados válidos');
+        throw new Error('Resposta não contém dados válidos de serviços');
       }
     } catch (error) {
-      logInfo(`[${new Date().toISOString()}] Erro com proxy: ${error.message}`);
-      setErro(`Não foi possível carregar os serviços via proxy: ${error.message}`);
+      logInfo(`[${new Date().toISOString()}] Erro ao buscar serviços: ${error.message}`);
+      setErro(`Erro ao buscar serviços: ${error.message}`);
+      
+      // Se a estratégia principal falhar, tente a próxima
+      if (estrategia === 'proxy' && apiStrategy !== 'direct') {
+        logInfo(`[${new Date().toISOString()}] Estratégia de proxy falhou, tentando conexão direta...`);
+        // Não definimos erro ainda para não mostrar mensagem - vamos tentar a próxima estratégia
+        testarConexaoAPI('direct');
+        return;
+      }
     } finally {
-      setLoading(false);
+      if (estrategia !== 'proxy' || apiStrategy === 'proxy') {
+        setLoading(false);
+      }
     }
   };
 
-  // Buscar serviços ao carregar o componente
+  // Inicializar o componente
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      buscarServicosComProxy();
+      testarConexaoAPI('proxy');
     }
   }, []);
 
-  // Atualizar a lista de serviços selecionados e o preço total
+  // Atualizar a lista de serviços selecionados
   const handleServicoChange = (servico, isChecked) => {
     if (isChecked) {
       // Adicionar o serviço à lista de selecionados
@@ -97,13 +142,13 @@ const PriceSimulator = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
         <p className="text-neutral-light">Carregando serviços...</p>
         <button 
-          onClick={() => buscarServicosComProxy()} 
+          onClick={() => testarConexaoAPI('proxy')} 
           className="mt-4 text-sm text-neutral hover:text-primary underline"
         >
           Tentar novamente
         </button>
         {debugInfo && (
-          <div className="mt-4 p-4 bg-neutral-dark/10 rounded text-xs text-left w-full max-h-40 overflow-y-auto">
+          <div className="mt-4 p-4 bg-neutral-dark/10 rounded text-xs text-left w-full max-h-60 overflow-y-auto">
             <pre>{debugInfo}</pre>
           </div>
         )}
@@ -116,17 +161,30 @@ const PriceSimulator = () => {
     return (
       <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-6 text-center">
         <p className="text-red-300">{erro}</p>
-        <button
-          onClick={() => buscarServicosComProxy()}
-          className="mt-4 bg-accent text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-accent-light"
-        >
-          Tentar novamente
-        </button>
-        {debugInfo && (
-          <div className="mt-4 p-4 bg-neutral-dark/20 rounded text-xs text-left w-full max-h-40 overflow-y-auto">
-            <pre className="text-neutral-light">{debugInfo}</pre>
-          </div>
-        )}
+        <div className="flex justify-center mt-4 space-x-4">
+          <button
+            onClick={() => testarConexaoAPI('proxy')}
+            className="bg-accent text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-accent-light"
+          >
+            Tentar via Proxy
+          </button>
+          <button
+            onClick={() => testarConexaoAPI('direct')}
+            className="bg-primary text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-primary-light"
+          >
+            Conectar Diretamente
+          </button>
+          <button
+            onClick={() => testarConexaoAPI('servico-mock')}
+            className="bg-neutral text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-neutral-light"
+          >
+            Usar Modo de Diagnóstico
+          </button>
+        </div>
+        <div className="mt-6 p-4 bg-neutral-dark/20 rounded text-xs text-left w-full max-h-60 overflow-y-auto">
+          <h3 className="font-bold mb-2">Informações de diagnóstico:</h3>
+          <pre className="text-neutral-light">{debugInfo}</pre>
+        </div>
       </div>
     );
   }
@@ -163,7 +221,7 @@ const PriceSimulator = () => {
                     <div className="flex justify-between items-center">
                       <p className="text-sm text-neutral-light">
                         <span className="mr-2">Duração média:</span>
-                        <span>{servico.duracao_media} horas</span>
+                        <span>{servico.duracao_media || '2'} horas</span>
                       </p>
                       <p className="font-bold text-primary">
                         R$ {servico.preco_base.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -176,9 +234,20 @@ const PriceSimulator = () => {
           </div>
         )}
         
-        <p className="text-xs text-neutral-light mt-2 text-right">
-          Atualizado em: {new Date().toLocaleDateString('pt-BR')}
-        </p>
+        <div className="flex justify-between items-center mt-4">
+          <p className="text-xs text-neutral-light">
+            {apiStrategy === 'servico-mock' ? 
+              'Modo de diagnóstico ativado' : 
+              `Atualizado em: ${new Date().toLocaleDateString('pt-BR')}`
+            }
+          </p>
+          <button
+            onClick={() => testarConexaoAPI('proxy')}
+            className="text-xs text-primary underline"
+          >
+            Atualizar
+          </button>
+        </div>
       </div>
       
       {/* Coluna de resumo */}
