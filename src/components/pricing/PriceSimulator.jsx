@@ -1,150 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-
-// Função para criar logs detalhados de depuração
-const debugLog = (message, data) => {
-  const timestamp = new Date().toLocaleTimeString();
-  console.log(`[${timestamp}] 🔍 ${message}`, data || '');
-  
-  // Em produção, limite os logs para não sobrecarregar o console
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    // Podemos enviar logs críticos para um serviço de monitoramento em produção
-    if (message.includes('Erro') || message.includes('erro')) {
-      console.error(`[PROD ERROR] ${message}`, data || '');
-    }
-  }
-};
-
-// Configuração das URLs da API com base no ambiente
-const getApiUrls = () => {
-  if (typeof window === 'undefined') {
-    return {
-      primaryUrl: 'https://api.lytspot.com.br/api/pricing',
-      fallbackUrls: []
-    };
-  }
-  
-  const isProduction = window.location.hostname !== 'localhost';
-  
-  if (isProduction) {
-    return {
-      primaryUrl: 'https://api.lytspot.com.br/api/pricing',
-      fallbackUrls: [
-        'https://lytspot.onrender.com/api/pricing',
-        'https://lytspot.com.br/api/pricing',
-        '/api/pricing' // URL relativa, tenta usar o proxy configurado
-      ]
-    };
-  } else {
-    return {
-      primaryUrl: 'http://localhost:3000/api/pricing',
-      fallbackUrls: [
-        '/api/pricing' // Tenta através do proxy Astro local
-      ]
-    };
-  }
-};
-
-/**
- * Função para tentar fazer requisição com diferentes métodos e URLs
- * Esta abordagem robusta aumenta as chances de sucesso em diferentes ambientes
- */
-const fetchWithFallbacks = async () => {
-  const { primaryUrl, fallbackUrls } = getApiUrls();
-  const allUrls = [primaryUrl, ...fallbackUrls];
-  
-  // Informações do ambiente para diagnóstico
-  const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-  debugLog(`Ambiente: ${isProduction ? 'Produção' : 'Desenvolvimento'}`);
-  debugLog(`URLs a tentar: [${allUrls.join(', ')}]`);
-  
-  // Métodos de requisição a tentar (em ordem de preferência)
-  const fetchMethods = [
-    { name: 'fetch', fn: fetchWithApi },
-    { name: 'xhr', fn: fetchWithXhr }
-  ];
-  
-  // Tentativa com cada URL e método
-  for (const url of allUrls) {
-    debugLog(`Tentando URL: ${url}`);
-    
-    for (const method of fetchMethods) {
-      try {
-        debugLog(`Usando método: ${method.name}`);
-        const result = await method.fn(url);
-        if (result && Array.isArray(result) && result.length > 0) {
-          debugLog(`Sucesso com ${method.name} em ${url}: ${result.length} serviços`);
-          return result;
-        }
-      } catch (error) {
-        debugLog(`Falha com ${method.name} em ${url}: ${error.message}`);
-        // Continua para o próximo método ou URL
-      }
-    }
-  }
-  
-  // Se chegou aqui, todas as tentativas falharam
-  throw new Error('Todas as tentativas de conexão com a API falharam');
-};
-
-// Método fetch padrão
-const fetchWithApi = async (url) => {
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache',
-    },
-    mode: 'cors',
-    credentials: 'omit',
-    redirect: 'follow',
-    referrerPolicy: 'no-referrer'
-  });
-  
-  if (!response.ok) {
-    throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
-  }
-  
-  const contentType = response.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
-  }
-  
-  return await response.json();
-};
-
-// Método XMLHttpRequest como alternativa
-const fetchWithXhr = (url) => {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          resolve(data);
-        } catch (error) {
-          reject(new Error(`Erro ao processar JSON: ${error.message}`));
-        }
-      } else {
-        reject(new Error(`XHR status error: ${xhr.status}`));
-      }
-    };
-    
-    xhr.onerror = function() {
-      reject(new Error('Erro de rede na requisição XHR'));
-    };
-    
-    xhr.send();
-  });
-};
-
-// Data da última atualização dos preços
-const dataAtualizacao = '10/03/2025';
 
 /**
  * Componente Simulador de Preços
@@ -161,33 +15,109 @@ const PriceSimulator = () => {
   const [loading, setLoading] = useState(true);
   // Estado para armazenar erros
   const [erro, setErro] = useState(null);
-  // Estado para controlar tentativas de conexão
-  const [tentativas, setTentativas] = useState(0);
+  // Estado para controlar o processo de debug
+  const [debugInfo, setDebugInfo] = useState('');
 
-  // Função para buscar serviços usando nossa estratégia robusta
-  const buscarServicos = async () => {
-    try {
-      setLoading(true);
-      setErro(null);
-      
-      debugLog('Iniciando busca de serviços');
-      
-      // Verificar se estamos no cliente
-      if (typeof window === 'undefined') {
-        debugLog('Executando no servidor, sem acesso à API');
-        setLoading(false);
-        setErro('Não foi possível carregar os serviços.');
-        return;
-      }
+  // Configuração da API baseada no ambiente
+  const getApiConfig = () => {
+    // Se estamos no servidor durante o build, não temos window
+    if (typeof window === 'undefined') {
+      console.log('Executando no servidor durante build');
+      return { apiUrl: null };
+    }
 
-      // Usar nossa estratégia robusta com múltiplas tentativas
-      const dados = await fetchWithFallbacks();
-      setServicos(dados);
+    // Determinar ambiente baseado na URL
+    const isDev = window.location.hostname === 'localhost';
+    const apiUrl = isDev
+      ? 'http://localhost:3000/api/pricing'
+      : 'https://api.lytspot.com.br/api/pricing';
+
+    console.log(`Ambiente: ${isDev ? 'Desenvolvimento' : 'Produção'}, URL: ${apiUrl}`);
+    return { apiUrl };
+  };
+
+  // Função para buscar serviços usando XMLHttpRequest
+  // XMLHttpRequest é mais antigo, mas às vezes mais confiável para depuração de problemas de conexão
+  const buscarServicosXHR = () => {
+    setLoading(true);
+    setErro(null);
+    setDebugInfo('');
+
+    // Obter configuração da API
+    const { apiUrl } = getApiConfig();
+    if (!apiUrl) {
+      setErro('Erro de configuração: URL da API não disponível');
       setLoading(false);
+      return;
+    }
+
+    const logInfo = (msg) => {
+      console.log(msg);
+      setDebugInfo(prev => prev + msg + '\n');
+    };
+
+    logInfo(`[${new Date().toISOString()}] Iniciando requisição XHR para ${apiUrl}`);
+
+    const xhr = new XMLHttpRequest();
+    
+    // Importante: definir timeout explícito
+    xhr.timeout = 15000; // 15 segundos
+    
+    xhr.open('GET', apiUrl, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
+    
+    xhr.onreadystatechange = function() {
+      logInfo(`[${new Date().toISOString()}] XHR readyState: ${xhr.readyState}, status: ${xhr.status}`);
       
+      if (xhr.readyState === 4) {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            logInfo(`[${new Date().toISOString()}] Dados recebidos: ${data.length} serviços`);
+            
+            if (Array.isArray(data) && data.length > 0) {
+              setServicos(data);
+              setLoading(false);
+            } else {
+              setErro('Resposta vazia ou inválida do servidor');
+              setLoading(false);
+            }
+          } catch (error) {
+            logInfo(`[${new Date().toISOString()}] Erro ao processar resposta: ${error.message}`);
+            setErro(`Erro ao processar resposta: ${error.message}`);
+            setLoading(false);
+          }
+        } else {
+          logInfo(`[${new Date().toISOString()}] Erro HTTP: ${xhr.status}`);
+          setErro(`Erro HTTP: ${xhr.status} ${xhr.statusText}`);
+          setLoading(false);
+        }
+      }
+    };
+    
+    xhr.ontimeout = function() {
+      logInfo(`[${new Date().toISOString()}] Timeout da requisição após 15 segundos`);
+      setErro('A requisição excedeu o tempo limite. Servidor pode estar indisponível.');
+      setLoading(false);
+    };
+    
+    xhr.onerror = function() {
+      logInfo(`[${new Date().toISOString()}] Erro de rede na requisição XHR`);
+      setErro('Erro de rede ao conectar com o servidor. Verifique sua conexão.');
+      setLoading(false);
+    };
+    
+    // Log antes de enviar a requisição
+    logInfo(`[${new Date().toISOString()}] Enviando requisição XHR...`);
+    
+    // Enviar a requisição
+    try {
+      xhr.send();
     } catch (error) {
-      debugLog(`Erro geral na busca de serviços: ${error.message}`);
-      setErro('Falha ao tentar carregar os serviços. Por favor, tente novamente mais tarde.');
+      logInfo(`[${new Date().toISOString()}] Exceção ao enviar requisição: ${error.message}`);
+      setErro(`Falha ao enviar requisição: ${error.message}`);
       setLoading(false);
     }
   };
@@ -196,7 +126,7 @@ const PriceSimulator = () => {
   useEffect(() => {
     // Apenas executar no cliente
     if (typeof window !== 'undefined') {
-      buscarServicos();
+      buscarServicosXHR();
     }
   }, []);
 
@@ -223,6 +153,17 @@ const PriceSimulator = () => {
       <div className="flex flex-col justify-center items-center p-8">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
         <p className="text-neutral-light">Carregando serviços...</p>
+        <button 
+          onClick={() => buscarServicosXHR()} 
+          className="mt-4 text-sm text-neutral hover:text-primary underline"
+        >
+          Tentar novamente
+        </button>
+        {debugInfo && (
+          <div className="mt-4 p-4 bg-neutral-dark/10 rounded text-xs text-left w-full max-h-40 overflow-y-auto">
+            <pre>{debugInfo}</pre>
+          </div>
+        )}
       </div>
     );
   }
@@ -233,11 +174,16 @@ const PriceSimulator = () => {
       <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-6 text-center">
         <p className="text-red-300">{erro}</p>
         <button
-          onClick={() => buscarServicos()}
+          onClick={() => buscarServicosXHR()}
           className="mt-4 bg-accent text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-accent-light"
         >
           Tentar novamente
         </button>
+        {debugInfo && (
+          <div className="mt-4 p-4 bg-neutral-dark/20 rounded text-xs text-left w-full max-h-40 overflow-y-auto">
+            <pre className="text-neutral-light">{debugInfo}</pre>
+          </div>
+        )}
       </div>
     );
   }
@@ -288,7 +234,7 @@ const PriceSimulator = () => {
         )}
         
         <p className="text-xs text-neutral-light mt-2 text-right">
-          Atualizado em: {dataAtualizacao}
+          Atualizado em: {new Date().toLocaleDateString('pt-BR')}
         </p>
       </div>
       
