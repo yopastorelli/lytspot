@@ -70,10 +70,15 @@ const getApiBaseUrl = () => {
   
   // No cliente, verificamos o hostname para determinar o ambiente
   const hostname = window.location.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
   
-  // Usar localhost:3000 diretamente para ambiente de desenvolvimento
-  // Este é o endpoint onde o servidor Express está rodando
-  return 'http://localhost:3000';
+  // Determinar URL base de acordo com o ambiente
+  const baseUrl = isLocalhost 
+    ? 'http://localhost:3000' 
+    : 'https://lytspot.onrender.com';
+  
+  console.log('API Base URL:', baseUrl);
+  return baseUrl;
 };
 
 // Criamos a instância do axios apenas quando necessário
@@ -150,10 +155,14 @@ const PriceSimulator = () => {
         return;
       }
 
-      // Teste direto com fetch para contornar possíveis problemas com o axios
+      // Obter a URL base da API
+      const baseUrl = getApiBaseUrl();
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      
+      // Teste com fetch para buscar os dados da API
       try {
-        console.log('Tentando com fetch nativo...');
-        const response = await fetch('http://localhost:3000/api/pricing');
+        console.log(`Tentando com fetch nativo: ${baseUrl}/api/pricing`);
+        const response = await fetch(`${baseUrl}/api/pricing`);
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -169,39 +178,55 @@ const PriceSimulator = () => {
         console.error('Erro no fetch:', fetchError);
       }
       
-      // Criamos a instância do api apenas quando estamos no cliente
-      const api = createApi();
-      
+      // Se fetch falhou, tentar com axios
       try {
-        // Tentar com axios
-        console.log('Fazendo requisição para /api/pricing com axios...');
+        console.log(`Fazendo requisição para ${baseUrl}/api/pricing com axios...`);
+        const api = createApi();
         const response = await api.get('/api/pricing');
         
         if (Array.isArray(response.data) && response.data.length > 0) {
-          console.log(`${response.data.length} serviços carregados com sucesso!`, response.data);
+          console.log(`${response.data.length} serviços carregados com sucesso via axios!`, response.data);
           setServicos(response.data);
           setUsandoMock(false);
+          setLoading(false);
+          return;
         } else {
-          console.warn('Nenhum serviço encontrado ou formato de resposta inválido:', response.data);
-          throw new Error('Nenhum serviço disponível');
+          console.warn('Resposta da API não contém dados de serviços válidos:', response.data);
+          throw new Error('Dados de serviços inválidos');
         }
-      } catch (error) {
-        console.error('Erro ao buscar serviços da API:', error.message);
+      } catch (axiosError) {
+        console.error('Erro na requisição axios:', axiosError.message);
         
-        // Em desenvolvimento, usar dados mockados após falha
-        console.log('Usando dados mockados após falha de conexão com API');
-        setServicos(MOCK_SERVICES);
-        setUsandoMock(true);
+        // Em desenvolvimento, podemos usar dados mockados como fallback
+        if (isLocalhost) {
+          console.log('Ambiente de desenvolvimento detectado, usando dados mockados como fallback');
+          setServicos(MOCK_SERVICES);
+          setUsandoMock(true);
+          setLoading(false);
+          return;
+        }
+        
+        // Em produção, tentar mais algumas vezes antes de desistir
+        if (tentativas < 2) {
+          console.log(`Falha na tentativa ${tentativas + 1}. Tentando novamente...`);
+          setTentativas(prev => prev + 1);
+          setLoading(false);
+          // Esperar um pouco antes de tentar novamente
+          setTimeout(buscarServicos, 2000);
+          return;
+        }
+        
+        // Após algumas tentativas, mostrar erro em produção
+        throw new Error('Não foi possível conectar ao servidor após múltiplas tentativas');
       }
-      
-      setLoading(false);
     } catch (error) {
       console.error('Erro ao buscar serviços:', error);
       
-      // Usar dados mockados em qualquer ambiente após erro
-      console.log('Usando dados mockados após erro');
+      // Em produção, após várias tentativas, usar dados mockados como último recurso
+      console.log('Usando dados mockados como último recurso após erro');
       setServicos(MOCK_SERVICES);
       setUsandoMock(true);
+      setErro(null); // Não mostrar erro para o usuário final, apenas usar o mock
       setLoading(false);
     }
   };
