@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 import express from 'express';
-import cors from 'cors';
 import winston from 'winston';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -70,12 +69,23 @@ try {
   // Middleware
   logger.info('Configurando middleware...');
   console.log('Configurando middleware...');
-  app.use(cors({
-    origin: '*', // Permitir todas as origens durante o desenvolvimento
-    methods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE'], // Métodos permitidos
-    allowedHeaders: ['Content-Type', 'Authorization'], // Cabeçalhos permitidos
-    credentials: false, // Desabilitar credenciais para evitar problemas durante o desenvolvimento
-  }));
+  
+  // Configuração simplificada de CORS para desenvolvimento
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+    
+    // Registre todas as origens de requisições para depuração
+    console.log(`Requisição recebida de: ${req.headers.origin || 'origem não especificada'} para ${req.url}`);
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    
+    next();
+  });
   
   app.use(express.json());
   logger.info('Middleware configurado.');

@@ -1,51 +1,59 @@
 import { defineConfig } from 'astro/config';
-import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import tailwind from '@astrojs/tailwind';
 
+// Configuração simplificada do Astro
 export default defineConfig({
-  output: 'static', // Gera um site estático
-  base: process.env.BASE_URL || '/', // Define a URL base correta
-  publicDir: 'public', // Garante que a pasta "public" seja usada corretamente
-  build: {
-    outDir: 'dist', // Diretório de saída
-    async afterBuild() {
-      try {
-        const distDir = 'dist';
-        if (!existsSync(distDir)) {
-          mkdirSync(distDir);
-        }
-        const cnamePath = `${distDir}/CNAME`;
-        writeFileSync(cnamePath, 'www.lytspot.com.br', 'utf8');
-        console.log(`CNAME file created successfully at ${cnamePath}`);
-      } catch (error) {
-        console.error('Error creating CNAME file:', error);
-      }
-    },
-  },
+  integrations: [react(), tailwind()],
+  
+  // Configuração do servidor de desenvolvimento
   server: {
-    host: true, // Permite conexões externas no servidor local
-    port: 4321, // Porta de desenvolvimento
+    port: 4321,
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path,
+        configure: (proxy, options) => {
+          // Logs detalhados para diagnóstico
+          proxy.on('error', (err, req, res) => {
+            console.error(`[PROXY ERROR] ${req.method} ${req.url}:`, err);
+          });
+          
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[PROXY REQUEST] ${req.method} ${req.url} -> ${options.target}${proxyReq.path}`);
+          });
+          
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log(`[PROXY RESPONSE] ${proxyRes.statusCode} ${req.url}`);
+          });
+        }
+      }
+    }
   },
+  
+  // Configuração do Vite
   vite: {
-    resolve: {
-      alias: {
-        '@': '/src', // Simplificando o alias para garantir compatibilidade
-      },
+    // Configuração para garantir que variáveis de ambiente estejam disponíveis
+    define: {
+      'process.env.API_URL': JSON.stringify('http://localhost:3000')
     },
+    
+    // Ativando logs detalhados para debug
+    logLevel: 'info',
+    
+    // Configuração de server para melhor feedback durante desenvolvimento
     server: {
-      proxy: {
-        '/api': {
-          target: process.env.API_URL || 'https://lytspot.onrender.com', // Proxy para o backend
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, '/api'),
-        },
+      hmr: {
+        overlay: true
       },
-    },
-  },
-  integrations: [
-    tailwind({ config: './tailwind.config.js' }), // Integração com Tailwind CSS
-    react(), // Integração com React
-  ],
+      watch: {
+        usePolling: true
+      }
+    }
+  }
 });
-//sera so imaginacao
+
+// Log para confirmar a configuração da API
+console.log('[ASTRO CONFIG] API URL configurada: http://localhost:3000');

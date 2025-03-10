@@ -1,47 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Configuração do axios para apontar para o servidor backend
-// Inicialização segura que funciona tanto no servidor quanto no cliente
-const getApiBaseUrl = () => {
+// Função para criar logs detalhados de depuração
+const debugLog = (message, data) => {
+  const timestamp = new Date().toLocaleTimeString();
+  console.log(`[${timestamp}] 🔍 ${message}`, data || '');
+};
+
+// Configuração correta das URLs da API com base no ambiente
+const getApiConfig = () => {
+  // Durante o build do Astro, window não está disponível
   if (typeof window === 'undefined') {
-    return 'https://api.lytspot.com.br'; // URL de produção por padrão durante o build
+    return {
+      baseUrl: 'https://api.lytspot.com.br',
+      pricingPath: '/api/pricing'
+    };
   }
   
   // No cliente, verificamos o hostname para determinar o ambiente
   const hostname = window.location.hostname;
+  const port = window.location.port;
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
   
-  // Determinar URL base de acordo com o ambiente
-  const baseUrl = isLocalhost 
-    ? 'http://localhost:3000' 
-    : 'https://api.lytspot.com.br';
+  debugLog(`Detectado ambiente: hostname=${hostname}, port=${port}, isLocalhost=${isLocalhost}`);
   
-  console.log('API Base URL:', baseUrl);
-  return baseUrl;
-};
-
-// Definir o path correto da API baseado no ambiente
-const getApiPath = () => {
-  if (typeof window === 'undefined') {
-    return '/api/pricing'; // Path padrão durante o build
+  if (isLocalhost) {
+    // Em desenvolvimento local, precisamos usar a URL completa do servidor Express
+    debugLog('Usando configuração de desenvolvimento');
+    return {
+      baseUrl: 'http://localhost:3000',
+      pricingPath: '/api/pricing'
+    };
+  } else {
+    // Em produção
+    debugLog('Usando configuração de produção');
+    return {
+      baseUrl: 'https://api.lytspot.com.br',
+      pricingPath: '/api/pricing'
+    };
   }
-  
-  const hostname = window.location.hostname;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  
-  // Em local usamos /api/pricing, em produção apenas /pricing
-  // Isso é para se adequar à estrutura do servidor de produção
-  return isLocalhost ? '/api/pricing' : '/pricing';
 };
 
-// Criamos a instância do axios apenas quando necessário
+// Criamos a instância do axios quando necessário
 const createApi = () => {
-  const baseURL = getApiBaseUrl();
-  console.log('Criando instância do axios com baseURL:', baseURL);
+  const { baseUrl } = getApiConfig();
+  debugLog('Criando instância do axios com baseURL:', baseUrl);
   
   const api = axios.create({
-    baseURL,
+    baseURL: baseUrl,
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -53,28 +59,27 @@ const createApi = () => {
   
   // Adicionar interceptors para debug
   api.interceptors.request.use(request => {
-    console.log('Request:', request.method, request.url);
+    debugLog('Requisição axios:', `${request.method?.toUpperCase()} ${request.url}`);
     return request;
+  }, error => {
+    debugLog('Erro na requisição axios:', error.message);
+    return Promise.reject(error);
   });
   
-  api.interceptors.response.use(
-    response => {
-      console.log('Response Status:', response.status);
-      console.log('Response Headers:', response.headers);
-      return response;
-    },
-    error => {
-      console.error('API Error:', error.message);
-      if (error.response) {
-        console.error('Status:', error.response.status);
-        console.error('Data:', error.response.data);
-        console.error('Headers:', error.response.headers);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-      }
-      return Promise.reject(error);
+  api.interceptors.response.use(response => {
+    debugLog('Resposta axios:', `${response.status} ${response.statusText}`);
+    return response;
+  }, error => {
+    if (error.response) {
+      debugLog('Erro na resposta axios:', 
+        `${error.response.status} ${error.response.statusText}`);
+    } else if (error.request) {
+      debugLog('Sem resposta do servidor axios:', error.message);
+    } else {
+      debugLog('Erro de configuração axios:', error.message);
     }
-  );
+    return Promise.reject(error);
+  });
   
   return api;
 };
@@ -106,142 +111,104 @@ const PriceSimulator = () => {
       setLoading(true);
       setErro(null);
       
-      console.log('Buscando serviços da API...');
+      debugLog('Iniciando busca de serviços');
       
       // Verificar se estamos no cliente
       if (typeof window === 'undefined') {
-        console.log('Executando no servidor, sem acesso à API');
+        debugLog('Executando no servidor, sem acesso à API');
         setLoading(false);
         setErro('Não foi possível carregar os serviços.');
         return;
       }
 
-      // Obter a URL base e o path da API
-      const baseUrl = getApiBaseUrl();
-      const apiPath = getApiPath();
+      // Determinar URL da API - usar URL absoluta direta sem ambiguidade
+      const apiUrl = 'http://localhost:3000/api/pricing';
+      debugLog(`Tentando acessar API diretamente: ${apiUrl}`);
       
-      // Registrar tentativa de conexão
-      setTentativas(prev => prev + 1);
-      
-      // Log detalhado da tentativa atual
-      console.log(`Tentativa #${tentativas + 1} de conectar à API`);
-      console.log(`URL completa: ${baseUrl}${apiPath}`);
-      
-      // Teste com fetch para buscar os dados da API
       try {
-        console.log(`Tentando com fetch nativo: ${baseUrl}${apiPath}`);
-        
-        const response = await fetch(`${baseUrl}${apiPath}`, {
+        // Utilizando o método fetch nativo com todas as configurações explícitas
+        const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
           },
+          mode: 'cors',
+          credentials: 'omit',
+          redirect: 'follow',
+          referrerPolicy: 'no-referrer'
         });
         
-        // Log detalhado da resposta
-        console.log('Resposta do fetch:', {
-          status: response.status,
-          statusText: response.statusText,
-          headers: Object.fromEntries([...response.headers])
-        });
+        debugLog(`Resposta da API: status=${response.status}, ok=${response.ok}`);
         
         if (response.ok) {
-          const data = await response.json();
-          console.log('Dados recebidos da API:', data);
+          const contentType = response.headers.get("content-type");
+          debugLog(`Tipo de conteúdo recebido: ${contentType}`);
           
-          if (Array.isArray(data) && data.length > 0) {
-            console.log(`${data.length} serviços carregados com sucesso via fetch!`, data);
-            setServicos(data);
-            setLoading(false);
-            return;
-          } else {
-            console.warn('Resposta da API fetch não contém serviços:', data);
-            throw new Error('A API retornou dados em formato inesperado');
-          }
-        } else {
-          console.warn(`Falha na requisição fetch: ${response.status} ${response.statusText}`);
-          throw new Error(`Erro HTTP: ${response.status}`);
-        }
-      } catch (fetchError) {
-        console.error('Erro no fetch:', fetchError);
-        
-        // Tentar uma URL alternativa em caso de falha no fetch
-        try {
-          // Tentar uma URL alternativa sem o prefixo /api
-          const alternativeUrl = isLocalhost ? 
-            `${baseUrl}/pricing` : // Em localhost, tenta sem o prefixo /api
-            `${baseUrl}/api/pricing`; // Em produção, tenta com o prefixo /api
+          if (contentType && contentType.includes("application/json")) {
+            const data = await response.json();
+            debugLog(`Dados recebidos: ${Array.isArray(data) ? data.length : 'não é array'} itens`);
             
-          console.log(`Tentando URL alternativa: ${alternativeUrl}`);
-          
-          const altResponse = await fetch(alternativeUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache',
-            },
-          });
-          
-          if (altResponse.ok) {
-            const data = await altResponse.json();
             if (Array.isArray(data) && data.length > 0) {
-              console.log(`${data.length} serviços carregados com sucesso via URL alternativa!`, data);
               setServicos(data);
               setLoading(false);
               return;
+            } else {
+              throw new Error("Resposta não contém serviços válidos");
             }
+          } else {
+            throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
           }
-        } catch (altError) {
-          console.error('Erro na tentativa alternativa:', altError);
-        }
-      }
-      
-      // Se fetch falhou, tentar com axios como último recurso
-      try {
-        console.log(`Fazendo requisição para ${apiPath} com axios...`);
-        const api = createApi();
-        const response = await api.get(apiPath);
-        
-        if (Array.isArray(response.data) && response.data.length > 0) {
-          console.log(`${response.data.length} serviços carregados com sucesso via axios!`, response.data);
-          setServicos(response.data);
-          setLoading(false);
-          return;
         } else {
-          console.warn('Resposta da API axios não contém serviços válidos:', response.data);
-          // Tentar uma URL alternativa
-          try {
-            const altPath = apiPath === '/api/pricing' ? '/pricing' : '/api/pricing';
-            console.log(`Tentando com caminho alternativo: ${altPath}`);
-            const altResponse = await api.get(altPath);
-            
-            if (Array.isArray(altResponse.data) && altResponse.data.length > 0) {
-              console.log(`${altResponse.data.length} serviços carregados com sucesso via axios com path alternativo!`, altResponse.data);
-              setServicos(altResponse.data);
-              setLoading(false);
-              return;
-            }
-          } catch (altError) {
-            console.error('Erro na requisição axios alternativa:', altError.message);
-          }
-          
-          // Se não temos serviços, mostrar mensagem e parar tentativas
-          setErro('Não foi possível encontrar serviços disponíveis no momento.');
-          setLoading(false);
-          return;
+          throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
         }
-      } catch (axiosError) {
-        console.error('Erro na requisição axios:', axiosError.message);
-        // Mostrar erro ao usuário e parar tentativas
-        setErro('Ocorreu um erro ao conectar ao servidor. Por favor, tente novamente mais tarde.');
-        setLoading(false);
-        return;
+      } catch (fetchError) {
+        debugLog(`Erro no fetch: ${fetchError.message}`);
+        
+        // Último recurso: tentar com XMLHttpRequest
+        debugLog('Tentando com XMLHttpRequest como último recurso');
+        
+        try {
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', apiUrl, true);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.setRequestHeader('Accept', 'application/json');
+          
+          xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const data = JSON.parse(xhr.responseText);
+                debugLog(`XHR bem-sucedido: ${data.length} serviços`);
+                setServicos(data);
+                setLoading(false);
+              } catch (parseError) {
+                debugLog(`Erro ao processar resposta XHR: ${parseError.message}`);
+                setErro('Erro ao processar a resposta do servidor.');
+                setLoading(false);
+              }
+            } else {
+              debugLog(`XHR falhou com status ${xhr.status}`);
+              setErro('Não foi possível conectar ao servidor. Por favor, tente novamente mais tarde.');
+              setLoading(false);
+            }
+          };
+          
+          xhr.onerror = function() {
+            debugLog('Erro de rede no XHR');
+            setErro('Erro de rede ao tentar conectar ao servidor.');
+            setLoading(false);
+          };
+          
+          xhr.send();
+        } catch (xhrError) {
+          debugLog(`Erro ao configurar XHR: ${xhrError.message}`);
+          setErro('Não foi possível conectar ao servidor. Por favor, tente novamente mais tarde.');
+          setLoading(false);
+        }
       }
     } catch (error) {
-      console.error('Erro geral ao buscar serviços:', error);
+      debugLog(`Erro geral na busca de serviços: ${error.message}`);
       setErro('Falha ao tentar carregar os serviços. Por favor, tente novamente mais tarde.');
       setLoading(false);
     }
@@ -308,76 +275,90 @@ const PriceSimulator = () => {
             <p className="text-neutral-light">Nenhum serviço disponível no momento.</p>
           </div>
         ) : (
-          servicos.map(servico => (
-            <div 
-              key={servico.id} 
-              className="mb-4 p-4 bg-light rounded-lg border border-neutral/20 hover:border-primary/50 transition-colors"
-            >
-              <label className="flex items-start cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-5 w-5 accent-primary"
-                  onChange={(e) => handleServicoChange(servico, e.target.checked)}
-                />
-                <div className="ml-3">
-                  <h3 className="font-medium text-primary">{servico.nome}</h3>
-                  <p className="text-neutral text-sm mt-1">{servico.descricao}</p>
-                  <p className="text-accent font-bold mt-2">R$ {servico.preco_base.toFixed(2)}</p>
+          <div className="space-y-4">
+            {servicos.map(servico => (
+              <div key={servico.id} className="p-4 bg-light rounded-lg border border-neutral/20">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id={`servico-${servico.id}`}
+                    onChange={(e) => handleServicoChange(servico, e.target.checked)}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <label 
+                      htmlFor={`servico-${servico.id}`}
+                      className="block font-medium text-primary mb-1 cursor-pointer"
+                    >
+                      {servico.nome}
+                    </label>
+                    <p className="text-sm text-neutral mb-2">{servico.descricao}</p>
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-neutral-light">
+                        <span className="mr-2">Duração média:</span>
+                        <span>{servico.duracao_media} horas</span>
+                      </p>
+                      <p className="font-bold text-primary">
+                        R$ {servico.preco_base.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </label>
-            </div>
-          ))
+              </div>
+            ))}
+          </div>
         )}
         
-        {/* Data da última atualização */}
-        <div className="mt-4 text-sm text-neutral-light italic">
-          Última atualização: {dataAtualizacao}
-        </div>
+        <p className="text-xs text-neutral-light mt-2 text-right">
+          Atualizado em: {dataAtualizacao}
+        </p>
       </div>
       
-      {/* Coluna de resumo do orçamento */}
+      {/* Coluna de resumo */}
       <div>
-        <h2 className="text-xl font-serif font-bold text-primary mb-4">Resumo do Orçamento</h2>
+        <h2 className="text-xl font-serif font-bold text-primary mb-4">Resumo</h2>
         
-        {servicosSelecionados.length === 0 ? (
-          <div className="p-6 bg-light rounded-lg border border-neutral/20 text-center">
-            <p className="text-neutral-light">Selecione os serviços desejados para visualizar o orçamento.</p>
-          </div>
-        ) : (
-          <div className="bg-light rounded-lg border border-neutral/20 overflow-hidden">
-            {/* Lista de serviços selecionados */}
-            <div className="p-4">
-              <h3 className="font-medium text-primary mb-3">Serviços Selecionados</h3>
+        <div className="bg-primary/10 rounded-lg p-6 border border-primary/30">
+          <h3 className="font-medium text-primary mb-4">Serviços Selecionados</h3>
+          
+          {servicosSelecionados.length === 0 ? (
+            <p className="text-neutral-light">Nenhum serviço selecionado</p>
+          ) : (
+            <ul className="space-y-3 mb-6">
               {servicosSelecionados.map(servico => (
-                <div key={servico.id} className="flex justify-between items-center py-2 border-b border-neutral/10 last:border-0">
+                <li key={servico.id} className="flex justify-between">
                   <span className="text-neutral">{servico.nome}</span>
-                  <span className="font-medium">R$ {servico.preco_base.toFixed(2)}</span>
-                </div>
+                  <span className="font-medium text-primary">
+                    R$ {servico.preco_base.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </li>
               ))}
-            </div>
-            
-            {/* Total */}
-            <div className="bg-primary/10 p-4">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-primary">Total</span>
-                <span className="font-bold text-xl text-primary">R$ {precoTotal.toFixed(2)}</span>
-              </div>
-              <p className="text-xs text-neutral-light mt-2">
-                * Este é um valor base estimado. Para um orçamento personalizado, entre em contato conosco.
-              </p>
-            </div>
-            
-            {/* Botão de contato */}
-            <div className="p-4">
-              <a 
-                href="/contato" 
-                className="block w-full bg-accent text-center text-light font-medium py-3 rounded-md transition-colors hover:bg-accent-light"
-              >
-                Solicitar Orçamento Personalizado
-              </a>
+            </ul>
+          )}
+          
+          <div className="border-t border-primary/30 pt-4 mt-4">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-lg text-primary">Total:</span>
+              <span className="font-bold text-xl text-primary">
+                R$ {precoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
-        )}
+        </div>
+        
+        <div className="mt-6">
+          <p className="text-sm text-neutral-light mb-2">
+            Este simulador fornece uma estimativa inicial baseada em nossos preços padrão.
+            Para um orçamento personalizado detalhado, entre em contato conosco.
+          </p>
+          
+          <a
+            href="/contato"
+            className="block w-full bg-accent hover:bg-accent-light text-light text-center font-medium py-3 px-6 rounded-md transition-colors"
+          >
+            Solicitar Orçamento Personalizado
+          </a>
+        </div>
       </div>
     </div>
   );
