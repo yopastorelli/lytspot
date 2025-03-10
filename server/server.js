@@ -2,9 +2,15 @@ import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import winston from 'winston';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import contactRoutes from './routes/contact.js';
 import pricingRoutes from './routes/pricing.js';
 import authRoutes from './routes/auth.js';
+
+// Configuração para ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Identificar se estamos no ambiente Render
 if (process.env.RENDER) {
@@ -93,6 +99,19 @@ try {
   app.use('/api/auth', authRoutes);
   logger.info('Rotas de autenticação registradas.');
   console.log('Rotas de autenticação registradas.');
+
+  // Servir arquivos estáticos do diretório dist
+  const distPath = path.join(__dirname, '..', 'dist');
+  app.use(express.static(distPath));
+  logger.info(`Servindo arquivos estáticos do diretório: ${distPath}`);
+  console.log(`Servindo arquivos estáticos do diretório: ${distPath}`);
+
+  // Rota para todas as outras requisições que não correspondem a rotas específicas
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+  logger.info('Rota de fallback para SPA configurada.');
+  console.log('Rota de fallback para SPA configurada.');
 
   // Middleware para capturar erros globais
   app.use((err, req, res, next) => {
