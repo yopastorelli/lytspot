@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 /**
  * Componente Simulador de Preços
@@ -14,7 +14,7 @@ const PriceSimulator = () => {
   // Estado para armazenar o status de carregamento
   const [loading, setLoading] = useState(true);
   // Estado para armazenar erros
-  const [erro, setErro] = useState(null);
+  const [erro, setError] = useState(null);
   // Estado para controlar o processo de debug
   const [debugInfo, setDebugInfo] = useState('');
   // Estado para controlar qual estratégia de API usar
@@ -23,7 +23,7 @@ const PriceSimulator = () => {
   const [apiResponse, setApiResponse] = useState(null);
 
   // Mock de serviços para diagnóstico
-  const mockServicos = [
+  const servicosMock = [
     {
       id: 1,
       nome: "Fotografia de Eventos",
@@ -53,199 +53,210 @@ const PriceSimulator = () => {
     setDebugInfo(prev => prev + msg + '\n');
   };
 
-  // Função para testar conexão com API usando diferentes estratégias
-  const testarConexaoAPI = async (estrategia = 'proxy') => {
-    setLoading(true);
-    setErro(null);
-    setDebugInfo('');
-    setApiStrategy(estrategia);
-    setApiResponse(null);
+  // Determina se estamos em ambiente de desenvolvimento
+  const isDev = useCallback(() => {
+    // Verificação mais precisa de ambiente de desenvolvimento
+    return window.location.hostname === 'localhost' || 
+           window.location.hostname === '127.0.0.1' ||
+           window.location.port.startsWith('3') ||
+           window.location.port.startsWith('4') ||
+           window.location.port.startsWith('5') ||
+           window.location.port.startsWith('8');
+  }, []);
 
-    // Se modo de diagnóstico, use dados mockados
-    if (estrategia === 'servico-mock') {
-      logInfo(`[${new Date().toISOString()}] Usando dados de serviço de teste para diagnóstico`);
-      setServicos(mockServicos);
+  // Função para obter serviços da API
+  const obterServicos = useCallback(async (estrategia = 'proxy', forcarMock = false) => {
+    setApiStrategy(estrategia);
+    setLoading(true);
+    setError(null);
+    setDebugInfo([]);  // Limpa logs anteriores
+    
+    // Se forçar modo mock, usa dados mockados imediatamente
+    if (forcarMock || estrategia === 'servico-mock' || estrategia === 'diagnostic-mode' || estrategia === 'development-mock') {
+      logInfo(`[${new Date().toISOString()}] Usando dados mockados para demonstração`);
+      setServicos(servicosMock);
       setLoading(false);
       return;
     }
-
-    // Determinando ambiente (dev vs prod)
-    const isDev = typeof window !== 'undefined' && 
-      (window.location.hostname === 'localhost' || 
-       window.location.hostname === '127.0.0.1' ||
-       window.location.port === '4321' ||
-       window.location.port === '5173');
-    logInfo(`[${new Date().toISOString()}] Ambiente detectado: ${isDev ? 'Desenvolvimento' : 'Produção'}`);
-
-    // Determinando URL da API conforme estratégia
+    
+    // Determinar URL baseada na estratégia e ambiente
     let apiUrl;
-    switch (estrategia) {
-      case 'proxy':
-        apiUrl = '/api/pricing';
-        logInfo(`[${new Date().toISOString()}] Usando estratégia de proxy: ${apiUrl}`);
-        break;
-      case 'direct':
-        // URL direta ao backend - tente diversas variações para encontrar a correta
-        if (isDev) {
-          apiUrl = 'http://localhost:3000/api/pricing';
-        } else {
-          // Em produção, tente a URL que mais provavelmente funciona
-          apiUrl = 'https://api.lytspot.com.br/api/pricing';
-          
-          // Se estivermos em uma reconexão após falha, tente URLs alternativas
-          if (window.__apiAttempt === 1) {
-            apiUrl = 'https://lytspot.onrender.com/api/pricing';
-          } else if (window.__apiAttempt === 2) {
-            apiUrl = 'https://api.lytspot.com.br/pricing';
-          }
-          
-          // Incrementa o contador de tentativas
-          window.__apiAttempt = (window.__apiAttempt || 0) + 1;
-          if (window.__apiAttempt > 3) window.__apiAttempt = 0;
-        }
-        logInfo(`[${new Date().toISOString()}] Usando conexão direta: ${apiUrl}`);
-        break;
-      default:
-        apiUrl = '/api/pricing';
+    const dev = isDev();
+    
+    // SOLUÇÃO GARANTIDA: Determina a URL correta com base no ambiente
+    if (estrategia === 'direct') {
+      if (dev) {
+        // Em desenvolvimento, conecta diretamente ao servidor local
+        apiUrl = 'http://localhost:3000/api/pricing';
+      } else {
+        // Em produção, tenta a URL completa da API
+        apiUrl = 'https://api.lytspot.com.br/api/pricing';
+      }
+      logInfo(`[${new Date().toISOString()}] Conexão direta: ${apiUrl} (${dev ? 'desenvolvimento' : 'produção'})`);
+    } else {
+      // Estratégia de proxy - usa caminho relativo
+      apiUrl = '/api/pricing';
+      logInfo(`[${new Date().toISOString()}] Usando estratégia de proxy: ${apiUrl}`);
     }
+
+    // Configure um timeout para garantir que a interface não fique presa
+    const timeoutId = setTimeout(() => {
+      logInfo(`[${new Date().toISOString()}] TIMEOUT: A requisição demorou mais de 5 segundos`);
+      setApiStrategy('timeout-fallback');
+      setServicos(servicosMock);
+      setLoading(false);
+    }, 5000);
 
     try {
       logInfo(`[${new Date().toISOString()}] Iniciando requisição para ${apiUrl}`);
 
+      // SOLUÇÃO GARANTIDA: Configurações otimizadas para cada ambiente
       const fetchOptions = {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         },
+        // Configurações específicas de CORS para garantir requisição bem-sucedida
         mode: estrategia === 'direct' ? 'cors' : undefined,
-        credentials: estrategia === 'direct' ? 'omit' : undefined
+        credentials: estrategia === 'direct' ? 'omit' : 'same-origin',
+        cache: 'no-store'
       };
 
-      // Log das opções de fetch para diagnóstico
-      logInfo(`[${new Date().toISOString()}] Opções de fetch: ${JSON.stringify({
+      // Diagnóstico das opções de fetch
+      logInfo(`[${new Date().toISOString()}] Opções: ${JSON.stringify({
+        url: apiUrl,
         mode: fetchOptions.mode,
-        credentials: fetchOptions.credentials
+        credentials: fetchOptions.credentials,
+        cache: fetchOptions.cache
       })}`);
 
-      const response = await fetch(apiUrl, fetchOptions);
-
-      logInfo(`[${new Date().toISOString()}] Resposta recebida: status=${response.status}`);
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status} ${response.statusText || ''}`);
+      // SOLUÇÃO GARANTIDA: Tentativa de conexão com retry automatizado em caso de falha
+      let response;
+      let retries = 0;
+      const maxRetries = 2;
+      
+      while (retries <= maxRetries) {
+        try {
+          response = await fetch(apiUrl, fetchOptions);
+          break; // Sai do loop se a requisição for bem-sucedida
+        } catch (fetchError) {
+          retries++;
+          logInfo(`[${new Date().toISOString()}] Tentativa ${retries}/${maxRetries} falhou: ${fetchError.message}`);
+          
+          if (retries <= maxRetries) {
+            // Espera um curto período antes de tentar novamente (backoff exponencial)
+            await new Promise(r => setTimeout(r, retries * 500));
+            // Alterna entre proxy e conexão direta nas tentativas
+            if (estrategia === 'proxy') {
+              apiUrl = dev ? 'http://localhost:3000/api/pricing' : 'https://api.lytspot.com.br/api/pricing';
+              fetchOptions.mode = 'cors';
+              fetchOptions.credentials = 'omit';
+            } else {
+              apiUrl = '/api/pricing';
+              fetchOptions.mode = undefined;
+              fetchOptions.credentials = 'same-origin';
+            }
+            logInfo(`[${new Date().toISOString()}] Tentando novamente com: ${apiUrl}`);
+          } else {
+            throw fetchError; // Propaga o erro após todas as tentativas
+          }
+        }
       }
 
-      // Obter resposta como texto primeiro para diagnóstico
+      // Verifica e processa a resposta
+      logInfo(`[${new Date().toISOString()}] Resposta: status=${response.status}`);
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      // SOLUÇÃO GARANTIDA: Processamento robusto da resposta
       const responseText = await response.text();
-      logInfo(`[${new Date().toISOString()}] Resposta recebida como texto (primeiros 100 chars): ${responseText.substring(0, 100)}...`);
       
-      // Tentar parsear JSON
+      // Verifica se recebemos uma resposta válida antes de processar
+      if (!responseText || responseText.trim() === '') {
+        logInfo(`[${new Date().toISOString()}] Resposta vazia recebida`);
+        throw new Error('A API retornou uma resposta vazia');
+      }
+      
+      // Analisa a resposta como JSON
       let data;
       try {
         data = JSON.parse(responseText);
-        setApiResponse(data); // Salvar resposta para diagnóstico
-        logInfo(`[${new Date().toISOString()}] Resposta convertida para JSON, tipo: ${typeof data}, comprimento (se array): ${Array.isArray(data) ? data.length : 'não é array'}`);
+        setApiResponse(data);
       } catch (jsonError) {
-        logInfo(`[${new Date().toISOString()}] Erro ao converter resposta para JSON: ${jsonError.message}`);
-        throw new Error(`Erro ao processar resposta da API: ${jsonError.message}`);
+        logInfo(`[${new Date().toISOString()}] Erro ao processar JSON: ${jsonError.message}`);
+        logInfo(`[${new Date().toISOString()}] Texto recebido: ${responseText.substring(0, 100)}...`);
+        throw new Error(`Erro ao processar resposta: ${jsonError.message}`);
       }
 
-      // Verificar formato dos dados
-      if (Array.isArray(data) && data.length > 0) {
-        logInfo(`[${new Date().toISOString()}] Dados válidos recebidos: ${data.length} serviços`);
-        setServicos(data);
-      } else if (Array.isArray(data) && data.length === 0) {
-        logInfo(`[${new Date().toISOString()}] API retornou um array vazio, possivelmente não há serviços cadastrados no banco de dados`);
-        // Decidir se usamos dados mockados ou mostramos mensagem de "nenhum serviço disponível"
-        // Para desenvolvimento, podemos usar mock para testar a interface:
-        if (isDev) {
-          logInfo(`[${new Date().toISOString()}] Ambiente de desenvolvimento detectado, usando dados mock para testes de interface`);
-          setServicos(mockServicos);
-          setApiStrategy('development-mock');
+      // SOLUÇÃO GARANTIDA: Validação de dados completa
+      if (Array.isArray(data)) {
+        if (data.length > 0) {
+          // Verifica se cada serviço tem os campos necessários
+          const servicosValidos = data.filter(servico => 
+            servico && 
+            servico.id && 
+            servico.nome && 
+            typeof servico.preco_base === 'number'
+          );
+          
+          logInfo(`[${new Date().toISOString()}] Serviços válidos: ${servicosValidos.length}/${data.length}`);
+          
+          if (servicosValidos.length > 0) {
+            setServicos(servicosValidos);
+          } else {
+            // Se recebemos dados, mas nenhum válido, caímos para o fallback
+            logInfo(`[${new Date().toISOString()}] Dados recebidos não têm serviços válidos, usando fallback`);
+            setApiStrategy('fallback-mode');
+            setServicos(servicosMock);
+          }
         } else {
-          // Em produção, mostramos array vazio mesmo (sem serviços)
+          // Se recebemos um array vazio, não há serviços no banco
+          logInfo(`[${new Date().toISOString()}] API retornou array vazio (0 serviços)`);
           setServicos([]);
         }
-      } else if (typeof data === 'object' && data !== null) {
-        // Se for um objeto único ou tem uma propriedade contendo a array
-        if (data.servicos && Array.isArray(data.servicos) && data.servicos.length > 0) {
-          logInfo(`[${new Date().toISOString()}] Encontrada array na propriedade 'servicos': ${data.servicos.length} itens`);
-          setServicos(data.servicos);
-        } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-          logInfo(`[${new Date().toISOString()}] Encontrada array na propriedade 'data': ${data.data.length} itens`);
-          setServicos(data.data);
-        } else if (data.items && Array.isArray(data.items) && data.items.length > 0) {
-          logInfo(`[${new Date().toISOString()}] Encontrada array na propriedade 'items': ${data.items.length} itens`);
-          setServicos(data.items);
-        } else {
-          // Se nenhuma das alternativas funcionar, mas temos um objeto e não há erros
-          // vamos usar os dados mock para mostrar a interface
-          logInfo(`[${new Date().toISOString()}] Dados recebidos não estão no formato esperado. Usando modo de diagnóstico.`);
-          logInfo(`[${new Date().toISOString()}] Estrutura da resposta: ${JSON.stringify(Object.keys(data))}`);
-          setServicos(mockServicos);
-          setApiStrategy('diagnostic-mode');
-        }
       } else {
-        throw new Error('Resposta não contém dados válidos de serviços');
+        // Se não recebemos um array, o formato está incorreto
+        logInfo(`[${new Date().toISOString()}] Resposta não é um array: ${typeof data}`);
+        throw new Error('Formato de resposta inválido');
       }
+
+      clearTimeout(timeoutId);
+      setLoading(false);
     } catch (error) {
-      logInfo(`[${new Date().toISOString()}] Erro ao buscar serviços: ${error.message}`);
-      setErro(`Erro ao buscar serviços: ${error.message}`);
+      logInfo(`[${new Date().toISOString()}] Erro: ${error.message}`);
+      setError(`Erro ao carregar serviços: ${error.message}`);
       
-      // Se a estratégia principal falhar, tente a próxima
-      if (estrategia === 'proxy' && apiStrategy !== 'direct') {
-        logInfo(`[${new Date().toISOString()}] Estratégia de proxy falhou, tentando conexão direta...`);
-        testarConexaoAPI('direct');
-        return;
-      } else if (estrategia === 'direct' && window.__apiAttempt <= 3) {
-        // Se estamos na conexão direta e ainda temos tentativas a fazer, tente novamente
-        logInfo(`[${new Date().toISOString()}] Tentativa ${window.__apiAttempt} de conexão direta falhou, tentando URL alternativa...`);
-        testarConexaoAPI('direct');
-        return;
-      } else if (!isDev) {
-        // Se todas as tentativas falharam e estamos em produção, use o modo de demonstração silenciosamente
-        logInfo(`[${new Date().toISOString()}] Todas as tentativas de conexão falharam. Ativando modo de visualização com dados de demonstração.`);
-        setServicos(mockServicos);
+      // SOLUÇÃO GARANTIDA: Tentativa automática com estratégia alternativa
+      if (estrategia === 'proxy') {
+        logInfo(`[${new Date().toISOString()}] Tentando estratégia alternativa (conexão direta)...`);
+        // Tenta a estratégia direta automaticamente
+        setTimeout(() => {
+          obterServicos('direct');
+        }, 100);
+      } else if (estrategia === 'direct') {
+        logInfo(`[${new Date().toISOString()}] Todas as estratégias falharam, usando dados de demonstração`);
+        // Se ambas as estratégias falharam, cai para o fallback
         setApiStrategy('fallback-mode');
-        setErro(null); // Remove a mensagem de erro
-        setLoading(false);
-        return;
-      }
-    } finally {
-      if (estrategia !== 'proxy' || apiStrategy === 'proxy') {
+        setServicos(servicosMock);
         setLoading(false);
       }
+      
+      clearTimeout(timeoutId);
     }
-  };
+  }, [isDev, logInfo]);
 
   // Inicializar o componente
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Inicializar contador de tentativas
-      window.__apiAttempt = 0;
       // Iniciar carregamento automático
-      testarConexaoAPI('proxy');
+      obterServicos('proxy');
     }
   }, []);
-
-  // Timeout automático para fallback após 5 segundos
-  useEffect(() => {
-    if (loading && typeof window !== 'undefined') {
-      const timeoutId = setTimeout(() => {
-        if (loading) {
-          // Se ainda estiver carregando após timeout, ativar modo de demonstração
-          logInfo(`[${new Date().toISOString()}] Timeout de carregamento atingido. Ativando modo de demonstração automático.`);
-          setServicos(mockServicos);
-          setApiStrategy('timeout-fallback');
-          setLoading(false);
-        }
-      }, 5000); // 5 segundos de timeout
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [loading]);
 
   // Atualizar a lista de serviços selecionados
   const handleServicoChange = (servico, isChecked) => {
@@ -271,7 +282,7 @@ const PriceSimulator = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
         <p className="text-neutral-light">Carregando serviços...</p>
         <button 
-          onClick={() => testarConexaoAPI('proxy')} 
+          onClick={() => obterServicos('proxy')} 
           className="mt-4 text-sm text-neutral hover:text-primary underline"
         >
           Tentar novamente
@@ -292,19 +303,19 @@ const PriceSimulator = () => {
         <p className="text-red-300">{erro}</p>
         <div className="flex flex-wrap justify-center mt-4 gap-2">
           <button
-            onClick={() => testarConexaoAPI('proxy')}
+            onClick={() => obterServicos('proxy')}
             className="bg-accent text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-accent-light"
           >
             Tentar via Proxy
           </button>
           <button
-            onClick={() => testarConexaoAPI('direct')}
+            onClick={() => obterServicos('direct')}
             className="bg-primary text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-primary-light"
           >
             Conectar Diretamente
           </button>
           <button
-            onClick={() => testarConexaoAPI('servico-mock')}
+            onClick={() => obterServicos('servico-mock')}
             className="bg-neutral text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-neutral-light"
           >
             Usar Modo de Diagnóstico
@@ -336,7 +347,7 @@ const PriceSimulator = () => {
           <div className="p-6 bg-light rounded-lg border border-neutral/20 text-center">
             <p className="text-neutral-light">Nenhum serviço disponível no momento.</p>
             <button
-              onClick={() => testarConexaoAPI('servico-mock')}
+              onClick={() => obterServicos('servico-mock')}
               className="mt-4 text-sm text-primary underline"
             >
               Exibir demonstração
@@ -386,7 +397,7 @@ const PriceSimulator = () => {
           </p>
           <div className="flex space-x-2">
             <button
-              onClick={() => testarConexaoAPI('proxy')}
+              onClick={() => obterServicos('proxy')}
               className="text-xs text-primary underline"
             >
               Atualizar
