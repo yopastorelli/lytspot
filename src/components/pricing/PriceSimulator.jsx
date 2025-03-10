@@ -104,8 +104,9 @@ const createApi = () => {
     },
     error => {
       console.error('API Error:', error.message);
+      
+      // A requisição foi feita e o servidor respondeu com um status fora do intervalo 2xx
       if (error.response) {
-        // A requisição foi feita e o servidor respondeu com um status fora do intervalo 2xx
         console.error('Error Status:', error.response.status);
         console.error('Error Data:', error.response.data);
         console.error('Error Headers:', error.response.headers);
@@ -173,33 +174,24 @@ const PriceSimulator = () => {
       } catch (error) {
         console.error('Erro ao buscar serviços da API:', error.message);
         
-        // Se estamos em desenvolvimento, usar dados mockados
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          console.log('Usando dados mockados para desenvolvimento local');
-          setServicos(MOCK_SERVICES);
-          setUsandoMock(true);
-        } else {
-          // Em produção, mostrar o erro
-          throw error;
-        }
+        // Tanto em produção quanto em desenvolvimento, usar dados mockados se a API falhar
+        console.log('Usando dados mockados porque a API falhou');
+        setServicos(MOCK_SERVICES);
+        setUsandoMock(true);
       }
       
       setLoading(false);
     } catch (error) {
       console.error('Erro ao buscar serviços:', error);
       
-      // Se estamos em desenvolvimento, usar dados mockados
-      if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !usandoMock) {
-        console.log('Usando dados mockados para desenvolvimento local após erro');
+      // Se ainda não estamos usando mock, usar os dados mockados
+      if (!usandoMock) {
+        console.log('Usando dados mockados como fallback final');
         setServicos(MOCK_SERVICES);
         setUsandoMock(true);
         setLoading(false);
-      } else if (usandoMock) {
-        // Se já estamos usando mock e ainda assim deu erro, mostrar mensagem
-        setErro('Não foi possível carregar os serviços. Por favor, tente novamente mais tarde.');
-        setLoading(false);
       } else {
-        // Em produção, mostrar o erro
+        // Se já estamos usando mock e ainda assim deu erro, mostrar mensagem
         setErro('Não foi possível carregar os serviços. Por favor, tente novamente mais tarde.');
         setLoading(false);
       }
@@ -265,7 +257,7 @@ const PriceSimulator = () => {
       {usandoMock && (
         <div className="md:col-span-2 bg-amber-100 border border-amber-300 rounded-lg p-4 mb-4">
           <p className="text-amber-800 text-sm">
-            <strong>Nota:</strong> Usando dados de exemplo para desenvolvimento local. Em produção, os dados serão carregados do servidor.
+            <strong>Nota:</strong> Exibindo serviços de demonstração. Os preços são apenas estimativas e podem variar. Para um orçamento detalhado, entre em contato conosco.
           </p>
         </div>
       )}

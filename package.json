@@ -6,10 +6,11 @@
     "dev": "npm run generate-portfolio && astro dev",
     "build": "npx prisma generate --schema=server/prisma/schema.prisma && astro build",
     "preview": "astro preview",
-    "deploy": "astro build && npx gh-pages -d dist -b gh-pages",
+    "deploy": "astro build && npx gh-pages -d dist -b gh-pages && node scripts/initDatabase.js",
     "generate-portfolio": "ts-node scripts/generatePortfolioItems.ts",
-    "start": "node server/server.js",
-    "postinstall": "node render-setup.js"
+    "init-database": "node scripts/initDatabase.js",
+    "start": "node scripts/initDatabase.js && node server/server.js",
+    "postinstall": "node render-setup.js && npx prisma generate --schema=server/prisma/schema.prisma"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",
