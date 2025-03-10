@@ -19,6 +19,33 @@ const PriceSimulator = () => {
   const [debugInfo, setDebugInfo] = useState('');
   // Estado para controlar qual estratégia de API usar
   const [apiStrategy, setApiStrategy] = useState('proxy');
+  // Estado para armazenar a resposta bruta da API (para diagnóstico)
+  const [apiResponse, setApiResponse] = useState(null);
+
+  // Mock de serviços para diagnóstico
+  const mockServicos = [
+    {
+      id: 1,
+      nome: "Fotografia de Eventos",
+      descricao: "Cobertura fotográfica profissional para eventos empresariais, festas e cerimônias.",
+      preco_base: 1500.00,
+      duracao_media: 4
+    },
+    {
+      id: 2,
+      nome: "Ensaio Fotográfico",
+      descricao: "Sessão fotográfica em estúdio ou externa, com entrega de 20 fotos editadas.",
+      preco_base: 800.00,
+      duracao_media: 2
+    },
+    {
+      id: 3,
+      nome: "Vídeo Institucional",
+      descricao: "Produção completa de vídeo promocional para sua empresa, incluindo edição e trilha sonora.",
+      preco_base: 3500.00,
+      duracao_media: 8
+    }
+  ];
 
   // Função para fazer logs
   const logInfo = (msg) => {
@@ -32,11 +59,21 @@ const PriceSimulator = () => {
     setErro(null);
     setDebugInfo('');
     setApiStrategy(estrategia);
+    setApiResponse(null);
+
+    // Se modo de diagnóstico, use dados mockados
+    if (estrategia === 'servico-mock') {
+      logInfo(`[${new Date().toISOString()}] Usando dados de serviço de teste para diagnóstico`);
+      setServicos(mockServicos);
+      setLoading(false);
+      return;
+    }
 
     // Determinando ambiente (dev vs prod)
     const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
     logInfo(`[${new Date().toISOString()}] Ambiente detectado: ${isDev ? 'Desenvolvimento' : 'Produção'}`);
 
+    // Determinando URL da API conforme estratégia
     let apiUrl;
     switch (estrategia) {
       case 'proxy':
@@ -44,23 +81,12 @@ const PriceSimulator = () => {
         logInfo(`[${new Date().toISOString()}] Usando estratégia de proxy: ${apiUrl}`);
         break;
       case 'direct':
-        apiUrl = isDev ? 'http://localhost:3000/api/pricing' : 'https://lytspot.onrender.com/api/pricing';
+        // URL direta ao backend
+        apiUrl = isDev 
+          ? 'http://localhost:3000/api/pricing' 
+          : 'https://api.lytspot.com.br/pricing'; 
         logInfo(`[${new Date().toISOString()}] Usando conexão direta: ${apiUrl}`);
         break;
-      case 'servico-mock':
-        // Usamos dados "mockados" temporariamente apenas para diagnóstico
-        logInfo(`[${new Date().toISOString()}] Usando dados de serviço de teste para diagnóstico`);
-        setServicos([
-          {
-            id: 1,
-            nome: "Serviço de Teste",
-            descricao: "Este é um serviço de teste usado apenas para diagnóstico.",
-            preco_base: 100.00,
-            duracao_media: 2
-          }
-        ]);
-        setLoading(false);
-        return;
       default:
         apiUrl = '/api/pricing';
     }
@@ -81,15 +107,59 @@ const PriceSimulator = () => {
       logInfo(`[${new Date().toISOString()}] Resposta recebida: status=${response.status}`);
 
       if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status} ${response.statusText}`);
+        throw new Error(`Erro HTTP: ${response.status} ${response.statusText || ''}`);
       }
 
-      const data = await response.json();
-      logInfo(`[${new Date().toISOString()}] Resposta convertida para JSON`);
+      // Obter resposta como texto primeiro para diagnóstico
+      const responseText = await response.text();
+      logInfo(`[${new Date().toISOString()}] Resposta recebida como texto (primeiros 100 chars): ${responseText.substring(0, 100)}...`);
+      
+      // Tentar parsear JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        setApiResponse(data); // Salvar resposta para diagnóstico
+        logInfo(`[${new Date().toISOString()}] Resposta convertida para JSON, tipo: ${typeof data}, comprimento (se array): ${Array.isArray(data) ? data.length : 'não é array'}`);
+      } catch (jsonError) {
+        logInfo(`[${new Date().toISOString()}] Erro ao converter resposta para JSON: ${jsonError.message}`);
+        throw new Error(`Erro ao processar resposta da API: ${jsonError.message}`);
+      }
 
+      // Verificar formato dos dados
       if (Array.isArray(data) && data.length > 0) {
         logInfo(`[${new Date().toISOString()}] Dados válidos recebidos: ${data.length} serviços`);
         setServicos(data);
+      } else if (Array.isArray(data) && data.length === 0) {
+        logInfo(`[${new Date().toISOString()}] API retornou um array vazio, possivelmente não há serviços cadastrados no banco de dados`);
+        // Decidir se usamos dados mockados ou mostramos mensagem de "nenhum serviço disponível"
+        // Para desenvolvimento, podemos usar mock para testar a interface:
+        if (isDev) {
+          logInfo(`[${new Date().toISOString()}] Ambiente de desenvolvimento detectado, usando dados mock para testes de interface`);
+          setServicos(mockServicos);
+          setApiStrategy('development-mock');
+        } else {
+          // Em produção, mostramos array vazio mesmo (sem serviços)
+          setServicos([]);
+        }
+      } else if (typeof data === 'object' && data !== null) {
+        // Se for um objeto único ou tem uma propriedade contendo a array
+        if (data.servicos && Array.isArray(data.servicos) && data.servicos.length > 0) {
+          logInfo(`[${new Date().toISOString()}] Encontrada array na propriedade 'servicos': ${data.servicos.length} itens`);
+          setServicos(data.servicos);
+        } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+          logInfo(`[${new Date().toISOString()}] Encontrada array na propriedade 'data': ${data.data.length} itens`);
+          setServicos(data.data);
+        } else if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+          logInfo(`[${new Date().toISOString()}] Encontrada array na propriedade 'items': ${data.items.length} itens`);
+          setServicos(data.items);
+        } else {
+          // Se nenhuma das alternativas funcionar, mas temos um objeto e não há erros
+          // vamos usar os dados mock para mostrar a interface
+          logInfo(`[${new Date().toISOString()}] Dados recebidos não estão no formato esperado. Usando modo de diagnóstico.`);
+          logInfo(`[${new Date().toISOString()}] Estrutura da resposta: ${JSON.stringify(Object.keys(data))}`);
+          setServicos(mockServicos);
+          setApiStrategy('diagnostic-mode');
+        }
       } else {
         throw new Error('Resposta não contém dados válidos de serviços');
       }
@@ -100,7 +170,6 @@ const PriceSimulator = () => {
       // Se a estratégia principal falhar, tente a próxima
       if (estrategia === 'proxy' && apiStrategy !== 'direct') {
         logInfo(`[${new Date().toISOString()}] Estratégia de proxy falhou, tentando conexão direta...`);
-        // Não definimos erro ainda para não mostrar mensagem - vamos tentar a próxima estratégia
         testarConexaoAPI('direct');
         return;
       }
@@ -161,7 +230,7 @@ const PriceSimulator = () => {
     return (
       <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-6 text-center">
         <p className="text-red-300">{erro}</p>
-        <div className="flex justify-center mt-4 space-x-4">
+        <div className="flex flex-wrap justify-center mt-4 gap-2">
           <button
             onClick={() => testarConexaoAPI('proxy')}
             className="bg-accent text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-accent-light"
@@ -181,10 +250,18 @@ const PriceSimulator = () => {
             Usar Modo de Diagnóstico
           </button>
         </div>
+        
         <div className="mt-6 p-4 bg-neutral-dark/20 rounded text-xs text-left w-full max-h-60 overflow-y-auto">
           <h3 className="font-bold mb-2">Informações de diagnóstico:</h3>
           <pre className="text-neutral-light">{debugInfo}</pre>
         </div>
+        
+        {apiResponse && (
+          <div className="mt-4 p-4 bg-neutral-dark/20 rounded text-xs text-left w-full max-h-60 overflow-y-auto">
+            <h3 className="font-bold mb-2">Resposta API (para diagnóstico):</h3>
+            <pre className="text-neutral-light">{JSON.stringify(apiResponse, null, 2)}</pre>
+          </div>
+        )}
       </div>
     );
   }
@@ -221,7 +298,7 @@ const PriceSimulator = () => {
                     <div className="flex justify-between items-center">
                       <p className="text-sm text-neutral-light">
                         <span className="mr-2">Duração média:</span>
-                        <span>{servico.duracao_media || '2'} horas</span>
+                        <span>{servico.duracao_media || servico.duracao_media_captura || '2'} horas</span>
                       </p>
                       <p className="font-bold text-primary">
                         R$ {servico.preco_base.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -236,17 +313,24 @@ const PriceSimulator = () => {
         
         <div className="flex justify-between items-center mt-4">
           <p className="text-xs text-neutral-light">
-            {apiStrategy === 'servico-mock' ? 
+            {apiStrategy === 'servico-mock' || apiStrategy === 'diagnostic-mode' ? 
               'Modo de diagnóstico ativado' : 
               `Atualizado em: ${new Date().toLocaleDateString('pt-BR')}`
             }
           </p>
-          <button
-            onClick={() => testarConexaoAPI('proxy')}
-            className="text-xs text-primary underline"
-          >
-            Atualizar
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => testarConexaoAPI('proxy')}
+              className="text-xs text-primary underline"
+            >
+              Atualizar
+            </button>
+            {(apiStrategy === 'servico-mock' || apiStrategy === 'diagnostic-mode') && (
+              <span className="px-2 py-1 text-xs bg-yellow-500/20 text-yellow-600 rounded-md">
+                Dados de demonstração
+              </span>
+            )}
+          </div>
         </div>
       </div>
       
