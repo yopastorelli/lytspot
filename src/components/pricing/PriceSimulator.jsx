@@ -18,115 +18,58 @@ const PriceSimulator = () => {
   // Estado para controlar o processo de debug
   const [debugInfo, setDebugInfo] = useState('');
 
-  // Configuração da API baseada no ambiente
-  const getApiConfig = () => {
-    // Se estamos no servidor durante o build, não temos window
-    if (typeof window === 'undefined') {
-      console.log('Executando no servidor durante build');
-      return { apiUrl: null };
-    }
-
-    // Determinar ambiente baseado na URL
-    const isDev = window.location.hostname === 'localhost';
-    const apiUrl = isDev
-      ? 'http://localhost:3000/api/pricing'
-      : 'https://api.lytspot.com.br/api/pricing';
-
-    console.log(`Ambiente: ${isDev ? 'Desenvolvimento' : 'Produção'}, URL: ${apiUrl}`);
-    return { apiUrl };
+  // Função para fazer logs
+  const logInfo = (msg) => {
+    console.log(msg);
+    setDebugInfo(prev => prev + msg + '\n');
   };
 
-  // Função para buscar serviços usando XMLHttpRequest
-  // XMLHttpRequest é mais antigo, mas às vezes mais confiável para depuração de problemas de conexão
-  const buscarServicosXHR = () => {
+  // Função para buscar serviços usando caminho relativo (usa o proxy do Astro)
+  const buscarServicosComProxy = async () => {
     setLoading(true);
     setErro(null);
     setDebugInfo('');
 
-    // Obter configuração da API
-    const { apiUrl } = getApiConfig();
-    if (!apiUrl) {
-      setErro('Erro de configuração: URL da API não disponível');
-      setLoading(false);
-      return;
-    }
-
-    const logInfo = (msg) => {
-      console.log(msg);
-      setDebugInfo(prev => prev + msg + '\n');
-    };
-
-    logInfo(`[${new Date().toISOString()}] Iniciando requisição XHR para ${apiUrl}`);
-
-    const xhr = new XMLHttpRequest();
-    
-    // Importante: definir timeout explícito
-    xhr.timeout = 15000; // 15 segundos
-    
-    xhr.open('GET', apiUrl, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Accept', 'application/json');
-    xhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
-    
-    xhr.onreadystatechange = function() {
-      logInfo(`[${new Date().toISOString()}] XHR readyState: ${xhr.readyState}, status: ${xhr.status}`);
-      
-      if (xhr.readyState === 4) {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            logInfo(`[${new Date().toISOString()}] Dados recebidos: ${data.length} serviços`);
-            
-            if (Array.isArray(data) && data.length > 0) {
-              setServicos(data);
-              setLoading(false);
-            } else {
-              setErro('Resposta vazia ou inválida do servidor');
-              setLoading(false);
-            }
-          } catch (error) {
-            logInfo(`[${new Date().toISOString()}] Erro ao processar resposta: ${error.message}`);
-            setErro(`Erro ao processar resposta: ${error.message}`);
-            setLoading(false);
-          }
-        } else {
-          logInfo(`[${new Date().toISOString()}] Erro HTTP: ${xhr.status}`);
-          setErro(`Erro HTTP: ${xhr.status} ${xhr.statusText}`);
-          setLoading(false);
-        }
-      }
-    };
-    
-    xhr.ontimeout = function() {
-      logInfo(`[${new Date().toISOString()}] Timeout da requisição após 15 segundos`);
-      setErro('A requisição excedeu o tempo limite. Servidor pode estar indisponível.');
-      setLoading(false);
-    };
-    
-    xhr.onerror = function() {
-      logInfo(`[${new Date().toISOString()}] Erro de rede na requisição XHR`);
-      setErro('Erro de rede ao conectar com o servidor. Verifique sua conexão.');
-      setLoading(false);
-    };
-    
-    // Log antes de enviar a requisição
-    logInfo(`[${new Date().toISOString()}] Enviando requisição XHR...`);
-    
-    // Enviar a requisição
     try {
-      xhr.send();
+      // Utilizar caminho relativo para usar o proxy configurado no Astro
+      const apiUrl = '/api/pricing';
+      
+      logInfo(`[${new Date().toISOString()}] Tentando buscar serviços via proxy relativo: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      logInfo(`[${new Date().toISOString()}] Resposta recebida: status=${response.status}`);
+      
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (Array.isArray(data) && data.length > 0) {
+        logInfo(`[${new Date().toISOString()}] Dados recebidos: ${data.length} serviços`);
+        setServicos(data);
+      } else {
+        throw new Error('Resposta não contém dados válidos');
+      }
     } catch (error) {
-      logInfo(`[${new Date().toISOString()}] Exceção ao enviar requisição: ${error.message}`);
-      setErro(`Falha ao enviar requisição: ${error.message}`);
+      logInfo(`[${new Date().toISOString()}] Erro com proxy: ${error.message}`);
+      setErro(`Não foi possível carregar os serviços via proxy: ${error.message}`);
+    } finally {
       setLoading(false);
     }
   };
 
-  // Buscar os serviços disponíveis ao carregar o componente
+  // Buscar serviços ao carregar o componente
   useEffect(() => {
-    // Apenas executar no cliente
     if (typeof window !== 'undefined') {
-      buscarServicosXHR();
+      buscarServicosComProxy();
     }
   }, []);
 
@@ -154,7 +97,7 @@ const PriceSimulator = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
         <p className="text-neutral-light">Carregando serviços...</p>
         <button 
-          onClick={() => buscarServicosXHR()} 
+          onClick={() => buscarServicosComProxy()} 
           className="mt-4 text-sm text-neutral hover:text-primary underline"
         >
           Tentar novamente
@@ -174,7 +117,7 @@ const PriceSimulator = () => {
       <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-6 text-center">
         <p className="text-red-300">{erro}</p>
         <button
-          onClick={() => buscarServicosXHR()}
+          onClick={() => buscarServicosComProxy()}
           className="mt-4 bg-accent text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-accent-light"
         >
           Tentar novamente
