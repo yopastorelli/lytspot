@@ -70,7 +70,11 @@ const PriceSimulator = () => {
     }
 
     // Determinando ambiente (dev vs prod)
-    const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    const isDev = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || 
+       window.location.hostname === '127.0.0.1' ||
+       window.location.port === '4321' ||
+       window.location.port === '5173');
     logInfo(`[${new Date().toISOString()}] Ambiente detectado: ${isDev ? 'Desenvolvimento' : 'Produção'}`);
 
     // Determinando URL da API conforme estratégia
@@ -201,7 +205,7 @@ const PriceSimulator = () => {
         testarConexaoAPI('direct');
         return;
       } else if (!isDev) {
-        // Se todas as tentativas falharam e estamos em produção, use o modo de diagnóstico silenciosamente
+        // Se todas as tentativas falharam e estamos em produção, use o modo de demonstração silenciosamente
         logInfo(`[${new Date().toISOString()}] Todas as tentativas de conexão falharam. Ativando modo de visualização com dados de demonstração.`);
         setServicos(mockServicos);
         setApiStrategy('fallback-mode');
@@ -219,9 +223,29 @@ const PriceSimulator = () => {
   // Inicializar o componente
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Inicializar contador de tentativas
+      window.__apiAttempt = 0;
+      // Iniciar carregamento automático
       testarConexaoAPI('proxy');
     }
   }, []);
+
+  // Timeout automático para fallback após 5 segundos
+  useEffect(() => {
+    if (loading && typeof window !== 'undefined') {
+      const timeoutId = setTimeout(() => {
+        if (loading) {
+          // Se ainda estiver carregando após timeout, ativar modo de demonstração
+          logInfo(`[${new Date().toISOString()}] Timeout de carregamento atingido. Ativando modo de demonstração automático.`);
+          setServicos(mockServicos);
+          setApiStrategy('timeout-fallback');
+          setLoading(false);
+        }
+      }, 5000); // 5 segundos de timeout
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [loading]);
 
   // Atualizar a lista de serviços selecionados
   const handleServicoChange = (servico, isChecked) => {
@@ -311,6 +335,12 @@ const PriceSimulator = () => {
         {servicos.length === 0 ? (
           <div className="p-6 bg-light rounded-lg border border-neutral/20 text-center">
             <p className="text-neutral-light">Nenhum serviço disponível no momento.</p>
+            <button
+              onClick={() => testarConexaoAPI('servico-mock')}
+              className="mt-4 text-sm text-primary underline"
+            >
+              Exibir demonstração
+            </button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -349,8 +379,8 @@ const PriceSimulator = () => {
         
         <div className="flex justify-between items-center mt-4">
           <p className="text-xs text-neutral-light">
-            {apiStrategy === 'servico-mock' || apiStrategy === 'diagnostic-mode' ? 
-              'Modo de diagnóstico ativado' : 
+            {apiStrategy === 'servico-mock' || apiStrategy === 'diagnostic-mode' || apiStrategy === 'timeout-fallback' || apiStrategy === 'fallback-mode' || apiStrategy === 'development-mock' ? 
+              'Modo de demonstração ativado' : 
               `Atualizado em: ${new Date().toLocaleDateString('pt-BR')}`
             }
           </p>
@@ -361,7 +391,9 @@ const PriceSimulator = () => {
             >
               Atualizar
             </button>
-            {(apiStrategy === 'servico-mock' || apiStrategy === 'diagnostic-mode') && (
+            {(apiStrategy === 'servico-mock' || apiStrategy === 'diagnostic-mode' || 
+              apiStrategy === 'timeout-fallback' || apiStrategy === 'fallback-mode' || 
+              apiStrategy === 'development-mock') && (
               <span className="px-2 py-1 text-xs bg-yellow-500/20 text-yellow-600 rounded-md">
                 Dados de demonstração
               </span>
