@@ -1,6 +1,65 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// Dados mockados para desenvolvimento local
+const MOCK_SERVICES = [
+  {
+    id: 1,
+    nome: "Ensaio Fotográfico Pessoal",
+    descricao: "Sessão individual em locação externa ou estúdio, ideal para redes sociais, uso profissional ou pessoal. Direção de poses, edição profissional básica e entrega digital em alta resolução.",
+    preco_base: 300.00,
+    duracao_media_captura: "2 a 3 horas",
+    duracao_media_tratamento: "até 7 dias úteis",
+    entregaveis: "20 fotos editadas em alta resolução",
+    possiveis_adicionais: "Maquiagem e cabelo, troca adicional de figurino, cenário especializado",
+    valor_deslocamento: "gratuito até 20 km do centro de Curitiba, excedente R$1,20/km"
+  },
+  {
+    id: 2,
+    nome: "Ensaio Externo de Casal ou Família",
+    descricao: "Sessão fotográfica externa para casais e famílias, capturando momentos espontâneos e dirigidos, com tratamento profissional.",
+    preco_base: 500.00,
+    duracao_media_captura: "2 a 4 horas",
+    duracao_media_tratamento: "até 10 dias úteis",
+    entregaveis: "30 fotos editadas em alta resolução",
+    possiveis_adicionais: "participantes adicionais, maquiagem e produção de figurino, sessão na \"Golden Hour\"",
+    valor_deslocamento: "gratuito até 20 km do centro de Curitiba, excedente R$1,20/km"
+  },
+  {
+    id: 3,
+    nome: "Cobertura Fotográfica de Evento Social",
+    descricao: "Cobertura profissional de fotos em eventos como aniversários, batizados e eventos corporativos.",
+    preco_base: 1000.00,
+    duracao_media_captura: "4 horas",
+    duracao_media_tratamento: "até 10 dias úteis",
+    entregaveis: "40 fotos editadas em alta resolução",
+    possiveis_adicionais: "horas extras, álbum físico ou fotolivro, segundo fotógrafo",
+    valor_deslocamento: "gratuito até 20 km do centro de Curitiba, excedente R$1,20/km"
+  },
+  {
+    id: 4,
+    nome: "Filmagem de Evento Social (Solo)",
+    descricao: "Filmagem profissional para eventos sociais e corporativos, com edição dinâmica e trilha sonora.",
+    preco_base: 1500.00,
+    duracao_media_captura: "4 horas",
+    duracao_media_tratamento: "até 15 dias úteis",
+    entregaveis: "vídeo editado de 3 a 5 minutos",
+    possiveis_adicionais: "horas extras, depoimentos, vídeo bruto",
+    valor_deslocamento: "gratuito até 20 km do centro de Curitiba, excedente R$1,20/km"
+  },
+  {
+    id: 5,
+    nome: "Fotografia Aérea com Drone",
+    descricao: "Imagens aéreas profissionais para imóveis, paisagens ou eventos.",
+    preco_base: 600.00,
+    duracao_media_captura: "2 horas",
+    duracao_media_tratamento: "até 7 dias úteis",
+    entregaveis: "15 fotos aéreas editadas",
+    possiveis_adicionais: "autorizações especiais, pós-produção avançada",
+    valor_deslocamento: "gratuito até 20 km do centro de Curitiba, excedente R$1,20/km"
+  }
+];
+
 // Configuração do axios para apontar para o servidor backend
 // Inicialização segura que funciona tanto no servidor quanto no cliente
 const getApiBaseUrl = () => {
@@ -10,22 +69,59 @@ const getApiBaseUrl = () => {
   }
   
   // No cliente, verificamos o hostname
-  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3000'
-    : 'https://lytspot.onrender.com';
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const baseUrl = isLocalhost ? 'http://localhost:3000' : 'https://lytspot.onrender.com';
+  console.log('API Base URL:', baseUrl);
+  return baseUrl;
 };
 
 // Criamos a instância do axios apenas quando necessário
-const createApi = () => axios.create({
-  baseURL: getApiBaseUrl(),
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: false // Desabilitar credenciais para evitar problemas de CORS
-});
+const createApi = () => {
+  const baseURL = getApiBaseUrl();
+  console.log('Criando instância do axios com baseURL:', baseURL);
+  
+  const api = axios.create({
+    baseURL,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    withCredentials: false, // Desabilitar credenciais para evitar problemas de CORS
+    timeout: 10000 // Timeout de 10 segundos
+  });
+  
+  // Adicionar interceptors para debug
+  api.interceptors.request.use(request => {
+    console.log('Request:', request.method, request.url);
+    console.log('Request Headers:', request.headers);
+    return request;
+  });
+  
+  api.interceptors.response.use(
+    response => {
+      console.log('Response Status:', response.status);
+      console.log('Response Data:', response.data);
+      return response;
+    },
+    error => {
+      console.error('API Error:', error.message);
+      if (error.response) {
+        // A requisição foi feita e o servidor respondeu com um status fora do intervalo 2xx
+        console.error('Error Status:', error.response.status);
+        console.error('Error Data:', error.response.data);
+        console.error('Error Headers:', error.response.headers);
+      } else if (error.request) {
+        // A requisição foi feita mas nenhuma resposta foi recebida
+        console.error('No response received. Request:', error.request);
+      }
+      return Promise.reject(error);
+    }
+  );
+  
+  return api;
+};
 
 // Data da última atualização dos preços
-const dataAtualizacao = '09/03/2025';
+const dataAtualizacao = '10/03/2025';
 
 /**
  * Componente Simulador de Preços
@@ -42,31 +138,80 @@ const PriceSimulator = () => {
   const [loading, setLoading] = useState(true);
   // Estado para armazenar erros
   const [erro, setErro] = useState(null);
+  // Estado para controlar tentativas de reconexão
+  const [tentativas, setTentativas] = useState(0);
+  // Estado para controlar se estamos usando dados mockados
+  const [usandoMock, setUsandoMock] = useState(false);
 
-  // Buscar os serviços disponíveis ao carregar o componente
-  useEffect(() => {
-    const buscarServicos = async () => {
+  // Função para buscar serviços
+  const buscarServicos = async () => {
+    try {
+      setLoading(true);
+      setErro(null);
+      
+      console.log(`Tentativa ${tentativas + 1}: Buscando serviços da API...`);
+      
+      // Criamos a instância do api apenas quando estamos no cliente
+      const api = createApi();
+      
+      // Buscar os serviços da API
+      console.log('Fazendo requisição para /api/pricing...');
+      
       try {
-        setLoading(true);
-        setErro(null);
-        
-        console.log('Buscando serviços da API...');
-        // Criamos a instância do api apenas quando estamos no cliente
-        const api = createApi();
-        // Buscar os serviços da API
+        // Tentar com axios primeiro
         const response = await api.get('/api/pricing');
-        console.log('Serviços recebidos:', response.data);
-        setServicos(response.data);
+        console.log('Axios Response:', response);
         
-        setLoading(false);
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          setServicos(response.data);
+          setUsandoMock(false);
+          console.log(`${response.data.length} serviços carregados com sucesso!`);
+        } else {
+          console.warn('Nenhum serviço encontrado ou formato de resposta inválido:', response.data);
+          throw new Error('Nenhum serviço disponível');
+        }
       } catch (error) {
-        console.error('Erro ao buscar serviços:', error);
+        console.error('Erro ao buscar serviços da API:', error.message);
+        
+        // Se estamos em desenvolvimento, usar dados mockados
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          console.log('Usando dados mockados para desenvolvimento local');
+          setServicos(MOCK_SERVICES);
+          setUsandoMock(true);
+        } else {
+          // Em produção, mostrar o erro
+          throw error;
+        }
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Erro ao buscar serviços:', error);
+      
+      // Se estamos em desenvolvimento, usar dados mockados
+      if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !usandoMock) {
+        console.log('Usando dados mockados para desenvolvimento local após erro');
+        setServicos(MOCK_SERVICES);
+        setUsandoMock(true);
+        setLoading(false);
+      } else if (usandoMock) {
+        // Se já estamos usando mock e ainda assim deu erro, mostrar mensagem
+        setErro('Não foi possível carregar os serviços. Por favor, tente novamente mais tarde.');
+        setLoading(false);
+      } else {
+        // Em produção, mostrar o erro
         setErro('Não foi possível carregar os serviços. Por favor, tente novamente mais tarde.');
         setLoading(false);
       }
-    };
-    
-    buscarServicos();
+    }
+  };
+
+  // Buscar os serviços disponíveis ao carregar o componente
+  useEffect(() => {
+    // Apenas executar no cliente
+    if (typeof window !== 'undefined') {
+      buscarServicos();
+    }
   }, []);
 
   // Atualizar a lista de serviços selecionados e o preço total
@@ -89,8 +234,9 @@ const PriceSimulator = () => {
   // Renderizar o componente de carregamento
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex flex-col justify-center items-center p-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+        <p className="text-neutral-light">Carregando serviços...</p>
       </div>
     );
   }
@@ -102,9 +248,8 @@ const PriceSimulator = () => {
         <p className="text-red-300">{erro}</p>
         <button
           onClick={() => {
-            if (typeof window !== 'undefined') {
-              window.location.reload();
-            }
+            setTentativas(0);
+            buscarServicos();
           }}
           className="mt-4 bg-accent text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-accent-light"
         >
@@ -116,29 +261,44 @@ const PriceSimulator = () => {
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
+      {/* Aviso de dados mockados */}
+      {usandoMock && (
+        <div className="md:col-span-2 bg-amber-100 border border-amber-300 rounded-lg p-4 mb-4">
+          <p className="text-amber-800 text-sm">
+            <strong>Nota:</strong> Usando dados de exemplo para desenvolvimento local. Em produção, os dados serão carregados do servidor.
+          </p>
+        </div>
+      )}
+      
       {/* Coluna de serviços disponíveis */}
       <div>
         <h2 className="text-xl font-serif font-bold text-primary mb-4">Serviços Disponíveis</h2>
         
-        {servicos.map(servico => (
-          <div 
-            key={servico.id} 
-            className="mb-4 p-4 bg-light rounded-lg border border-neutral/20 hover:border-primary/50 transition-colors"
-          >
-            <label className="flex items-start cursor-pointer">
-              <input
-                type="checkbox"
-                className="mt-1 h-5 w-5 accent-primary"
-                onChange={(e) => handleServicoChange(servico, e.target.checked)}
-              />
-              <div className="ml-3">
-                <h3 className="font-medium text-primary">{servico.nome}</h3>
-                <p className="text-neutral text-sm mt-1">{servico.descricao}</p>
-                <p className="text-accent font-bold mt-2">R$ {servico.preco_base.toFixed(2)}</p>
-              </div>
-            </label>
+        {servicos.length === 0 ? (
+          <div className="p-6 bg-light rounded-lg border border-neutral/20 text-center">
+            <p className="text-neutral-light">Nenhum serviço disponível no momento.</p>
           </div>
-        ))}
+        ) : (
+          servicos.map(servico => (
+            <div 
+              key={servico.id} 
+              className="mb-4 p-4 bg-light rounded-lg border border-neutral/20 hover:border-primary/50 transition-colors"
+            >
+              <label className="flex items-start cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-5 w-5 accent-primary"
+                  onChange={(e) => handleServicoChange(servico, e.target.checked)}
+                />
+                <div className="ml-3">
+                  <h3 className="font-medium text-primary">{servico.nome}</h3>
+                  <p className="text-neutral text-sm mt-1">{servico.descricao}</p>
+                  <p className="text-accent font-bold mt-2">R$ {servico.preco_base.toFixed(2)}</p>
+                </div>
+              </label>
+            </div>
+          ))
+        )}
         
         {/* Data da última atualização */}
         <div className="mt-4 text-sm text-neutral-light italic">
@@ -158,33 +318,37 @@ const PriceSimulator = () => {
           <div className="bg-light rounded-lg border border-neutral/20 overflow-hidden">
             {/* Lista de serviços selecionados */}
             <div className="p-4">
+              <h3 className="font-medium text-primary mb-3">Serviços Selecionados</h3>
               {servicosSelecionados.map(servico => (
                 <div key={servico.id} className="flex justify-between items-center py-2 border-b border-neutral/10 last:border-0">
                   <span className="text-neutral">{servico.nome}</span>
-                  <span className="text-accent font-medium">R$ {servico.preco_base.toFixed(2)}</span>
+                  <span className="font-medium">R$ {servico.preco_base.toFixed(2)}</span>
                 </div>
               ))}
             </div>
             
             {/* Total */}
-            <div className="bg-primary/5 p-4 border-t border-neutral/20">
+            <div className="bg-primary/10 p-4">
               <div className="flex justify-between items-center">
-                <span className="text-neutral font-bold">Total:</span>
-                <span className="text-accent font-bold text-xl">R$ {precoTotal.toFixed(2)}</span>
+                <span className="font-bold text-primary">Total</span>
+                <span className="font-bold text-xl text-primary">R$ {precoTotal.toFixed(2)}</span>
               </div>
+              <p className="text-xs text-neutral-light mt-2">
+                * Este é um valor base estimado. Para um orçamento personalizado, entre em contato conosco.
+              </p>
+            </div>
+            
+            {/* Botão de contato */}
+            <div className="p-4">
+              <a 
+                href="/contato" 
+                className="block w-full bg-accent text-center text-light font-medium py-3 rounded-md transition-colors hover:bg-accent-light"
+              >
+                Solicitar Orçamento Personalizado
+              </a>
             </div>
           </div>
         )}
-        
-        {/* Botão de contato */}
-        <div className="mt-6">
-          <a 
-            href="/contato" 
-            className="block w-full bg-accent hover:bg-accent-light text-white font-medium py-3 px-6 rounded-md transition-colors text-center"
-          >
-            Entre em contato para um orçamento personalizado
-          </a>
-        </div>
       </div>
     </div>
   );
