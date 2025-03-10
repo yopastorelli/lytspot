@@ -5,83 +5,142 @@ import axios from 'axios';
 const debugLog = (message, data) => {
   const timestamp = new Date().toLocaleTimeString();
   console.log(`[${timestamp}] 🔍 ${message}`, data || '');
+  
+  // Em produção, limite os logs para não sobrecarregar o console
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    // Podemos enviar logs críticos para um serviço de monitoramento em produção
+    if (message.includes('Erro') || message.includes('erro')) {
+      console.error(`[PROD ERROR] ${message}`, data || '');
+    }
+  }
 };
 
-// Configuração correta das URLs da API com base no ambiente
-const getApiConfig = () => {
-  // Durante o build do Astro, window não está disponível
+// Configuração das URLs da API com base no ambiente
+const getApiUrls = () => {
   if (typeof window === 'undefined') {
     return {
-      baseUrl: 'https://api.lytspot.com.br',
-      pricingPath: '/api/pricing'
+      primaryUrl: 'https://api.lytspot.com.br/api/pricing',
+      fallbackUrls: []
     };
   }
   
-  // No cliente, verificamos o hostname para determinar o ambiente
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isProduction = window.location.hostname !== 'localhost';
   
-  debugLog(`Detectado ambiente: hostname=${hostname}, port=${port}, isLocalhost=${isLocalhost}`);
-  
-  if (isLocalhost) {
-    // Em desenvolvimento local, precisamos usar a URL completa do servidor Express
-    debugLog('Usando configuração de desenvolvimento');
+  if (isProduction) {
     return {
-      baseUrl: 'http://localhost:3000',
-      pricingPath: '/api/pricing'
+      primaryUrl: 'https://api.lytspot.com.br/api/pricing',
+      fallbackUrls: [
+        'https://lytspot.onrender.com/api/pricing',
+        'https://lytspot.com.br/api/pricing',
+        '/api/pricing' // URL relativa, tenta usar o proxy configurado
+      ]
     };
   } else {
-    // Em produção
-    debugLog('Usando configuração de produção');
     return {
-      baseUrl: 'https://api.lytspot.com.br',
-      pricingPath: '/api/pricing'
+      primaryUrl: 'http://localhost:3000/api/pricing',
+      fallbackUrls: [
+        '/api/pricing' // Tenta através do proxy Astro local
+      ]
     };
   }
 };
 
-// Criamos a instância do axios quando necessário
-const createApi = () => {
-  const { baseUrl } = getApiConfig();
-  debugLog('Criando instância do axios com baseURL:', baseUrl);
+/**
+ * Função para tentar fazer requisição com diferentes métodos e URLs
+ * Esta abordagem robusta aumenta as chances de sucesso em diferentes ambientes
+ */
+const fetchWithFallbacks = async () => {
+  const { primaryUrl, fallbackUrls } = getApiUrls();
+  const allUrls = [primaryUrl, ...fallbackUrls];
   
-  const api = axios.create({
-    baseURL: baseUrl,
+  // Informações do ambiente para diagnóstico
+  const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+  debugLog(`Ambiente: ${isProduction ? 'Produção' : 'Desenvolvimento'}`);
+  debugLog(`URLs a tentar: [${allUrls.join(', ')}]`);
+  
+  // Métodos de requisição a tentar (em ordem de preferência)
+  const fetchMethods = [
+    { name: 'fetch', fn: fetchWithApi },
+    { name: 'xhr', fn: fetchWithXhr }
+  ];
+  
+  // Tentativa com cada URL e método
+  for (const url of allUrls) {
+    debugLog(`Tentando URL: ${url}`);
+    
+    for (const method of fetchMethods) {
+      try {
+        debugLog(`Usando método: ${method.name}`);
+        const result = await method.fn(url);
+        if (result && Array.isArray(result) && result.length > 0) {
+          debugLog(`Sucesso com ${method.name} em ${url}: ${result.length} serviços`);
+          return result;
+        }
+      } catch (error) {
+        debugLog(`Falha com ${method.name} em ${url}: ${error.message}`);
+        // Continua para o próximo método ou URL
+      }
+    }
+  }
+  
+  // Se chegou aqui, todas as tentativas falharam
+  throw new Error('Todas as tentativas de conexão com a API falharam');
+};
+
+// Método fetch padrão
+const fetchWithApi = async (url) => {
+  const response = await fetch(url, {
+    method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
     },
-    withCredentials: false, // Desabilitar credenciais para evitar problemas de CORS
-    timeout: 15000 // Timeout aumentado para 15 segundos
+    mode: 'cors',
+    credentials: 'omit',
+    redirect: 'follow',
+    referrerPolicy: 'no-referrer'
   });
   
-  // Adicionar interceptors para debug
-  api.interceptors.request.use(request => {
-    debugLog('Requisição axios:', `${request.method?.toUpperCase()} ${request.url}`);
-    return request;
-  }, error => {
-    debugLog('Erro na requisição axios:', error.message);
-    return Promise.reject(error);
-  });
+  if (!response.ok) {
+    throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
+  }
   
-  api.interceptors.response.use(response => {
-    debugLog('Resposta axios:', `${response.status} ${response.statusText}`);
-    return response;
-  }, error => {
-    if (error.response) {
-      debugLog('Erro na resposta axios:', 
-        `${error.response.status} ${error.response.statusText}`);
-    } else if (error.request) {
-      debugLog('Sem resposta do servidor axios:', error.message);
-    } else {
-      debugLog('Erro de configuração axios:', error.message);
-    }
-    return Promise.reject(error);
-  });
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
+  }
   
-  return api;
+  return await response.json();
+};
+
+// Método XMLHttpRequest como alternativa
+const fetchWithXhr = (url) => {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          resolve(data);
+        } catch (error) {
+          reject(new Error(`Erro ao processar JSON: ${error.message}`));
+        }
+      } else {
+        reject(new Error(`XHR status error: ${xhr.status}`));
+      }
+    };
+    
+    xhr.onerror = function() {
+      reject(new Error('Erro de rede na requisição XHR'));
+    };
+    
+    xhr.send();
+  });
 };
 
 // Data da última atualização dos preços
@@ -105,7 +164,7 @@ const PriceSimulator = () => {
   // Estado para controlar tentativas de conexão
   const [tentativas, setTentativas] = useState(0);
 
-  // Função para buscar serviços
+  // Função para buscar serviços usando nossa estratégia robusta
   const buscarServicos = async () => {
     try {
       setLoading(true);
@@ -121,92 +180,11 @@ const PriceSimulator = () => {
         return;
       }
 
-      // Determinar URL da API - usar URL absoluta direta sem ambiguidade
-      const apiUrl = 'http://localhost:3000/api/pricing';
-      debugLog(`Tentando acessar API diretamente: ${apiUrl}`);
+      // Usar nossa estratégia robusta com múltiplas tentativas
+      const dados = await fetchWithFallbacks();
+      setServicos(dados);
+      setLoading(false);
       
-      try {
-        // Utilizando o método fetch nativo com todas as configurações explícitas
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-          },
-          mode: 'cors',
-          credentials: 'omit',
-          redirect: 'follow',
-          referrerPolicy: 'no-referrer'
-        });
-        
-        debugLog(`Resposta da API: status=${response.status}, ok=${response.ok}`);
-        
-        if (response.ok) {
-          const contentType = response.headers.get("content-type");
-          debugLog(`Tipo de conteúdo recebido: ${contentType}`);
-          
-          if (contentType && contentType.includes("application/json")) {
-            const data = await response.json();
-            debugLog(`Dados recebidos: ${Array.isArray(data) ? data.length : 'não é array'} itens`);
-            
-            if (Array.isArray(data) && data.length > 0) {
-              setServicos(data);
-              setLoading(false);
-              return;
-            } else {
-              throw new Error("Resposta não contém serviços válidos");
-            }
-          } else {
-            throw new Error(`Tipo de conteúdo inválido: ${contentType}`);
-          }
-        } else {
-          throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-        }
-      } catch (fetchError) {
-        debugLog(`Erro no fetch: ${fetchError.message}`);
-        
-        // Último recurso: tentar com XMLHttpRequest
-        debugLog('Tentando com XMLHttpRequest como último recurso');
-        
-        try {
-          const xhr = new XMLHttpRequest();
-          xhr.open('GET', apiUrl, true);
-          xhr.setRequestHeader('Content-Type', 'application/json');
-          xhr.setRequestHeader('Accept', 'application/json');
-          
-          xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const data = JSON.parse(xhr.responseText);
-                debugLog(`XHR bem-sucedido: ${data.length} serviços`);
-                setServicos(data);
-                setLoading(false);
-              } catch (parseError) {
-                debugLog(`Erro ao processar resposta XHR: ${parseError.message}`);
-                setErro('Erro ao processar a resposta do servidor.');
-                setLoading(false);
-              }
-            } else {
-              debugLog(`XHR falhou com status ${xhr.status}`);
-              setErro('Não foi possível conectar ao servidor. Por favor, tente novamente mais tarde.');
-              setLoading(false);
-            }
-          };
-          
-          xhr.onerror = function() {
-            debugLog('Erro de rede no XHR');
-            setErro('Erro de rede ao tentar conectar ao servidor.');
-            setLoading(false);
-          };
-          
-          xhr.send();
-        } catch (xhrError) {
-          debugLog(`Erro ao configurar XHR: ${xhrError.message}`);
-          setErro('Não foi possível conectar ao servidor. Por favor, tente novamente mais tarde.');
-          setLoading(false);
-        }
-      }
     } catch (error) {
       debugLog(`Erro geral na busca de serviços: ${error.message}`);
       setErro('Falha ao tentar carregar os serviços. Por favor, tente novamente mais tarde.');
