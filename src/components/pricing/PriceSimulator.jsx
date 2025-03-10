@@ -1,71 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Dados mockados para desenvolvimento local (mantidos como fallback)
-const MOCK_SERVICES = [
-  {
-    id: 1,
-    nome: "Ensaio Fotográfico Pessoal",
-    descricao: "Sessão individual em locação externa ou estúdio, ideal para redes sociais, uso profissional ou pessoal. Direção de poses, edição profissional básica e entrega digital em alta resolução.",
-    preco_base: 300.00,
-    duracao_media_captura: "2 a 3 horas",
-    duracao_media_tratamento: "até 7 dias úteis",
-    entregaveis: "20 fotos editadas em alta resolução",
-    possiveis_adicionais: "Maquiagem e cabelo, troca adicional de figurino, cenário especializado",
-    valor_deslocamento: "gratuito até 20 km do centro de Curitiba, excedente R$1,20/km"
-  },
-  {
-    id: 2,
-    nome: "Ensaio Externo de Casal ou Família",
-    descricao: "Sessão fotográfica externa para casais e famílias, capturando momentos espontâneos e dirigidos, com tratamento profissional.",
-    preco_base: 500.00,
-    duracao_media_captura: "2 a 4 horas",
-    duracao_media_tratamento: "até 10 dias úteis",
-    entregaveis: "30 fotos editadas em alta resolução",
-    possiveis_adicionais: "participantes adicionais, maquiagem e produção de figurino, sessão na \"Golden Hour\"",
-    valor_deslocamento: "gratuito até 20 km do centro de Curitiba, excedente R$1,20/km"
-  },
-  {
-    id: 3,
-    nome: "Cobertura Fotográfica de Evento Social",
-    descricao: "Cobertura profissional de fotos em eventos como aniversários, batizados e eventos corporativos.",
-    preco_base: 1000.00,
-    duracao_media_captura: "4 horas",
-    duracao_media_tratamento: "até 10 dias úteis",
-    entregaveis: "40 fotos editadas em alta resolução",
-    possiveis_adicionais: "horas extras, álbum físico ou fotolivro, segundo fotógrafo",
-    valor_deslocamento: "gratuito até 20 km do centro de Curitiba, excedente R$1,20/km"
-  },
-  {
-    id: 4,
-    nome: "Filmagem de Evento Social (Solo)",
-    descricao: "Filmagem profissional para eventos sociais e corporativos, com edição dinâmica e trilha sonora.",
-    preco_base: 1500.00,
-    duracao_media_captura: "4 horas",
-    duracao_media_tratamento: "até 15 dias úteis",
-    entregaveis: "vídeo editado de 3 a 5 minutos",
-    possiveis_adicionais: "horas extras, depoimentos, vídeo bruto",
-    valor_deslocamento: "gratuito até 20 km do centro de Curitiba, excedente R$1,20/km"
-  },
-  {
-    id: 5,
-    nome: "Fotografia Aérea com Drone",
-    descricao: "Imagens aéreas profissionais para imóveis, paisagens ou eventos.",
-    preco_base: 600.00,
-    duracao_media_captura: "2 horas",
-    duracao_media_tratamento: "até 7 dias úteis",
-    entregaveis: "15 fotos aéreas editadas",
-    possiveis_adicionais: "autorizações especiais, pós-produção avançada",
-    valor_deslocamento: "gratuito até 20 km do centro de Curitiba, excedente R$1,20/km"
-  }
-];
-
 // Configuração do axios para apontar para o servidor backend
 // Inicialização segura que funciona tanto no servidor quanto no cliente
 const getApiBaseUrl = () => {
   // Durante o build do Astro, window não está disponível
   if (typeof window === 'undefined') {
-    return 'https://lytspot.onrender.com'; // URL de produção por padrão durante o build
+    return 'https://api.lytspot.com.br'; // URL de produção por padrão durante o build
   }
   
   // No cliente, verificamos o hostname para determinar o ambiente
@@ -75,7 +16,7 @@ const getApiBaseUrl = () => {
   // Determinar URL base de acordo com o ambiente
   const baseUrl = isLocalhost 
     ? 'http://localhost:3000' 
-    : 'https://lytspot.onrender.com';
+    : 'https://api.lytspot.com.br';
   
   console.log('API Base URL:', baseUrl);
   return baseUrl;
@@ -133,10 +74,6 @@ const PriceSimulator = () => {
   const [loading, setLoading] = useState(true);
   // Estado para armazenar erros
   const [erro, setErro] = useState(null);
-  // Estado para controlar tentativas de reconexão
-  const [tentativas, setTentativas] = useState(0);
-  // Estado para controlar se estamos usando dados mockados
-  const [usandoMock, setUsandoMock] = useState(false);
 
   // Função para buscar serviços
   const buscarServicos = async () => {
@@ -144,41 +81,49 @@ const PriceSimulator = () => {
       setLoading(true);
       setErro(null);
       
-      console.log(`Tentativa ${tentativas + 1}: Buscando serviços da API...`);
+      console.log('Buscando serviços da API...');
       
       // Verificar se estamos no cliente
       if (typeof window === 'undefined') {
-        console.log('Executando no servidor, usando mock data');
-        setServicos(MOCK_SERVICES);
-        setUsandoMock(true);
+        console.log('Executando no servidor, sem acesso à API');
         setLoading(false);
+        setErro('Não foi possível carregar os serviços.');
         return;
       }
 
       // Obter a URL base da API
       const baseUrl = getApiBaseUrl();
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       
       // Teste com fetch para buscar os dados da API
       try {
         console.log(`Tentando com fetch nativo: ${baseUrl}/api/pricing`);
-        const response = await fetch(`${baseUrl}/api/pricing`);
+        const response = await fetch(`${baseUrl}/api/pricing`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+        });
+        
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
             console.log(`${data.length} serviços carregados com sucesso via fetch!`, data);
             setServicos(data);
-            setUsandoMock(false);
             setLoading(false);
             return;
+          } else {
+            console.warn('Resposta da API fetch não contém serviços:', data);
           }
+        } else {
+          console.warn(`Falha na requisição fetch: ${response.status} ${response.statusText}`);
         }
-        console.log('Fetch não obteve sucesso, tentando com axios...');
       } catch (fetchError) {
         console.error('Erro no fetch:', fetchError);
       }
       
-      // Se fetch falhou, tentar com axios
+      // Se fetch falhou, tentar com axios como último recurso
       try {
         console.log(`Fazendo requisição para ${baseUrl}/api/pricing com axios...`);
         const api = createApi();
@@ -187,46 +132,25 @@ const PriceSimulator = () => {
         if (Array.isArray(response.data) && response.data.length > 0) {
           console.log(`${response.data.length} serviços carregados com sucesso via axios!`, response.data);
           setServicos(response.data);
-          setUsandoMock(false);
           setLoading(false);
           return;
         } else {
-          console.warn('Resposta da API não contém dados de serviços válidos:', response.data);
-          throw new Error('Dados de serviços inválidos');
+          console.warn('Resposta da API axios não contém serviços válidos:', response.data);
+          // Se não temos serviços, mostrar mensagem e parar tentativas
+          setErro('Não foi possível encontrar serviços disponíveis no momento.');
+          setLoading(false);
+          return;
         }
       } catch (axiosError) {
         console.error('Erro na requisição axios:', axiosError.message);
-        
-        // Em desenvolvimento, podemos usar dados mockados como fallback
-        if (isLocalhost) {
-          console.log('Ambiente de desenvolvimento detectado, usando dados mockados como fallback');
-          setServicos(MOCK_SERVICES);
-          setUsandoMock(true);
-          setLoading(false);
-          return;
-        }
-        
-        // Em produção, tentar mais algumas vezes antes de desistir
-        if (tentativas < 2) {
-          console.log(`Falha na tentativa ${tentativas + 1}. Tentando novamente...`);
-          setTentativas(prev => prev + 1);
-          setLoading(false);
-          // Esperar um pouco antes de tentar novamente
-          setTimeout(buscarServicos, 2000);
-          return;
-        }
-        
-        // Após algumas tentativas, mostrar erro em produção
-        throw new Error('Não foi possível conectar ao servidor após múltiplas tentativas');
+        // Mostrar erro ao usuário e parar tentativas
+        setErro('Ocorreu um erro ao conectar ao servidor. Por favor, tente novamente mais tarde.');
+        setLoading(false);
+        return;
       }
     } catch (error) {
-      console.error('Erro ao buscar serviços:', error);
-      
-      // Em produção, após várias tentativas, usar dados mockados como último recurso
-      console.log('Usando dados mockados como último recurso após erro');
-      setServicos(MOCK_SERVICES);
-      setUsandoMock(true);
-      setErro(null); // Não mostrar erro para o usuário final, apenas usar o mock
+      console.error('Erro geral ao buscar serviços:', error);
+      setErro('Falha ao tentar carregar os serviços. Por favor, tente novamente mais tarde.');
       setLoading(false);
     }
   };
@@ -266,16 +190,13 @@ const PriceSimulator = () => {
     );
   }
 
-  // Renderizar a mensagem de erro
+  // Renderiza mensagem de erro com opção de retry manual
   if (erro) {
     return (
       <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-6 text-center">
         <p className="text-red-300">{erro}</p>
         <button
-          onClick={() => {
-            setTentativas(prev => prev + 1);
-            buscarServicos();
-          }}
+          onClick={() => buscarServicos()}
           className="mt-4 bg-accent text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-accent-light"
         >
           Tentar novamente
@@ -286,15 +207,6 @@ const PriceSimulator = () => {
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
-      {/* Aviso de dados mockados */}
-      {usandoMock && (
-        <div className="md:col-span-2 bg-amber-100 border border-amber-300 rounded-lg p-4 mb-4">
-          <p className="text-amber-800 text-sm">
-            <strong>Nota:</strong> Usando dados de exemplo para desenvolvimento local. Em produção, os dados serão carregados do servidor.
-          </p>
-        </div>
-      )}
-      
       {/* Coluna de serviços disponíveis */}
       <div>
         <h2 className="text-xl font-serif font-bold text-primary mb-4">Serviços Disponíveis</h2>
