@@ -8,7 +8,6 @@ const menuItems = [
   { href: '/sobre', text: 'Sobre' },
   { href: '/servicos', text: 'Serviços' },
   { href: '/precos', text: 'Simulador de Preços' },
-  { href: '/politicas', text: 'Políticas' },
 ];
 
 // Acessa o pathname da URL atual corretamente
@@ -19,7 +18,7 @@ const currentPath = new URL(Astro.request.url).pathname;
     <nav class="flex items-center justify-between py-4">
       <!-- Logo -->
       <a href="/" class="text-2xl font-bold text-primary flex items-center gap-2">
-        <img src="/images/azul fundo branco.png" alt="LYTSPOT" class="h-14" />
+        <img src="/images/azul fundo branco.png" alt="LYTSPOT" class="h-16" />
       </a>
 
       <!-- Mobile menu button - Melhorado -->

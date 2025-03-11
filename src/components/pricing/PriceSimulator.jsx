@@ -1,611 +1,692 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import { servicos as servicosDados } from '../../data/servicos.js';
 
 /**
- * Componente Simulador de Preços
- * Permite ao usuário selecionar serviços e visualizar o preço total em tempo real
- * 
- * Versão 1.3.2 - Otimização de endpoints e melhor tratamento de erros
+ * Componente Simulador de Preços - Versão estável 
+ * @version 2.8.0
  */
-const PriceSimulator = () => {
-  // Estado para armazenar os serviços disponíveis
+const PriceSimulator = memo(() => {
+  // Estados principais do componente
   const [servicos, setServicos] = useState([]);
-  // Estado para armazenar os serviços selecionados
   const [servicosSelecionados, setServicosSelecionados] = useState([]);
-  // Estado para armazenar o preço total
   const [precoTotal, setPrecoTotal] = useState(0);
-  // Estado para armazenar o status de carregamento
   const [loading, setLoading] = useState(true);
-  // Estado para armazenar erros
   const [erro, setError] = useState(null);
-  // Estado para controlar a origem dos dados (api ou demonstração)
   const [dadosDemonstracao, setDadosDemonstracao] = useState(false);
-  // Estado para armazenar logs de debug
   const [debugLogs, setDebugLogs] = useState([]);
-  // Estado para mostrar/esconder painel de debug
   const [mostrarDebug, setMostrarDebug] = useState(false);
-  // Estado para armazenar informações detalhadas de requisições
-  const [requisicoes, setRequisicoes] = useState([]);
-  // Referência para controlar se o componente foi montado
+  const [isBrowser, setIsBrowser] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [maxRetries, setMaxRetries] = useState(3);
+  const [retryCount, setRetryCount] = useState(0);
+  const [retryDelay, setRetryDelay] = useState(2000); // 2 segundos de delay entre tentativas
+  
+  // Referências
   const mounted = useRef(false);
-  // Referência para controlar o número de tentativas de API
-  const tentativasAPI = useRef(0);
+  const testMode = useRef(false); // Para testes automatizados
+  const testRunning = useRef(false); // Previne loops infinitos durante testes
+  const timeoutRef = useRef(null); // Armazena referência ao timeout para limpeza adequada
+  const initAttempts = useRef(0);
 
-  // Mock de serviços para demonstração (utilizado apenas como fallback)
-  const servicosMock = [
-    {
-      id: 1,
-      nome: "Fotografia de Eventos",
-      descricao: "Cobertura fotográfica profissional para eventos empresariais, festas e cerimônias.",
-      preco_base: 1500.00,
-      duracao_media: 4
-    },
-    {
-      id: 2,
-      nome: "Ensaio Fotográfico",
-      descricao: "Sessão fotográfica em estúdio ou externa, com entrega de 20 fotos editadas.",
-      preco_base: 800.00,
-      duracao_media: 2
-    },
-    {
-      id: 3,
-      nome: "Vídeo Institucional",
-      descricao: "Produção completa de vídeo promocional para sua empresa, incluindo edição e trilha sonora.",
-      preco_base: 3500.00,
-      duracao_media: 8
+  // Efeito para detectar cliente - executado apenas uma vez
+  useEffect(() => {
+    setIsBrowser(true);
+    mounted.current = true;
+    
+    // Função de limpeza
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
+      mounted.current = false;
+    };
+  }, []);
+
+  // Função para logging
+  const log = useCallback((mensagem, tipo = 'info') => {
+    if (!isBrowser) return;
+    
+    const timestamp = new Date().toLocaleTimeString('pt-BR');
+    
+    if (typeof console !== 'undefined') {
+      if (tipo === 'erro') console.error(`[${tipo}] ${mensagem}`);
+      else if (tipo === 'aviso') console.warn(`[${tipo}] ${mensagem}`);
+      else console.log(`[${tipo}] ${mensagem}`);
     }
-  ];
+    
+    setDebugLogs(prevLogs => [...prevLogs, { timestamp, mensagem, tipo }]);
+    
+    if (tipo === 'erro' && !mostrarDebug) {
+      setTimeout(() => setMostrarDebug(true), 0);
+    }
+    
+    // Exponha logs para testes automatizados
+    if (typeof window !== 'undefined') {
+      if (!window._debugLogs) window._debugLogs = [];
+      window._debugLogs.push({ timestamp, mensagem, tipo });
+    }
+  }, [isBrowser, mostrarDebug]);
 
-  // Função para adicionar log de debug
-  const addDebugLog = useCallback((mensagem, tipo = 'info') => {
-    const timestamp = new Date().toISOString();
-    const log = { timestamp, mensagem, tipo };
-    
-    console.log(`[${tipo.toUpperCase()}] ${mensagem}`);
-    setDebugLogs(logs => [...logs, log]);
-  }, []);
-
-  // Função para adicionar informações de requisição
-  const addRequisicao = useCallback((info) => {
-    setRequisicoes(reqs => [...reqs, {
-      ...info,
-      timestamp: new Date().toISOString()
-    }]);
-  }, []);
-
-  // Determina se estamos em ambiente de desenvolvimento
-  const isDev = useCallback(() => {
-    const dev = window.location.hostname === 'localhost' || 
-                window.location.hostname === '127.0.0.1' ||
-                window.location.port.startsWith('3') ||
-                window.location.port.startsWith('4') ||
-                window.location.port.startsWith('5') ||
-                window.location.port.startsWith('8');
-    
-    addDebugLog(`Ambiente detectado: ${dev ? 'desenvolvimento' : 'produção'}`);
-    return dev;
-  }, [addDebugLog]);
-
-  // Função para obter informações do ambiente atual
-  const getEnvironmentInfo = useCallback(() => {
-    return {
-      userAgent: navigator.userAgent,
-      hostname: window.location.hostname,
-      port: window.location.port,
-      protocol: window.location.protocol,
-      pathname: window.location.pathname,
-      isDev: isDev()
-    };
-  }, [isDev]);
-
-  // Função para tentar carregar dados da API com diferentes URLs
-  const tentarAPI = useCallback(async (urlAPI, tentativa) => {
-    addDebugLog(`Tentativa #${tentativa}: Carregando da API: ${urlAPI}`);
-    
-    // Informações do ambiente para diagnóstico
-    const env = getEnvironmentInfo();
-    
-    // Configuração para timeout de 5 segundos
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-      addDebugLog(`Timeout na requisição para ${urlAPI}`, 'erro');
-    }, 5000);
-    
-    const infoRequisicao = {
-      url: urlAPI,
-      tentativa,
-      ambiente: env.isDev ? 'dev' : 'prod',
-      startTime: new Date().toISOString(),
-      status: 'pendente'
-    };
-    
-    addRequisicao(infoRequisicao);
-    
-    try {
-      // Configurações avançadas para diagnosticar problemas de CORS
-      const fetchOptions = {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
-        signal: controller.signal,
-        mode: urlAPI.includes('://') ? 'cors' : undefined,
-        credentials: urlAPI.includes('://') ? 'omit' : 'same-origin',
-        cache: 'no-store'
+  // Detecta ambiente
+  const getEnvironment = useCallback(() => {
+    // Verificação segura para SSR
+    if (!isBrowser) {
+      return { 
+        type: 'server', 
+        isDev: true,
+        baseUrl: '/api'
       };
-      
-      addDebugLog(`Enviando requisição com opções: ${JSON.stringify(fetchOptions)}`, 'debug');
-      
-      const startTime = Date.now();
-      const response = await fetch(urlAPI, fetchOptions);
-      const endTime = Date.now();
-      
-      clearTimeout(timeoutId);
-      
-      // Atualiza informações da requisição
-      addRequisicao({
-        ...infoRequisicao,
-        status: response.status,
-        statusText: response.statusText,
-        duracaoMs: endTime - startTime,
-        endTime: new Date().toISOString(),
-        headers: Object.fromEntries([...response.headers])
-      });
-      
-      if (!response.ok) {
-        addDebugLog(`Erro HTTP ${response.status}: ${response.statusText}`, 'erro');
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
-      
-      // Log de cabeçalhos da resposta para debug
-      const headerInfo = {};
-      response.headers.forEach((valor, chave) => {
-        headerInfo[chave] = valor;
-      });
-      addDebugLog(`Cabeçalhos da resposta: ${JSON.stringify(headerInfo)}`, 'debug');
-      
-      const responseText = await response.text();
-      
-      if (!responseText || responseText.trim() === '') {
-        addDebugLog('API retornou resposta vazia', 'erro');
-        throw new Error('API retornou uma resposta vazia');
-      }
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        // Log dos primeiros 200 caracteres para diagnóstico
-        addDebugLog(`Erro ao processar JSON. Resposta: ${responseText.substring(0, 200)}...`, 'erro');
-        throw new Error(`Formato de resposta inválido: ${e.message}`);
-      }
-      
-      if (Array.isArray(data)) {
-        if (data.length > 0) {
-          // Validar dados recebidos
-          const servicosValidos = data.filter(servico => 
-            servico && 
-            servico.id && 
-            servico.nome && 
-            typeof servico.preco_base === 'number'
-          );
-          
-          addDebugLog(`API retornou ${servicosValidos.length} de ${data.length} serviços válidos`);
-          
-          if (servicosValidos.length > 0) {
-            return servicosValidos;
-          } else {
-            addDebugLog('API retornou dados sem serviços válidos', 'erro');
-            throw new Error('API retornou dados sem serviços válidos');
-          }
-        } else {
-          addDebugLog('API retornou array vazio', 'aviso');
-          throw new Error('API retornou dados vazios (array vazio)');
-        }
-      } else {
-        addDebugLog(`Resposta não é um array: ${typeof data}`, 'erro');
-        throw new Error(`Formato de resposta inválido: esperava array, recebeu ${typeof data}`);
-      }
-    } catch (error) {
-      clearTimeout(timeoutId);
-      
-      // Atualiza informações da requisição em caso de erro
-      addRequisicao({
-        ...infoRequisicao,
-        status: 'erro',
-        mensagemErro: error.message,
-        endTime: new Date().toISOString()
-      });
-      
-      // Tratamento especial para erros de CORS
-      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        addDebugLog(`Possível erro de CORS ao acessar ${urlAPI}`, 'erro');
-      } else if (error.name === 'AbortError') {
-        addDebugLog(`Requisição para ${urlAPI} abortada por timeout`, 'erro');
-      } else {
-        addDebugLog(`Erro ao acessar ${urlAPI}: ${error.message}`, 'erro');
-      }
-      
-      throw error;
-    }
-  }, [addDebugLog, addRequisicao, getEnvironmentInfo]);
-
-  // Função principal para obter serviços
-  const obterServicos = useCallback(async (reset = false) => {
-    // Reset da tentativa se solicitado (para tentar novamente)
-    if (reset) {
-      tentativasAPI.current = 0;
-      setDadosDemonstracao(false);
-      setDebugLogs([]);
-      setRequisicoes([]);
-      addDebugLog('Reiniciando processo de carregamento');
     }
     
-    // Prevenção contra múltiplas chamadas durante carregamento
-    if (loading && tentativasAPI.current > 0) {
-      addDebugLog('Ignorando chamada duplicada durante carregamento', 'aviso');
+    // Detecta ambiente de desenvolvimento tanto pelo localhost quanto por IPs locais
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' ||
+                        window.location.hostname.startsWith('192.168.') ||
+                        window.location.hostname.startsWith('10.');
+    
+    // A base URL agora sempre usa a origem atual da janela
+    return {
+      type: 'browser',
+      isDev: isLocalhost,
+      baseUrl: window.location.origin,
+      hostname: window.location.hostname,
+      href: window.location.href
+    };
+  }, [isBrowser]);
+
+  // Carrega serviços da API
+  const carregarServicos = useCallback(async (forceReload = false) => {
+    // Impede requisições durante SSR ou se o componente não estiver montado
+    if (!isBrowser || !mounted.current) {
       return;
     }
+    
+    // Evita múltiplas solicitações
+    if (loading && !forceReload) return;
     
     setLoading(true);
     setError(null);
     
-    // Define as URLs a serem tentadas em sequência
-    const urlsParaTentar = [];
-    
-    if (isDev()) {
-      // Em desenvolvimento, tenta primeiro local, depois proxy
-      urlsParaTentar.push('http://localhost:3000/api/pricing');
-      urlsParaTentar.push('/api/pricing');
-    } else {
-      // Em produção, simplificado para usar apenas endpoints que funcionam
-      // Prioriza o endpoint relativo que funciona quando frontend e backend estão no mesmo domínio
-      urlsParaTentar.push('/api/pricing'); 
-      
-      // Tenta Render como segunda opção - mas com retry reduzido pois sabemos que pode estar offline
-      if (window.location.hostname !== 'lytspot.onrender.com') {
-        urlsParaTentar.push('https://lytspot.onrender.com/api/pricing');
-      }
+    if (forceReload) {
+      log('Forçando recarregamento de serviços');
     }
     
-    tentativasAPI.current += 1;
-    addDebugLog(`Iniciando tentativa #${tentativasAPI.current} de carregar serviços`);
+    const env = getEnvironment();
+    log(`Ambiente: ${JSON.stringify(env)}`);
+    
+    // Determina URL a ser usada - sempre usa a URL relativa ao domínio atual
+    const apiUrl = `${env.baseUrl}/api/pricing`;
+    log(`Tentando carregar dados de: ${apiUrl}`);
     
     try {
-      // Informações do ambiente no início da tentativa
-      const env = getEnvironmentInfo();
-      addDebugLog(`Informações do ambiente: ${JSON.stringify(env)}`, 'debug');
+      // Timeout para evitar requisições infinitas - aumentado para 15 segundos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       
-      // Tenta cada URL em sequência até que uma funcione
-      let dadosCarregados = null;
-      let erroFinal = null;
-      let mensagensErros = [];
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        signal: controller.signal,
+        mode: 'cors'
+      });
       
-      for (let i = 0; i < urlsParaTentar.length; i++) {
-        const url = urlsParaTentar[i];
-        try {
-          dadosCarregados = await tentarAPI(url, i + 1);
-          if (dadosCarregados) {
-            addDebugLog(`Sucesso ao carregar dados de ${url}`);
-            break;
-          }
-        } catch (e) {
-          erroFinal = e;
-          // Coleta mensagens de erro específicas para diferentes URLs
-          mensagensErros.push(`${url}: ${e.message}`);
-          addDebugLog(`Falha na URL ${url}: ${e.message}`, 'erro');
-          // Continue para a próxima URL
-        }
+      clearTimeout(timeoutId);
+      
+      // Teste automatizado - registra resposta
+      if (typeof window !== 'undefined' && mounted.current) {
+        window._apiResponse = {
+          url: apiUrl,
+          status: response.status,
+          ok: response.ok
+        };
       }
       
-      if (dadosCarregados) {
-        // Sucesso! Defina os serviços e marque como dados reais
-        setServicos(dadosCarregados);
+      if (!response.ok) {
+        throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!mounted.current) return; // Evita atualização de estado se componente já foi desmontado
+      
+      if (Array.isArray(data) && data.length > 0) {
+        log(`Dados carregados com sucesso: ${data.length} serviços`);
+        setServicos(data);
         setDadosDemonstracao(false);
         setLoading(false);
-        addDebugLog('Carregamento de serviços concluído com sucesso');
-        return;
-      }
-      
-      // Se chegamos aqui, todas as URLs falharam
-      if (tentativasAPI.current === 1) {
-        // Mensagem de erro mais específica com base nos problemas encontrados
-        const statusRender = mensagensErros.some(msg => msg.includes('503')) 
-          ? 'O servidor Render parece estar offline (erro 503)' 
-          : '';
+        setRetryCount(0); // Reseta o contador de tentativas
         
-        const mensagemFinal = statusRender 
-          ? `Servidores indisponíveis neste momento. ${statusRender}. Tente novamente mais tarde ou use dados de demonstração.` 
-          : `Não foi possível carregar dados de nenhuma API. Verifique sua conexão ou tente novamente mais tarde.`;
-        
-        addDebugLog('Todas as URLs falharam na primeira tentativa', 'erro');
-        throw new Error(mensagemFinal);
+        // Teste automatizado
+        if (typeof window !== 'undefined') {
+          window._testResults = {
+            success: true,
+            servicesCount: data.length,
+            source: 'api'
+          };
+        }
       } else {
-        // Na segunda tentativa ou posterior, use dados de demonstração
-        addDebugLog('Usando dados de demonstração após todas as tentativas falharem', 'aviso');
-        setServicos(servicosMock);
-        setDadosDemonstracao(true);
-        setLoading(false);
+        throw new Error('API retornou dados inválidos');
       }
     } catch (error) {
-      addDebugLog(`Erro geral: ${error.message}`, 'erro');
+      if (!mounted.current) return; // Evita atualização de estado se componente já foi desmontado
       
-      // Primeira tentativa falhou, mostre erro com opção de tentar novamente
-      if (tentativasAPI.current === 1) {
-        setError(`Falha ao carregar serviços: ${error.message}`);
-        setLoading(false);
-      } else {
-        // Segunda tentativa ou posterior, use dados de demonstração como fallback
-        addDebugLog('Usando dados de demonstração após falha', 'aviso');
-        setServicos(servicosMock);
-        setDadosDemonstracao(true);
-        setLoading(false);
+      log(`Erro ao carregar serviços: ${error.message}`, 'erro');
+      
+      // Se estiver em retry automático, não carregue os dados de demonstração ainda
+      if (retryCount < maxRetries) {
+        return; // Não faz nada, deixa o efeito de retry lidar com isso
+      }
+      
+      // Usa dados importados de demonstração como fallback
+      log('Usando dados de demonstração', 'aviso');
+      setServicos(servicosDados);
+      setDadosDemonstracao(true);
+      setLoading(false);
+      setRetryCount(0); // Reseta o contador de tentativas
+      
+      // Mostra erro apenas na primeira carga
+      if (mounted.current) {
+        setError(`Não foi possível carregar os serviços: ${error.message}`);
+      }
+      
+      // Teste automatizado
+      if (typeof window !== 'undefined') {
+        window._testResults = {
+          success: false,
+          error: error.message,
+          source: 'mock'
+        };
       }
     }
-  }, [isDev, tentarAPI, addDebugLog, getEnvironmentInfo]);
+  }, [loading, log, getEnvironment, isBrowser, retryCount, maxRetries]);
 
-  // Inicialização - executa apenas uma vez na montagem do componente
+  // Efeito para iniciar timer de fallback para dados de demonstração quando estiver carregando
   useEffect(() => {
-    // Marca o componente como montado
-    mounted.current = true;
-    addDebugLog('Componente PriceSimulator inicializado');
+    if (!isBrowser || !mounted.current) return;
     
-    // Executa a primeira requisição
-    obterServicos();
-    
-    // Limpeza ao desmontar
-    return () => {
-      mounted.current = false;
-      addDebugLog('Componente PriceSimulator desmontado');
-    };
-  }, [obterServicos, addDebugLog]);
-
-  // Atualizar a lista de serviços selecionados
-  const handleServicoChange = (servico, isChecked) => {
-    if (isChecked) {
-      // Adicionar o serviço à lista de selecionados
-      setServicosSelecionados(prev => [...prev, servico]);
-    } else {
-      // Remover o serviço da lista de selecionados
-      setServicosSelecionados(prev => prev.filter(s => s.id !== servico.id));
+    if (loading && !dadosDemonstracao && servicos.length === 0) {
+      // Configura timeout para usar dados de demonstração
+      // Aumentamos o timeout para dar mais tempo para API responder
+      timeoutRef.current = setTimeout(() => {
+        if (mounted.current && loading) {
+          // Verifica se deve tentar novamente antes de recorrer aos dados de demonstração
+          if (retryCount < maxRetries) {
+            log(`Tentativa ${retryCount + 1}/${maxRetries} de carregar serviços`, 'info');
+            setRetryCount(prev => prev + 1);
+            carregarServicos(true);
+          } else {
+            log('Número máximo de tentativas atingido, carregando dados de demonstração', 'aviso');
+            setServicos(servicosDados);
+            setDadosDemonstracao(true);
+            setLoading(false);
+            setRetryCount(0); // Reseta o contador de tentativas
+          }
+        }
+      }, retryCount === 0 ? 8000 : retryDelay); // Primeira tentativa com 8s, retentativas com 2s
+      
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      };
     }
-  };
+  }, [loading, dadosDemonstracao, servicos.length, log, isBrowser, retryCount, maxRetries, retryDelay, carregarServicos]);
 
-  // Calcular o preço total sempre que a lista de serviços selecionados mudar
+  // Atualiza preço total quando serviços selecionados mudam
   useEffect(() => {
-    const total = servicosSelecionados.reduce((sum, servico) => sum + servico.preco_base, 0);
+    if (!isBrowser || !mounted.current) return;
+    
+    if (!servicosSelecionados || servicosSelecionados.length === 0) {
+      setPrecoTotal(0);
+      return;
+    }
+    
+    // Calcula o preço total
+    const total = servicosSelecionados.reduce((soma, id) => {
+      const servico = servicos.find(s => s.id === id);
+      return soma + (servico ? servico.preco_base : 0);
+    }, 0);
+    
     setPrecoTotal(total);
-  }, [servicosSelecionados]);
+  }, [servicosSelecionados, servicos, isBrowser]);
 
-  // Renderizar o painel de debug (visível quando mostrarDebug for true)
-  const renderDebugPanel = () => {
-    if (!mostrarDebug) return null;
+  // Inicialização e carregamento de dados - executado apenas uma vez
+  useEffect(() => {
+    if (!isBrowser || isInitialized || initAttempts.current > 0) return;
+    
+    initAttempts.current += 1;
+    log('Componente inicializado');
+    
+    // Carrega serviços na inicialização com uma leve demora para garantir
+    // que componente esteja totalmente montado
+    const timeoutId = setTimeout(() => {
+      if (mounted.current) {
+        carregarServicos();
+        setIsInitialized(true);
+      }
+    }, 100);
+    
+    // Função de limpeza
+    return () => {
+      clearTimeout(timeoutId);
+      log('Componente desmontado');
+    };
+  }, [carregarServicos, log, isBrowser, isInitialized]);
 
-    return (
-      <div className="mt-8 p-4 bg-neutral-dark/10 rounded-lg border border-neutral/30 text-xs">
-        <h3 className="font-bold text-neutral mb-2">Painel de Diagnóstico</h3>
+  // Seleciona ou desseleciona um serviço
+  const toggleServico = useCallback((id) => {
+    if (!isBrowser || !mounted.current) return;
+    
+    setServicosSelecionados(prev => {
+      const novosSelecionados = [...prev];
+      
+      // Se já existe, remove
+      const index = novosSelecionados.indexOf(id);
+      if (index > -1) {
+        novosSelecionados.splice(index, 1);
+        return novosSelecionados;
+      }
+      
+      // Se não existe, adiciona
+      novosSelecionados.push(id);
+      return novosSelecionados;
+    });
+  }, [isBrowser]);
+
+  // Testa a conexão com a API e o carregamento de dados
+  const testarAPI = useCallback(async () => {
+    if (!isBrowser || !mounted.current) return;
+    
+    // Evita loops infinitos de teste
+    if (testRunning.current) {
+      log('Teste já em execução, aguarde...', 'aviso');
+      return;
+    }
+    
+    log('Iniciando teste automatizado');
+    testRunning.current = true;
+    testMode.current = true;
+    
+    try {
+      // Limpa resultados anteriores
+      if (typeof window !== 'undefined') {
+        window._apiResponse = null;
+        window._testResults = null;
+      }
+      
+      // Reseta contagem de tentativas para o teste
+      setRetryCount(0);
+      
+      // Força recarregamento de serviços
+      await carregarServicos(true);
+      
+      // Verifica resultados
+      if (typeof window !== 'undefined' && window._testResults) {
+        if (window._testResults.success) {
+          log(`Teste concluído com sucesso! Origem dados: ${window._testResults.source}`, 'info');
+        } else {
+          log(`Teste concluído com falha: ${window._testResults.error}`, 'erro');
+        }
+      } else {
+        log('Teste inconclusivo: não foi possível determinar resultado', 'aviso');
+      }
+    } catch (error) {
+      log(`Erro durante teste: ${error.message}`, 'erro');
+    } finally {
+      // Encerra o modo de teste
+      testRunning.current = false;
+      // O modo de teste continua true para que os resultados possam ser vistos
+      setTimeout(() => {
+        testMode.current = false;
+      }, 3000);
+    }
+  }, [carregarServicos, log, isBrowser]);
+
+  // Inicializa a função de teste global para acesso via console
+  useEffect(() => {
+    if (!isBrowser || !mounted.current) return;
+    
+    window.runPriceSimulatorTest = testarAPI;
+    
+    return () => {
+      delete window.runPriceSimulatorTest;
+    };
+  }, [testarAPI, isBrowser]);
+
+  // Carrega dados de demonstração imediatamente
+  const usarDadosDemonstracao = useCallback(() => {
+    if (!isBrowser || !mounted.current) return;
+    
+    setServicos(servicosDados);
+    setDadosDemonstracao(true);
+    setError(null);
+    setLoading(false);
+    setRetryCount(0); // Reseta o contador de tentativas
+    log('Usando dados de demonstração (manual)', 'info');
+  }, [log, isBrowser]);
+
+  // Função para lidar com o clique no botão de solicitar orçamento
+  const handleSolicitarOrcamento = useCallback(() => {
+    // Preparar os dados do orçamento
+    const servicosSelecionadosDetalhes = servicosSelecionados.map(id => {
+      const servico = servicos.find(s => s.id === id);
+      return {
+        id: servico.id,
+        nome: servico.nome,
+        preco: servico.preco_base
+      };
+    });
+
+    // Criar dados para o envio
+    const dadosOrcamento = {
+      servicos: servicosSelecionadosDetalhes,
+      total: precoTotal,
+      data: new Date().toISOString()
+    };
+
+    // Salvar os dados no localStorage para persistência
+    if (isBrowser) {
+      try {
+        localStorage.setItem('orcamento_atual', JSON.stringify(dadosOrcamento));
         
-        <div className="mb-4">
-          <h4 className="font-semibold mb-1">Ambiente:</h4>
-          <pre className="bg-neutral-dark/20 p-2 rounded overflow-auto text-xs">
-            {JSON.stringify(getEnvironmentInfo(), null, 2)}
-          </pre>
-        </div>
-        
-        <div className="mb-4">
-          <h4 className="font-semibold mb-1">Requisições:</h4>
-          <div className="max-h-40 overflow-y-auto">
-            {requisicoes.length === 0 ? (
-              <p>Nenhuma requisição registrada</p>
-            ) : (
-              requisicoes.map((req, index) => (
-                <div key={index} className="mb-2 p-2 bg-neutral-dark/20 rounded">
-                  <div><b>URL:</b> {req.url}</div>
-                  <div><b>Status:</b> {req.status}</div>
-                  <div><b>Tempo:</b> {req.duracaoMs ? `${req.duracaoMs}ms` : 'N/A'}</div>
-                  {req.mensagemErro && <div><b>Erro:</b> {req.mensagemErro}</div>}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-        
-        <div>
-          <h4 className="font-semibold mb-1">Logs:</h4>
-          <div className="max-h-40 overflow-y-auto bg-neutral-dark/20 p-2 rounded">
-            {debugLogs.map((log, index) => (
-              <div 
-                key={index} 
-                className={`mb-1 pb-1 border-b border-neutral/10 ${
-                  log.tipo === 'erro' ? 'text-red-500' : 
-                  log.tipo === 'aviso' ? 'text-yellow-500' : 
-                  log.tipo === 'debug' ? 'text-blue-400' : 'text-neutral-light'
-                }`}
-              >
-                <span className="opacity-60">[{new Date(log.timestamp).toLocaleTimeString()}]</span> {log.mensagem}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+        // Redirecionar para a página de contato
+        window.location.href = '/contato?orcamento=true';
+      } catch (error) {
+        console.error('Erro ao salvar dados do orçamento:', error);
+        // Fallback: apenas redirecionar
+        window.location.href = '/contato';
+      }
+    }
+  }, [servicosSelecionados, servicos, precoTotal, isBrowser]);
+
+  // Formata valores monetários
+  const formatMoney = (value) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
-
-  // Renderizar o componente de carregamento
-  if (loading) {
-    return (
-      <div className="flex flex-col justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
-        <p className="text-neutral-light">Carregando serviços...</p>
-      </div>
-    );
-  }
-
-  // Renderiza mensagem de erro com opção de tentar novamente
-  if (erro) {
-    return (
-      <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-6 text-center">
-        <p className="text-red-300">{erro}</p>
-        <div className="flex flex-wrap justify-center mt-4 gap-2">
-          <button
-            onClick={() => obterServicos(true)}
-            className="bg-primary text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-primary-light"
-          >
-            Tentar Novamente
-          </button>
-          <button
-            onClick={() => {
-              setServicos(servicosMock);
-              setDadosDemonstracao(true);
-              setError(null);
-            }}
-            className="bg-neutral text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-neutral-light"
-          >
-            Ver Demonstração
-          </button>
-          <button
-            onClick={() => setMostrarDebug(!mostrarDebug)}
-            className="bg-neutral-dark text-light font-medium py-2 px-4 rounded-md transition-colors hover:bg-neutral"
-          >
-            {mostrarDebug ? 'Ocultar Diagnóstico' : 'Mostrar Diagnóstico'}
-          </button>
-        </div>
-        
-        {renderDebugPanel()}
-      </div>
-    );
-  }
-
+  
+  // Renderiza uma estrutura idêntica tanto no servidor quanto no cliente
   return (
-    <div className="flex flex-col">
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Coluna de serviços disponíveis */}
-        <div>
-          <h2 className="text-xl font-serif font-bold text-primary mb-4">Serviços Disponíveis</h2>
+    <div className="price-simulator rounded-xl overflow-hidden shadow-lg bg-white border border-gray-200">
+      {(!isBrowser || (loading && servicos.length === 0)) ? (
+        <div className="flex flex-col items-center justify-center p-8 text-center min-h-[300px]">
+          <div className="animate-pulse mb-4">
+            <svg className="w-12 h-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-gray-800 text-lg font-medium mb-2">Carregando serviços...</p>
           
-          {servicos.length === 0 ? (
-            <div className="p-6 bg-light rounded-lg border border-neutral/20 text-center">
-              <p className="text-neutral-light">Nenhum serviço disponível no momento.</p>
-              <button
-                onClick={() => obterServicos(true)}
-                className="mt-4 text-sm text-primary underline"
-              >
-                Tentar Novamente
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {servicos.map(servico => (
-                <div key={servico.id} className="p-4 bg-light rounded-lg border border-neutral/20">
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      id={`servico-${servico.id}`}
-                      onChange={(e) => handleServicoChange(servico, e.target.checked)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <label 
-                        htmlFor={`servico-${servico.id}`}
-                        className="block font-medium text-primary mb-1 cursor-pointer"
-                      >
-                        {servico.nome}
-                      </label>
-                      <p className="text-sm text-neutral mb-2">{servico.descricao}</p>
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-neutral-light">
-                          <span className="mr-2">Duração média:</span>
-                          <span>{servico.duracao_media || servico.duracao_media_captura || '2'} horas</span>
-                        </p>
-                        <p className="font-bold text-primary">
-                          R$ {servico.preco_base.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {retryCount > 0 && (
+            <p className="text-xs text-gray-500 mb-6">
+              Tentativa {retryCount}/{maxRetries}
+            </p>
           )}
           
-          <div className="flex justify-between items-center mt-4">
-            <p className="text-xs text-neutral-light">
-              {dadosDemonstracao ? 'Dados de demonstração' : `Atualizado em: ${new Date().toLocaleDateString('pt-BR')}`}
-            </p>
-            <div className="flex gap-2">
-              {dadosDemonstracao && (
-                <button
-                  onClick={() => obterServicos(true)}
-                  className="text-xs text-primary underline"
+          {isBrowser && (
+            <button 
+              onClick={() => setMostrarDebug(!mostrarDebug)}
+              className="px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition duration-200"
+            >
+              {mostrarDebug ? 'Ocultar Diagnóstico' : 'Mostrar Diagnóstico'}
+            </button>
+          )}
+          
+          {isBrowser && mostrarDebug && (
+            <div className="debug-panel mt-6 w-full max-w-lg p-4 bg-gray-100 rounded-lg border border-gray-300 text-left">
+              <h3 className="text-blue-700 font-medium text-lg mb-3">Diagnóstico</h3>
+              <div className="mb-4">
+                <h4 className="text-gray-800 font-medium mb-2">Ambiente:</h4>
+                <pre className="bg-white p-2 rounded text-xs text-gray-700 overflow-auto max-h-[150px] border border-gray-300">
+                  {JSON.stringify(getEnvironment(), null, 2)}
+                </pre>
+              </div>
+              <div className="mb-4">
+                <h4 className="text-gray-800 font-medium mb-2">Logs:</h4>
+                <div className="bg-white p-2 rounded overflow-auto max-h-[200px] text-xs border border-gray-300">
+                  {debugLogs.map((log, index) => (
+                    <div key={index} className={`py-1 ${
+                      log.tipo === 'erro' ? 'text-red-600' : 
+                      log.tipo === 'aviso' ? 'text-amber-600' : 'text-blue-600'
+                    }`}>
+                      [{log.timestamp}] {log.mensagem}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={() => carregarServicos(true)}
+                  className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition duration-200"
                 >
-                  Tentar Carregar da API
+                  Recarregar Dados
                 </button>
-              )}
-              <button
-                onClick={() => setMostrarDebug(!mostrarDebug)}
-                className="text-xs text-neutral hover:text-primary"
+                <button 
+                  onClick={usarDadosDemonstracao}
+                  className="px-3 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium rounded transition duration-200"
+                >
+                  Usar Demo
+                </button>
+                <button 
+                  onClick={testarAPI} 
+                  disabled={testRunning.current}
+                  className={`px-3 py-1 text-xs ${
+                    testRunning.current ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+                  } text-white font-medium rounded transition duration-200`}
+                >
+                  Executar Teste
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="p-6">
+          {/* Aviso de dados de demonstração */}
+          {dadosDemonstracao && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg mb-6 flex items-center">
+              <svg className="w-5 h-5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm">Usando dados de demonstração. Os preços podem variar.</p>
+              </div>
+              <button 
+                onClick={() => carregarServicos(true)}
+                className="ml-2 text-xs px-2 py-1 bg-amber-100 hover:bg-amber-200 rounded text-amber-800 transition duration-200"
               >
-                {mostrarDebug ? 'Ocultar Diagnóstico' : 'Diagnóstico'}
+                Tentar recarregar
               </button>
             </div>
-          </div>
-        </div>
-        
-        {/* Coluna de resumo */}
-        <div>
-          <h2 className="text-xl font-serif font-bold text-primary mb-4">Resumo</h2>
-          
-          <div className="bg-primary/10 rounded-lg p-6 border border-primary/30">
-            <h3 className="font-medium text-primary mb-4">Serviços Selecionados</h3>
-            
-            {servicosSelecionados.length === 0 ? (
-              <p className="text-neutral-light">Nenhum serviço selecionado</p>
-            ) : (
-              <ul className="space-y-3 mb-6">
-                {servicosSelecionados.map(servico => (
-                  <li key={servico.id} className="flex justify-between">
-                    <span className="text-neutral">{servico.nome}</span>
-                    <span className="font-medium text-primary">
-                      R$ {servico.preco_base.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </li>
+          )}
+
+          {/* Mensagem de erro */}
+          {erro && (
+            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
+              <p className="text-sm flex items-center">
+                <svg className="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {erro}
+              </p>
+            </div>
+          )}
+
+          {/* Layout de duas colunas */}
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Coluna da esquerda: Lista de serviços */}
+            <div className="w-full md:w-2/3">
+              <h2 className="text-gray-800 text-xl font-medium mb-6">Serviços Disponíveis</h2>
+              <div className="divide-y divide-gray-200">
+                {servicos.map(servico => (
+                  <div key={servico.id} className="py-4 hover:bg-gray-50 transition-all duration-200">
+                    <label className="flex items-start cursor-pointer gap-3">
+                      <div className="relative pt-1 flex-shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={servicosSelecionados.includes(servico.id)}
+                          onChange={() => toggleServico(servico.id)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-5 h-5 border-2 border-gray-300 rounded peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all duration-200"></div>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 peer-checked:opacity-100 text-white">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-gray-800 font-medium">{servico.nome}</span>
+                        <p className="text-sm text-gray-500 mt-1">{servico.descricao}</p>
+                        
+                        {servico.detalhes && (
+                          <div className="mt-2 text-xs text-gray-500 grid grid-cols-1 sm:grid-cols-2 gap-1">
+                            <div>
+                              <span className="font-medium">Duração:</span> {servico.detalhes.captura}
+                            </div>
+                            <div>
+                              <span className="font-medium">Entrega:</span> {servico.detalhes.tratamento}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-blue-600 font-medium text-lg whitespace-nowrap">
+                          {formatMoney(servico.preco_base)}
+                        </span>
+                        <span className="text-xs text-gray-500 mt-1 whitespace-nowrap">
+                          Duração média: {servico.duracao_media}h
+                        </span>
+                      </div>
+                    </label>
+                  </div>
                 ))}
-              </ul>
-            )}
-            
-            <div className="border-t border-primary/30 pt-4 mt-4">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-lg text-primary">Total:</span>
-                <span className="font-bold text-xl text-primary">
-                  R$ {precoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-3">
+                Dados de demonstração {dadosDemonstracao ? "ativos" : "não ativos"}
+              </p>
+            </div>
+
+            {/* Coluna da direita: Resumo e Total */}
+            <div className="w-full md:w-1/3">
+              <div className="bg-gray-100 rounded-lg p-5 sticky top-24">
+                <h2 className="text-gray-800 text-xl font-medium mb-6">Resumo</h2>
+                
+                <div className="mb-6">
+                  <h3 className="text-gray-700 font-medium mb-3">Serviços Selecionados</h3>
+                  {servicosSelecionados.length === 0 ? (
+                    <p className="text-gray-500 text-sm italic">Nenhum serviço selecionado</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {servicosSelecionados.map(id => {
+                        const servico = servicos.find(s => s.id === id);
+                        return servico ? (
+                          <div key={id} className="flex justify-between text-sm">
+                            <span className="text-gray-700">{servico.nome}</span>
+                            <span className="text-gray-700 font-medium">{formatMoney(servico.preco_base)}</span>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="border-t border-gray-300 pt-4 mb-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-gray-800 font-medium">Total:</h3>
+                    <span className="text-blue-600 text-2xl font-bold">
+                      {formatMoney(precoTotal)}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="mt-4 text-sm text-gray-600">
+                  <p>Este simulador fornece uma estimativa inicial baseada em nossos preços padrão. Para um orçamento personalizado detalhado, entre em contato conosco.</p>
+                </div>
+                
+                <div className="mt-6">
+                  <button 
+                    onClick={handleSolicitarOrcamento}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-md transition duration-200 font-medium"
+                  >
+                    Solicitar Orçamento Personalizado
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-          
-          <div className="mt-6">
-            <p className="text-sm text-neutral-light mb-2">
-              Este simulador fornece uma estimativa inicial baseada em nossos preços padrão.
-              Para um orçamento personalizado detalhado, entre em contato conosco.
-            </p>
-            
-            <a
-              href="/contato"
-              className="block w-full bg-accent hover:bg-accent-light text-light text-center font-medium py-3 px-6 rounded-md transition-colors"
+
+          {/* Botão de diagnóstico */}
+          <div className="mt-8 text-center">
+            <button 
+              onClick={() => setMostrarDebug(!mostrarDebug)}
+              className="text-xs text-gray-500 hover:text-blue-600 underline transition duration-200"
             >
-              Solicitar Orçamento Personalizado
-            </a>
+              {mostrarDebug ? 'Ocultar Diagnóstico' : 'Mostrar Diagnóstico'}
+            </button>
+            
+            {mostrarDebug && (
+              <div className="mt-4 w-full p-4 bg-gray-100 rounded-lg border border-gray-300 text-left">
+                <h3 className="text-blue-700 font-medium text-lg mb-3">Diagnóstico</h3>
+                <div className="mb-4">
+                  <h4 className="text-gray-800 font-medium mb-2">Ambiente:</h4>
+                  <pre className="bg-white p-2 rounded text-xs text-gray-700 overflow-auto max-h-[150px] border border-gray-300">
+                    {JSON.stringify(getEnvironment(), null, 2)}
+                  </pre>
+                </div>
+                <div className="mb-4">
+                  <h4 className="text-gray-800 font-medium mb-2">Logs:</h4>
+                  <div className="bg-white p-2 rounded overflow-auto max-h-[200px] text-xs border border-gray-300">
+                    {debugLogs.map((log, index) => (
+                      <div key={index} className={`py-1 ${
+                        log.tipo === 'erro' ? 'text-red-600' : 
+                        log.tipo === 'aviso' ? 'text-amber-600' : 'text-blue-600'
+                      }`}>
+                        [{log.timestamp}] {log.mensagem}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button 
+                    onClick={() => carregarServicos(true)}
+                    className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition duration-200"
+                  >
+                    Recarregar Dados
+                  </button>
+                  <button 
+                    onClick={usarDadosDemonstracao}
+                    className="px-3 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium rounded transition duration-200"
+                  >
+                    Usar Demo
+                  </button>
+                  <button 
+                    onClick={testarAPI} 
+                    disabled={testRunning.current}
+                    className={`px-3 py-1 text-xs ${
+                      testRunning.current ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+                    } text-white font-medium rounded transition duration-200`}
+                  >
+                    Executar Teste
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
-      
-      {renderDebugPanel()}
+      )}
     </div>
   );
-};
+});
 
 export default PriceSimulator;

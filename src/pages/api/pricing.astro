@@ -1,0 +1,29 @@
+---
+// Importa os dados centralizados
+import { servicos } from '../../data/servicos.js';
+
+// Define os cabeçalhos CORS para permitir acesso de qualquer origem
+const corsHeaders = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type"
+};
+
+// Log para depuração no servidor
+console.log(`[API] Endpoint /api/pricing acessado`);
+
+// Verifica se é um pre-flight request OPTIONS
+if (Astro.request.method === 'OPTIONS') {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders
+  });
+}
+
+// Retorna os dados como JSON
+return new Response(JSON.stringify(servicos), {
+  status: 200,
+  headers: corsHeaders
+});
+---

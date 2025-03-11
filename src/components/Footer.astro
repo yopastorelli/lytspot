@@ -3,15 +3,17 @@ import { Image } from 'astro:assets';
 
 const footerLinks = {
   empresa: [
-    // { text: 'Sobre', href: '/sobre' },
+    { text: 'Sobre', href: '/sobre' },
     { text: 'Serviços', href: '/servicos' },
     { text: 'Portfolio', href: '/portfolio' },
-    { text: 'Contato', href: '/contato' }
+    { text: 'Contato', href: '/contato' },
+    { text: 'Políticas', href: '/politicas' }
   ],
   servicos: [
     { text: 'Filmagem com Drone', href: '/servicos#drone' },
     { text: 'Fotografia Profissional', href: '/servicos#foto' },
-    { text: 'Vídeos Corporativos', href: '/servicos#video' }
+    { text: 'Vídeos Corporativos', href: '/servicos#video' },
+    { text: 'Simulador de Preços', href: '/precos' }
   ],
   social: [
     { text: 'Instagram', href: 'https://instagram.com/lytspot', icon: '/icons/instagram.png' },
@@ -20,15 +22,20 @@ const footerLinks = {
     { text: 'LinkedIn', href: 'https://linkedin.com/company/lytspot', icon: '/icons/linkedin.png' }
   ]
 };
+
+const currentYear = new Date().getFullYear();
 ---
 
 <footer class="bg-light-darker text-neutral pt-16 pb-8 border-t border-neutral/10 shadow-soft">
   <div class="container">
     <div class="grid md:grid-cols-4 gap-8 mb-12">
       <div>
-        <img src="/images/azul fundo branco.png" alt="LYTSPOT" class="h-10 mb-4" />
+        <img src="/images/azul fundo branco.png" alt="LYTSPOT" class="h-14 mb-4" />
         <p class="text-neutral/80">
           Especialistas em captura de imagens profissionais com drones e câmeras de alta performance.
+        </p>
+        <p class="text-neutral/80 mt-4">
+          <a href="mailto:contato@lytspot.com.br" class="hover:text-primary transition-colors">contato@lytspot.com.br</a>
         </p>
       </div>
 
@@ -86,7 +93,7 @@ const footerLinks = {
 
     <div class="border-t border-neutral/10 pt-8">
       <p class="text-center text-neutral/60">
-        {new Date().getFullYear()} LYTSPOT. Todos os direitos reservados.
+        {currentYear} LYTSPOT. Todos os direitos reservados.
       </p>
     </div>
   </div>
