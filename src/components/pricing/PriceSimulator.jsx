@@ -28,6 +28,10 @@ const PriceSimulator = memo(() => {
   const timeoutRef = useRef(null); // Armazena referência ao timeout para limpeza adequada
   const initAttempts = useRef(0);
 
+  // Data da última atualização dos preços
+  const lastUpdated = new Date('2025-03-01');
+  const lastUpdatedText = `Última atualização: ${lastUpdated.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}`;
+
   // Efeito para detectar cliente - executado apenas uma vez
   useEffect(() => {
     setIsBrowser(true);
@@ -574,6 +578,9 @@ const PriceSimulator = memo(() => {
 
               <p className="text-xs text-gray-500 mt-3">
                 Dados de demonstração {dadosDemonstracao ? "ativos" : "não ativos"}
+              </p>
+              <p className="text-xs text-gray-500 mt-3">
+                {lastUpdatedText}
               </p>
             </div>
 
