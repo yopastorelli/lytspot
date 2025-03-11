@@ -1,5 +1,10 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Obtém o equivalente a __dirname no ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const basePath = path.resolve(__dirname, '../public/images/portimages');
 const categories = ['aventuras', 'arquitetura', 'empresas', 'festasepalco', 'projetos'];

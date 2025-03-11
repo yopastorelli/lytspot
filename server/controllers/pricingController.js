@@ -2,8 +2,44 @@ import prisma from '../prisma/client.js';
 import { clearCache } from '../middleware/cache.js';
 
 /**
+ * Transformador para converter dados do banco para o formato do PriceSimulator v2.8.0
+ * @param {Object} servico - Serviço do banco de dados
+ * @returns {Object} - Serviço no formato do PriceSimulator
+ */
+const transformarParaFormatoSimulador = (servico) => {
+  // Calcula a duração média aproximada baseada nos campos individuais
+  const duracaoCaptura = parseInt(servico.duracao_media_captura?.split(' ')[0] || 0);
+  const duracaoTratamento = parseInt(servico.duracao_media_tratamento?.split(' ')[0] || 0);
+  const duracaoMedia = Math.ceil((duracaoCaptura + duracaoTratamento) / 2) || 3; // Fallback para 3 dias
+  
+  return {
+    id: servico.id,
+    nome: servico.nome,
+    descricao: servico.descricao,
+    preco_base: servico.preco_base,
+    duracao_media: duracaoMedia,
+    detalhes: {
+      captura: servico.duracao_media_captura || '',
+      tratamento: servico.duracao_media_tratamento || '',
+      entregaveis: servico.entregaveis || '',
+      adicionais: servico.possiveis_adicionais || '',
+      deslocamento: servico.valor_deslocamento || ''
+    },
+    // Manter campos originais para compatibilidade com o banco
+    duracao_media_captura: servico.duracao_media_captura,
+    duracao_media_tratamento: servico.duracao_media_tratamento,
+    entregaveis: servico.entregaveis,
+    possiveis_adicionais: servico.possiveis_adicionais,
+    valor_deslocamento: servico.valor_deslocamento,
+    createdAt: servico.createdAt,
+    updatedAt: servico.updatedAt
+  };
+};
+
+/**
  * Controlador para o módulo de preços
  * Responsável por gerenciar os serviços e seus preços
+ * @version 1.2.0 - Compatível com PriceSimulator 2.8.0
  */
 export const pricingController = {
   /**
@@ -17,7 +53,10 @@ export const pricingController = {
         }
       });
       
-      return res.status(200).json(servicos);
+      // Transformar os serviços para o formato do PriceSimulator
+      const servicosTransformados = servicos.map(transformarParaFormatoSimulador);
+      
+      return res.status(200).json(servicosTransformados);
     } catch (error) {
       console.error('Erro ao buscar serviços:', error);
       return res.status(500).json({ 
@@ -44,7 +83,10 @@ export const pricingController = {
         return res.status(404).json({ message: 'Serviço não encontrado' });
       }
       
-      return res.status(200).json(servico);
+      // Transformar o serviço para o formato do PriceSimulator
+      const servicoTransformado = transformarParaFormatoSimulador(servico);
+      
+      return res.status(200).json(servicoTransformado);
     } catch (error) {
       console.error('Erro ao buscar serviço:', error);
       return res.status(500).json({ 
@@ -83,10 +125,13 @@ export const pricingController = {
         }
       });
       
+      // Transformar o serviço para o formato do PriceSimulator
+      const novoServicoTransformado = transformarParaFormatoSimulador(novoServico);
+      
       // Limpar o cache quando um novo serviço é criado
       clearCache('/api/pricing');
       
-      return res.status(201).json(novoServico);
+      return res.status(201).json(novoServicoTransformado);
     } catch (error) {
       console.error('Erro ao criar serviço:', error);
       return res.status(500).json({ 
@@ -142,11 +187,14 @@ export const pricingController = {
         }
       });
       
+      // Transformar o serviço para o formato do PriceSimulator
+      const servicoAtualizadoTransformado = transformarParaFormatoSimulador(servicoAtualizado);
+      
       // Limpar o cache quando um serviço é atualizado
       clearCache('/api/pricing');
       clearCache(`/api/pricing/${id}`);
       
-      return res.status(200).json(servicoAtualizado);
+      return res.status(200).json(servicoAtualizadoTransformado);
     } catch (error) {
       console.error('Erro ao atualizar serviço:', error);
       return res.status(500).json({ 

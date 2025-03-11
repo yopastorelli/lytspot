@@ -2,16 +2,50 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ServicoForm from './ServicoForm';
 
+/**
+ * Configuração do axios para usar a mesma lógica de detecção de ambiente do PriceSimulator
+ * @version 1.2.0
+ */
+const getEnvironment = () => {
+  // Verificação segura para SSR
+  if (typeof window === 'undefined') {
+    return { 
+      type: 'server', 
+      isDev: true,
+      baseUrl: '/api'
+    };
+  }
+  
+  // Detecta ambiente de desenvolvimento tanto pelo localhost quanto por IPs locais
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1' ||
+                      window.location.hostname.startsWith('192.168.') ||
+                      window.location.hostname.startsWith('10.');
+  
+  // A base URL agora sempre usa a origem atual da janela
+  return {
+    type: 'browser',
+    isDev: isLocalhost,
+    baseUrl: window.location.origin,
+    hostname: window.location.hostname,
+    href: window.location.href
+  };
+};
+
 // Configuração do axios para apontar para o servidor backend
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: getEnvironment().baseUrl,
   headers: {
     'Content-Type': 'application/json',
-  }
+    'Accept': 'application/json',
+    'Cache-Control': 'no-cache'
+  },
+  timeout: 15000 // 15 segundos, igual ao PriceSimulator
 });
 
 /**
  * Componente para gerenciamento de serviços no painel administrativo
+ * @version 1.2.0 - Sincronizado com PriceSimulator 2.8.0
  */
 const ServicosManager = ({ token }) => {
   // Estado para armazenar os serviços

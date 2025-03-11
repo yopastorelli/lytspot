@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 /**
  * Componente de formulário para adicionar e editar serviços
+ * @version 1.2.0 - Compatível com PriceSimulator 2.8.0
  */
 const ServicoForm = ({ servicoInicial, onSubmit, onCancel }) => {
   // Estado para armazenar os dados do formulário
@@ -25,16 +26,31 @@ const ServicoForm = ({ servicoInicial, onSubmit, onCancel }) => {
   // Inicializar o formulário com os dados do serviço em edição, se houver
   useEffect(() => {
     if (servicoInicial) {
-      setFormData({
-        nome: servicoInicial.nome || '',
-        descricao: servicoInicial.descricao || '',
-        preco_base: servicoInicial.preco_base?.toString() || '',
-        duracao_media_captura: servicoInicial.duracao_media_captura || '',
-        duracao_media_tratamento: servicoInicial.duracao_media_tratamento || '',
-        entregaveis: servicoInicial.entregaveis || '',
-        possiveis_adicionais: servicoInicial.possiveis_adicionais || '',
-        valor_deslocamento: servicoInicial.valor_deslocamento || ''
-      });
+      // Se o servicoInicial vier no formato do PriceSimulator (com detalhes agrupados)
+      if (servicoInicial.detalhes) {
+        setFormData({
+          nome: servicoInicial.nome || '',
+          descricao: servicoInicial.descricao || '',
+          preco_base: servicoInicial.preco_base?.toString() || '',
+          duracao_media_captura: servicoInicial.detalhes?.captura || '',
+          duracao_media_tratamento: servicoInicial.detalhes?.tratamento || '',
+          entregaveis: servicoInicial.detalhes?.entregaveis || '',
+          possiveis_adicionais: servicoInicial.detalhes?.adicionais || '',
+          valor_deslocamento: servicoInicial.detalhes?.deslocamento || ''
+        });
+      } else {
+        // Formato original do banco de dados
+        setFormData({
+          nome: servicoInicial.nome || '',
+          descricao: servicoInicial.descricao || '',
+          preco_base: servicoInicial.preco_base?.toString() || '',
+          duracao_media_captura: servicoInicial.duracao_media_captura || '',
+          duracao_media_tratamento: servicoInicial.duracao_media_tratamento || '',
+          entregaveis: servicoInicial.entregaveis || '',
+          possiveis_adicionais: servicoInicial.possiveis_adicionais || '',
+          valor_deslocamento: servicoInicial.valor_deslocamento || ''
+        });
+      }
     }
   }, [servicoInicial]);
 
@@ -108,10 +124,26 @@ const ServicoForm = ({ servicoInicial, onSubmit, onCancel }) => {
       setLoading(true);
       
       // Formatar os dados para envio
+      // Criamos uma estrutura compatível com o formato do PriceSimulator 2.8.0
       const dadosFormatados = {
         ...formData,
-        preco_base: parseFloat(formData.preco_base)
+        preco_base: parseFloat(formData.preco_base),
+        // Calcular duração média para compatibilidade com o PriceSimulator
+        duracao_media: Math.ceil((
+          parseInt(formData.duracao_media_captura.split(' ')[0] || 0) + 
+          parseInt(formData.duracao_media_tratamento.split(' ')[0] || 0)
+        ) / 2) || 3, // valor padrão de 3 dias se não conseguir calcular
+        // Adicionar a estrutura de detalhes para compatibilidade com PriceSimulator 2.8.0
+        detalhes: {
+          captura: formData.duracao_media_captura,
+          tratamento: formData.duracao_media_tratamento,
+          entregaveis: formData.entregaveis,
+          adicionais: formData.possiveis_adicionais,
+          deslocamento: formData.valor_deslocamento
+        }
       };
+      
+      // Manter os campos originais para compatibilidade com o banco de dados
       
       // Chamar a função de callback com os dados do formulário
       await onSubmit(dadosFormatados);
