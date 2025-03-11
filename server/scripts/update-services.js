@@ -14,88 +14,289 @@ async function main() {
     console.log('Iniciando a atualização dos serviços...');
 
     // Catálogo completo de serviços da Lytspot
-    const servicosAtualizados = [
+    const servicosPrecificados = [
       {
         nome: 'Ensaio Fotográfico Pessoal',
-        descricao: 'Sessão individual em locação externa ou estúdio, ideal para redes sociais, uso profissional ou pessoal. Direção de poses, edição profissional básica e entrega digital em alta resolução.',
-        preco_base: 300.00,
-        duracao_media_captura: '2 a 3 horas',
-        duracao_media_tratamento: 'até 7 dias úteis',
+        versoes: [
+          {
+            tipo: 'Captura',
+            descricao: 'Sessão individual com captação de fotos e correção básica de cor. (Entrega: 20 fotos “in natura” com ajustes mínimos.)',
+            preco: 200.00,
+            duracao_media_captura: '2 a 3 horas'
+          },
+          {
+            tipo: 'Complemento de Edição',
+            opcoes: [
+              {
+                nome: 'Edição Mediana',
+                descricao: 'Retoques moderados, ajustes de cor e contraste para um resultado natural.',
+                preco: 50.00,
+                duracao_media_tratamento: 'até 7 dias úteis'
+              },
+              {
+                nome: 'Edição Avançada',
+                descricao: 'Tratamento completo com retoques minuciosos e finalização profissional.',
+                preco: 100.00,
+                duracao_media_tratamento: 'até 7 dias úteis'
+              }
+            ]
+          },
+          {
+            tipo: 'Pacote Completo',
+            descricao: 'Serviço integrado de captação e edição (opção à escolha) com preço promocional.',
+            preco: 280.00 // preço ligeiramente inferior à soma dos serviços individuais (ex.: 200 + 100 = 300)
+          }
+        ],
         entregaveis: '20 fotos editadas em alta resolução',
-        possiveis_adicionais: 'Maquiagem e cabelo, troca adicional de figurino, cenário especializado',
         valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
       },
       {
         nome: 'Ensaio Externo de Casal ou Família',
-        descricao: 'Sessão fotográfica externa para casais e famílias, capturando momentos espontâneos e dirigidos, com tratamento profissional.',
-        preco_base: 500.00,
-        duracao_media_captura: '2 a 4 horas',
-        duracao_media_tratamento: 'até 10 dias úteis',
+        versoes: [
+          {
+            tipo: 'Captura',
+            descricao: 'Sessão externa para casais/família com captação de imagens e correção básica, ideal para momentos espontâneos.',
+            preco: 350.00,
+            duracao_media_captura: '2 a 4 horas'
+          },
+          {
+            tipo: 'Complemento de Edição',
+            opcoes: [
+              {
+                nome: 'Edição Mediana',
+                descricao: 'Ajustes e retoques moderados para realçar a naturalidade das imagens.',
+                preco: 75.00,
+                duracao_media_tratamento: 'até 10 dias úteis'
+              },
+              {
+                nome: 'Edição Avançada',
+                descricao: 'Edição completa com tratamento avançado e personalização dos detalhes.',
+                preco: 125.00,
+                duracao_media_tratamento: 'até 10 dias úteis'
+              }
+            ]
+          },
+          {
+            tipo: 'Pacote Completo',
+            descricao: 'Serviço completo de ensaio externo com edição avançada inclusa a preço especial.',
+            preco: 450.00
+          }
+        ],
         entregaveis: '30 fotos editadas em alta resolução',
-        possiveis_adicionais: 'participantes adicionais, maquiagem e produção de figurino, sessão na "Golden Hour"',
         valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
       },
       {
         nome: 'Cobertura Fotográfica de Evento Social',
-        descricao: 'Cobertura profissional de fotos em eventos como aniversários, batizados e eventos corporativos.',
-        preco_base: 1000.00,
-        duracao_media_captura: '4 horas',
-        duracao_media_tratamento: 'até 10 dias úteis',
+        versoes: [
+          {
+            tipo: 'Captura',
+            descricao: 'Cobertura do evento com captação de imagens e correção básica para registrar todos os momentos importantes.',
+            preco: 600.00,
+            duracao_media_captura: '4 horas'
+          },
+          {
+            tipo: 'Complemento de Edição',
+            opcoes: [
+              {
+                nome: 'Edição Mediana',
+                descricao: 'Retoques e ajustes moderados para uma entrega com aparência natural.',
+                preco: 200.00,
+                duracao_media_tratamento: 'até 10 dias úteis'
+              },
+              {
+                nome: 'Edição Avançada',
+                descricao: 'Edição completa com tratamento avançado, realçando detalhes e emoções.',
+                preco: 300.00,
+                duracao_media_tratamento: 'até 10 dias úteis'
+              }
+            ]
+          },
+          {
+            tipo: 'Pacote Completo',
+            descricao: 'Cobertura com edição avançada inclusa, com preço promocional para o conjunto do serviço.',
+            preco: 850.00
+          }
+        ],
         entregaveis: '40 fotos editadas em alta resolução',
-        possiveis_adicionais: 'horas extras, álbum físico ou fotolivro, segundo fotógrafo',
         valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
       },
       {
         nome: 'Filmagem de Evento Social (Solo)',
-        descricao: 'Filmagem profissional para eventos sociais e corporativos, com edição dinâmica e trilha sonora.',
-        preco_base: 1500.00,
-        duracao_media_captura: '4 horas',
-        duracao_media_tratamento: 'até 15 dias úteis',
+        versoes: [
+          {
+            tipo: 'Captura de Vídeo',
+            descricao: 'Filmagem do evento com envio dos arquivos já colorizados e cortados – sem edição completa.',
+            preco: 1000.00,
+            duracao_media_captura: '4 horas'
+          },
+          {
+            tipo: 'Complemento de Edição de Vídeo',
+            opcoes: [
+              {
+                nome: 'Edição Mediana',
+                descricao: 'Montagem e cortes com ajustes básicos para um vídeo coeso.',
+                preco: 300.00,
+                duracao_media_tratamento: 'até 15 dias úteis'
+              },
+              {
+                nome: 'Edição Avançada',
+                descricao: 'Pós-produção completa com trilha sonora, efeitos e tratamento avançado.',
+                preco: 500.00,
+                duracao_media_tratamento: 'até 15 dias úteis'
+              }
+            ]
+          },
+          {
+            tipo: 'Pacote Completo',
+            descricao: 'Filmagem com edição avançada inclusa, oferecida a um preço promocional.',
+            preco: 1400.00
+          }
+        ],
         entregaveis: 'vídeo editado de 3 a 5 minutos',
-        possiveis_adicionais: 'horas extras, depoimentos, vídeo bruto',
         valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
       },
       {
         nome: 'Fotografia Aérea com Drone',
-        descricao: 'Imagens aéreas profissionais para imóveis, paisagens ou eventos.',
-        preco_base: 600.00,
-        duracao_media_captura: '2 horas',
-        duracao_media_tratamento: 'até 7 dias úteis',
+        versoes: [
+          {
+            tipo: 'Captura Aérea',
+            descricao: 'Captação de imagens aéreas com drone, com correção básica aplicada.',
+            preco: 400.00,
+            duracao_media_captura: '2 horas'
+          },
+          {
+            tipo: 'Complemento de Edição para Fotos Aéreas',
+            opcoes: [
+              {
+                nome: 'Edição Mediana',
+                descricao: 'Ajustes e retoques simples para aprimorar as imagens.',
+                preco: 100.00,
+                duracao_media_tratamento: 'até 7 dias úteis'
+              },
+              {
+                nome: 'Edição Avançada',
+                descricao: 'Tratamento avançado das imagens, com realce de detalhes e correção minuciosa.',
+                preco: 150.00,
+                duracao_media_tratamento: 'até 7 dias úteis'
+              }
+            ]
+          },
+          {
+            tipo: 'Pacote Completo',
+            descricao: 'Serviço completo com captação e edição avançada, com preço especial.',
+            preco: 520.00
+          }
+        ],
         entregaveis: '15 fotos aéreas editadas',
-        possiveis_adicionais: 'autorizações especiais, pós-produção avançada',
         valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
       },
       {
         nome: 'Filmagem Aérea com Drone',
-        descricao: 'Filmagens aéreas para eventos, vídeos institucionais ou publicidade, com edição profissional.',
-        preco_base: 800.00,
-        duracao_media_captura: '2 horas',
-        duracao_media_tratamento: 'até 12 dias úteis',
+        versoes: [
+          {
+            tipo: 'Captura de Vídeo Aéreo',
+            descricao: 'Filmagem aérea com drone, com entrega dos arquivos cortados e colorizados, sem edição completa.',
+            preco: 600.00,
+            duracao_media_captura: '2 horas'
+          },
+          {
+            tipo: 'Complemento de Edição de Vídeo Aéreo',
+            opcoes: [
+              {
+                nome: 'Edição Mediana',
+                descricao: 'Montagem e ajustes básicos para um vídeo dinâmico.',
+                preco: 150.00,
+                duracao_media_tratamento: 'até 12 dias úteis'
+              },
+              {
+                nome: 'Edição Avançada',
+                descricao: 'Edição completa com efeitos, legendas e pós-produção avançada.',
+                preco: 250.00,
+                duracao_media_tratamento: 'até 12 dias úteis'
+              }
+            ]
+          },
+          {
+            tipo: 'Pacote Completo',
+            descricao: 'Filmagem aérea com edição avançada inclusa a um preço promocional.',
+            preco: 800.00
+          }
+        ],
         entregaveis: 'vídeo editado de 1 a 3 minutos',
-        possiveis_adicionais: 'autorizações especiais, legendas e logotipos, integração com filmagens em solo',
         valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
       },
       {
         nome: 'Pacote VLOG Family (Ilha do Mel ou Outros Lugares)',
-        descricao: 'Produção personalizada de vlog familiar em destinos especiais com fotos e vídeos editados.',
-        preco_base: 1600.00,
-        duracao_media_captura: '8 a 12 horas',
-        duracao_media_tratamento: 'até 20 dias úteis',
+        versoes: [
+          {
+            tipo: 'Captura',
+            descricao: 'Cobertura fotográfica e de vídeo durante 8 a 12 horas, captando momentos espontâneos e dirigidos.',
+            preco: 1000.00,
+            duracao_media_captura: '8 a 12 horas'
+          },
+          {
+            tipo: 'Complemento de Edição para VLOG',
+            opcoes: [
+              {
+                nome: 'Edição Mediana',
+                descricao: 'Montagem e cortes básicos para integrar fotos e vídeo de forma dinâmica.',
+                preco: 300.00,
+                duracao_media_tratamento: 'até 20 dias úteis'
+              },
+              {
+                nome: 'Edição Avançada',
+                descricao: 'Pós-produção completa com trilha sonora, efeitos e tratamento avançado para fotos e vídeo.',
+                preco: 600.00,
+                duracao_media_tratamento: 'até 20 dias úteis'
+              }
+            ]
+          },
+          {
+            tipo: 'Pacote Completo',
+            descricao: 'Serviço integrado de VLOG com captação e edição avançada, oferecido a preço promocional.',
+            preco: 1500.00
+          }
+        ],
         entregaveis: 'vídeo principal (10 min), teaser (1 a 3 min), fotos editadas',
-        possiveis_adicionais: 'edição adicional, cobertura complementar, dias extras',
         valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km + despesas adicionais por conta do cliente'
       },
       {
         nome: 'Pacote VLOG Friends & Community',
-        descricao: 'Pacote exclusivo para grupos de amigos ou comunidades, perfeito para registrar viagens, encontros ou eventos colaborativos com fotos e vídeos profissionais.',
-        preco_base: 1400.00,
-        duracao_media_captura: '6 a 10 horas',
-        duracao_media_tratamento: 'até 14 dias úteis',
+        versoes: [
+          {
+            tipo: 'Captura',
+            descricao: 'Cobertura fotográfica e de vídeo para grupos, realizada em 6 a 10 horas para registrar viagens, encontros ou eventos colaborativos.',
+            preco: 900.00,
+            duracao_media_captura: '6 a 10 horas'
+          },
+          {
+            tipo: 'Complemento de Edição para VLOG',
+            opcoes: [
+              {
+                nome: 'Edição Mediana',
+                descricao: 'Montagem e ajustes básicos para um vídeo dinâmico e fotos com edição leve.',
+                preco: 200.00,
+                duracao_media_tratamento: 'até 14 dias úteis'
+              },
+              {
+                nome: 'Edição Avançada',
+                descricao: 'Edição completa com pós-produção avançada para vídeo e fotos, com cortes precisos e integração de efeitos.',
+                preco: 300.00,
+                duracao_media_tratamento: 'até 14 dias úteis'
+              }
+            ]
+          },
+          {
+            tipo: 'Pacote Completo',
+            descricao: 'Serviço completo com captação e edição avançada, a um preço promocional especial para grupos.',
+            preco: 1300.00
+          }
+        ],
         entregaveis: 'vídeo principal (7 a 10 min), teaser (até 2 min), 30 fotos editadas',
-        possiveis_adicionais: 'dias adicionais, filmagens aéreas, edição especial para redes sociais',
         valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km + despesas adicionais por conta do cliente'
       }
     ];
+    
 
     // Limpar todos os serviços existentes
     await prisma.servico.deleteMany({});
