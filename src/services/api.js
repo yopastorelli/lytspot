@@ -1,6 +1,6 @@
 /**
  * Serviço centralizado para comunicação com a API
- * @version 1.0.2 - 2025-03-12 - Corrigido nome do token no localStorage
+ * @version 1.0.3 - 2025-03-12 - Corrigido prefixo duplicado nas URLs
  * @description Fornece métodos para interagir com a API do backend
  */
 import axios from 'axios';

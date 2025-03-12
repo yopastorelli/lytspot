@@ -81,14 +81,23 @@ try {
       : [
           'https://lytspot.com.br',
           'https://www.lytspot.com.br',
-          'https://lytspot.onrender.com'
+          'https://lytspot.onrender.com',
+          'https://lytspot.netlify.app',
+          'http://localhost:4321'
         ],
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control',
     credentials: true // Mantemos true para compatibilidade com código existente
   };
   
+  // Aplicar middleware CORS
   app.use(cors(corsOptions));
+  
+  // Adicionar logging de diagnóstico para CORS
+  app.use((req, res, next) => {
+    console.log(`[CORS] Requisição de origem: ${req.headers.origin || 'desconhecida'} para ${req.method} ${req.path}`);
+    next();
+  });
 
   app.use(express.json());
   logger.info('Middleware configurado.');

@@ -2,10 +2,11 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { PrismaClient } from '@prisma/client';
 
 /**
  * Script de configuração para ambiente Render
- * @version 1.1.0 - 2025-03-12 - Melhorada detecção de ambiente e configuração do JWT_SECRET
+ * @version 1.2.0 - 2025-03-12 - Adicionada inicialização do banco de dados com serviços
  */
 
 // Forçar NODE_ENV para production no ambiente Render
@@ -100,6 +101,75 @@ try {
   } else {
     console.log("Banco de dados já existe, pulando prisma db push");
   }
+  
+  // Inicializar o banco de dados com dados de serviços
+  console.log("Verificando se existem serviços no banco de dados...");
+  
+  // Função para inicializar o banco de dados com serviços básicos
+  async function inicializarServicos() {
+    const prisma = new PrismaClient();
+    
+    try {
+      // Verificar se já existem serviços
+      const servicosExistentes = await prisma.servico.count();
+      
+      if (servicosExistentes === 0) {
+        console.log("Nenhum serviço encontrado. Inicializando banco de dados com serviços básicos...");
+        
+        // Dados básicos para o simulador de preços
+        const servicos = [
+          {
+            nome: 'Ensaio Fotográfico Pessoal',
+            descricao: 'Sessão individual em locação externa ou estúdio, ideal para redes sociais, uso profissional ou pessoal.',
+            preco_base: 200.00,
+            duracao_media_captura: '2 a 3 horas',
+            duracao_media_tratamento: 'até 7 dias úteis',
+            entregaveis: '20 fotos editadas em alta resolução',
+            possiveis_adicionais: 'Edição avançada, maquiagem profissional',
+            valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+          },
+          {
+            nome: 'Ensaio Externo de Casal ou Família',
+            descricao: 'Sessão fotográfica externa para casais e famílias, capturando momentos espontâneos e dirigidos.',
+            preco_base: 350.00,
+            duracao_media_captura: '2 a 4 horas',
+            duracao_media_tratamento: 'até 10 dias úteis',
+            entregaveis: '30 fotos editadas em alta resolução',
+            possiveis_adicionais: 'Álbum impresso, fotos adicionais',
+            valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+          },
+          {
+            nome: 'Fotografia de Eventos',
+            descricao: 'Cobertura fotográfica de eventos sociais, corporativos ou festas, com entrega de galeria digital.',
+            preco_base: 500.00,
+            duracao_media_captura: '4 a 8 horas',
+            duracao_media_tratamento: 'até 14 dias úteis',
+            entregaveis: '100+ fotos editadas em alta resolução, galeria online',
+            possiveis_adicionais: 'Impressões, segundo fotógrafo, entrega expressa',
+            valor_deslocamento: 'gratuito até 30 km do centro de Curitiba, excedente R$1,50/km'
+          }
+        ];
+        
+        // Criar os serviços no banco de dados
+        for (const servico of servicos) {
+          await prisma.servico.create({
+            data: servico
+          });
+        }
+        
+        console.log(`${servicos.length} serviços básicos adicionados ao banco de dados com sucesso!`);
+      } else {
+        console.log(`Banco de dados já possui ${servicosExistentes} serviços. Pulando inicialização.`);
+      }
+    } catch (error) {
+      console.error("Erro ao inicializar serviços:", error);
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+  
+  // Executar a inicialização de serviços
+  await inicializarServicos();
   
   // Criar diretório dist se não existir
   const distPath = path.join(currentDir, 'dist');

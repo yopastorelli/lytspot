@@ -7,7 +7,7 @@ import { dadosDemonstracao } from './dadosDemonstracao';
 
 /**
  * Componente de simulação de preços
- * @version 2.8.2 - 2025-03-12 - Corrigido problema de duplicação de prefixo 'api' nas URLs
+ * @version 2.8.3 - 2025-03-12 - Corrigido problema de URL da API e melhorado tratamento de erros
  */
 const PriceSimulator = () => {
   const [servicos, setServicos] = useState([]);
@@ -33,19 +33,20 @@ const PriceSimulator = () => {
     const controller = new AbortController();
     
     try {
-      console.log(`Carregando serviços da API: ${env.baseUrl}/api/pricing`);
+      console.log(`Carregando serviços da API: ${env.baseUrl}/pricing`);
       
       // Usa o serviço de API centralizado com o método específico
       const response = await servicosAPI.listar();
       
       // Verifica se a resposta contém dados válidos
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+      if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
         console.log(`[PriceSimulator] Serviços carregados com sucesso: ${response.data.length} itens`);
         setServicos(response.data);
         setUsandoDadosDemonstracao(false);
         tentativasRef.current = 0; // Reseta contador de tentativas
       } else {
-        throw new Error('API retornou dados inválidos');
+        console.warn('[PriceSimulator] API retornou dados vazios ou inválidos:', response?.data);
+        throw new Error('API retornou dados inválidos ou vazios');
       }
     } catch (error) {
       // Ignora erros de requisição cancelada
