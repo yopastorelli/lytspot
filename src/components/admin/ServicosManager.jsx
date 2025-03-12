@@ -4,7 +4,7 @@ import ServicoForm from './ServicoForm';
 
 /**
  * Configuração do axios para usar a URL correta da API
- * @version 1.3.0
+ * @version 1.4.0 - Corrigida a detecção de ambiente e URLs da API
  */
 const getEnvironment = () => {
   // Verificação segura para SSR
@@ -23,12 +23,14 @@ const getEnvironment = () => {
                       window.location.hostname.startsWith('10.');
   
   // No ambiente de desenvolvimento, sempre use localhost:3000
-  // Em produção, use a URL base do domínio atual
+  // Em produção, use a URL da API dedicada
+  const prodApiUrl = 'https://api.lytspot.com.br'; // URL da API em produção
+  
   return {
     type: 'browser',
     isDev: isLocalhost,
-    // Em desenvolvimento, aponte explicitamente para o servidor Express
-    baseUrl: isLocalhost ? 'http://localhost:3000' : window.location.origin,
+    // Em produção, use a URL da API dedicada
+    baseUrl: isLocalhost ? 'http://localhost:3000' : prodApiUrl,
     hostname: window.location.hostname,
     href: window.location.href
   };
@@ -42,12 +44,13 @@ const api = axios.create({
     'Accept': 'application/json',
     'Cache-Control': 'no-cache'
   },
-  timeout: 15000 // 15 segundos, igual ao PriceSimulator
+  timeout: 15000, // 15 segundos, igual ao PriceSimulator
+  withCredentials: !getEnvironment().isDev // Habilita cookies em produção para CORS
 });
 
 /**
  * Componente para gerenciamento de serviços no painel administrativo
- * @version 1.2.0 - Sincronizado com PriceSimulator 2.8.0
+ * @version 1.3.0 - Corrigido problema de cores e sincronização com dados de demonstração
  */
 const ServicosManager = ({ token }) => {
   // Estados para controle dos serviços
@@ -89,7 +92,8 @@ const ServicosManager = ({ token }) => {
           'Accept': 'application/json',
           'Cache-Control': 'no-cache',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        credentials: !env.isDev ? 'include' : 'same-origin' // Incluir cookies em produção
       });
       
       if (!response.ok) {
@@ -162,6 +166,9 @@ const ServicosManager = ({ token }) => {
       // Recarregar a lista de serviços
       await buscarServicos();
       
+      // Sincronizar dados de demonstração
+      await sincronizarDadosDemonstracao();
+      
       // Fechar o modal
       fecharModal();
       
@@ -198,6 +205,9 @@ const ServicosManager = ({ token }) => {
       // Recarregar a lista de serviços
       await buscarServicos();
       
+      // Sincronizar dados de demonstração
+      await sincronizarDadosDemonstracao();
+      
       setMensagemSucesso('Serviço excluído com sucesso!');
       
       // Limpar a mensagem de sucesso após alguns segundos
@@ -213,6 +223,20 @@ const ServicosManager = ({ token }) => {
         'Erro ao excluir o serviço. Por favor, tente novamente.'
       );
       setLoading(false);
+    }
+  };
+  
+  // Função para sincronizar dados de demonstração
+  const sincronizarDadosDemonstracao = async () => {
+    try {
+      // Chamar a API para sincronizar os dados de demonstração
+      await api.post('/api/sync/demo-data', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('Dados de demonstração sincronizados com sucesso!');
+    } catch (error) {
+      console.error('Erro ao sincronizar dados de demonstração:', error);
+      // Não exibimos erro para o usuário, pois isso é uma operação em segundo plano
     }
   };
   
@@ -361,9 +385,9 @@ const ServicosManager = ({ token }) => {
             </div>
             
             <ServicoForm 
-              servico={servicoEmEdicao} 
-              onSalvar={salvarServico} 
-              onCancelar={fecharModal}
+              servicoInicial={servicoEmEdicao} 
+              onSubmit={salvarServico} 
+              onCancel={fecharModal}
               loading={loading}
             />
           </div>
