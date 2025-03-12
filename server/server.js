@@ -83,11 +83,13 @@ try {
           'https://www.lytspot.com.br',
           'https://lytspot.onrender.com',
           'https://lytspot.netlify.app',
-          'http://localhost:4321'
+          'http://localhost:4321',
+          // Adicionar domínios adicionais conforme necessário
         ],
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control',
-    credentials: true // Mantemos true para compatibilidade com código existente
+    credentials: true, // Mantemos true para compatibilidade com código existente
+    maxAge: 86400 // Cache de preflight por 24 horas (em segundos)
   };
   
   // Aplicar middleware CORS
@@ -96,6 +98,18 @@ try {
   // Adicionar logging de diagnóstico para CORS
   app.use((req, res, next) => {
     console.log(`[CORS] Requisição de origem: ${req.headers.origin || 'desconhecida'} para ${req.method} ${req.path}`);
+    
+    // Adicionar cabeçalhos CORS manualmente para garantir que eles sejam aplicados
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Methods', corsOptions.methods);
+    res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    // Responder imediatamente a requisições OPTIONS (preflight)
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    
     next();
   });
 
