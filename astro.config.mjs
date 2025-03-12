@@ -2,6 +2,19 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwind from '@astrojs/tailwind';
 
+/**
+ * Configuração do Astro com detecção inteligente de ambiente
+ * @version 1.1.0 - 2025-03-12 - Adicionada detecção de ambiente para Render
+ */
+
+// Detectar ambiente de forma mais robusta
+const isRenderEnv = process.env.RENDER === 'true';
+const isProd = process.env.NODE_ENV === 'production' || isRenderEnv;
+const apiUrl = isProd ? 'https://lytspot.onrender.com' : 'http://localhost:3000';
+
+console.log(`[ASTRO CONFIG] Ambiente: ${isProd ? 'produção' : 'desenvolvimento'}`);
+console.log(`[ASTRO CONFIG] API URL configurada: ${apiUrl}`);
+
 // Configuração simplificada do Astro
 export default defineConfig({
   integrations: [react(), tailwind()],
@@ -12,7 +25,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: apiUrl,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
         configure: (proxy, options) => {
@@ -37,7 +50,8 @@ export default defineConfig({
   vite: {
     // Configuração para garantir que variáveis de ambiente estejam disponíveis
     define: {
-      'process.env.API_URL': JSON.stringify('http://localhost:3000')
+      'process.env.API_URL': JSON.stringify(apiUrl),
+      'process.env.IS_PRODUCTION': isProd
     },
     
     // Ativando logs detalhados para debug
@@ -54,6 +68,3 @@ export default defineConfig({
     }
   }
 });
-
-// Log para confirmar a configuração da API
-console.log('[ASTRO CONFIG] API URL configurada: http://localhost:3000');

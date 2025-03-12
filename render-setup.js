@@ -3,6 +3,17 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
+/**
+ * Script de configuração para ambiente Render
+ * @version 1.1.0 - 2025-03-12 - Melhorada detecção de ambiente e configuração do JWT_SECRET
+ */
+
+// Forçar NODE_ENV para production no ambiente Render
+if (process.env.RENDER) {
+  process.env.NODE_ENV = 'production';
+  console.log("Ambiente Render detectado, NODE_ENV definido como:", process.env.NODE_ENV);
+}
+
 // Configurar variáveis de ambiente essenciais se não existirem
 if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = "file:../database.sqlite";
@@ -11,7 +22,7 @@ if (!process.env.DATABASE_URL) {
 
 // Configurar JWT_SECRET com o valor específico fornecido
 if (!process.env.JWT_SECRET) {
-  process.env.JWT_SECRET = "f23e126b7f99a3e4553c65b3f558cb6a";
+  process.env.JWT_SECRET = "125n128zf09a3e455c6b3d1556cbda";
   console.log("JWT_SECRET não encontrada, usando valor específico configurado");
 }
 
@@ -96,6 +107,27 @@ try {
     console.log("Criando diretório dist...");
     fs.mkdirSync(distPath, { recursive: true });
     console.log("Diretório dist criado com sucesso!");
+    
+    // Criar um arquivo index.html básico para evitar erros
+    const indexHtmlPath = path.join(distPath, 'index.html');
+    if (!fs.existsSync(indexHtmlPath)) {
+      console.log("Criando arquivo index.html básico...");
+      fs.writeFileSync(indexHtmlPath, `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LytSpot</title>
+  <meta http-equiv="refresh" content="0;url=/index.html">
+</head>
+<body>
+  <p>Redirecionando...</p>
+</body>
+</html>
+      `);
+      console.log("Arquivo index.html básico criado com sucesso!");
+    }
   }
   
   console.log("Configuração do ambiente Render concluída com sucesso!");
