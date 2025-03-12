@@ -1,108 +1,92 @@
 /**
- * Serviço centralizado para requisições API
- * @version 1.2.0 - 2025-03-12 - Melhorado tratamento de erros e logs
- * @description Configura cliente Axios com interceptores para autenticação e tratamento de erros
+ * Serviço centralizado para comunicação com a API
+ * @version 1.0.1 - 2025-03-12
+ * @description Fornece métodos para interagir com a API do backend
  */
-
 import axios from 'axios';
 import { getEnvironment } from '../utils/environment';
 
 /**
- * Cria e configura uma instância do cliente Axios
- * @returns {AxiosInstance} Cliente Axios configurado
+ * Cria uma instância do axios configurada com a URL base correta
+ * @returns {Object} Instância do axios configurada
  */
-const createApiClient = () => {
+const createApiInstance = () => {
   const env = getEnvironment();
   
-  // Cria cliente com URL base do ambiente atual
-  const client = axios.create({
+  // Criar instância do axios com a URL base correta
+  const instance = axios.create({
     baseURL: env.baseUrl,
-    timeout: 15000, // 15 segundos
+    timeout: 10000,
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
     }
   });
-  
+
   // Interceptor para adicionar token de autenticação
-  client.interceptors.request.use(
-    config => {
-      // Adiciona token de autenticação se disponível
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      // Log de depuração em desenvolvimento
-      if (env.isDev) {
-        console.log(`[API Request] ${config.method.toUpperCase()} ${config.url}`, config.data);
-      }
-      
-      return config;
-    },
-    error => {
-      console.error('[API Request Error]', error);
-      return Promise.reject(error);
-    }
-  );
-  
-  // Interceptor para tratamento de respostas
-  client.interceptors.response.use(
-    response => {
-      // Log de depuração em desenvolvimento
-      if (env.isDev) {
-        console.log(`[API Response] ${response.config.method.toUpperCase()} ${response.config.url}`, response.data);
-      }
-      return response;
-    },
-    async error => {
-      // Log detalhado do erro
-      console.error('[API Error]', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers
-      });
-      
-      // Se não estiver em produção ou não houver URLs alternativas, rejeita imediatamente
-      if (env.isDev || !env.prodApiUrls || env.prodApiUrls.length === 0) {
-        return Promise.reject(error);
-      }
-      
-      // Em produção, se o erro for de rede ou 5xx, tenta URL alternativa
-      const isNetworkError = error.message.includes('Network Error');
-      const isServerError = error.response && error.response.status >= 500;
-      
-      if ((isNetworkError || isServerError) && error.config && !error.config._retry) {
-        error.config._retry = true;
-        
-        // Tenta apenas a URL principal do Render
-        const alternativeUrl = env.prodApiUrls[0];
-        if (alternativeUrl && alternativeUrl !== env.baseUrl) {
-          console.log(`[API Fallback] Tentando URL alternativa: ${alternativeUrl}`);
-          
-          // Cria uma nova requisição com a URL alternativa
-          const newConfig = { ...error.config };
-          newConfig.baseURL = alternativeUrl;
-          
-          try {
-            return await axios(newConfig);
-          } catch (fallbackError) {
-            console.error('[API Fallback Error]', fallbackError.message);
-            return Promise.reject(fallbackError);
-          }
+  instance.interceptors.request.use(
+    (config) => {
+      // Verificar se estamos no browser
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
         }
       }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  // Interceptor para tratar erros de resposta
+  instance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      // Tratar erros específicos aqui
+      if (error.response) {
+        // Erro do servidor (status code fora do range 2xx)
+        console.error('Erro na resposta da API:', error.response.status, error.response.data);
+        
+        // Se for erro 401 (não autorizado), podemos limpar o token
+        if (error.response.status === 401) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('authToken');
+          }
+        }
+      } else if (error.request) {
+        // Requisição foi feita mas não houve resposta
+        console.error('Sem resposta da API:', error.request);
+      } else {
+        // Erro na configuração da requisição
+        console.error('Erro ao configurar requisição:', error.message);
+      }
       
       return Promise.reject(error);
     }
   );
-  
-  return client;
+
+  return instance;
 };
 
-// Exporta cliente configurado
-const api = createApiClient();
+// Criar instância padrão da API
+const api = createApiInstance();
+
+// Métodos específicos para diferentes recursos
+const servicosAPI = {
+  listar: () => api.get('/api/pricing'),
+  obter: (id) => api.get(`/api/pricing/${id}`),
+  criar: (dados) => api.post('/api/pricing', dados),
+  atualizar: (id, dados) => api.put(`/api/pricing/${id}`, dados),
+  excluir: (id) => api.delete(`/api/pricing/${id}`)
+};
+
+const authAPI = {
+  login: (credenciais) => api.post('/api/auth/login', credenciais),
+  registro: (dados) => api.post('/api/auth/register', dados),
+  verificarToken: () => api.get('/api/auth/verify')
+};
+
+// Exportar tanto a instância padrão quanto métodos específicos
+export { servicosAPI, authAPI };
+
+// Exportação padrão para compatibilidade com importações existentes
 export default api;

@@ -8,6 +8,7 @@ import pricingRoutes from './routes/pricing.js';
 import authRoutes from './routes/auth.js';
 import syncRoutes from './routes/sync.js';
 import cors from 'cors';
+import fs from 'fs';
 
 // Configuração para ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -117,19 +118,124 @@ try {
   logger.info('Rotas de sincronização registradas.');
   console.log('Rotas de sincronização registradas.');
 
-  // Rota para todas as outras requisições que não correspondem a rotas específicas
-  app.get('*', (req, res) => {
-    const distPath = path.join(__dirname, '..', 'dist');
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-  logger.info('Rota de fallback para SPA configurada.');
-  console.log('Rota de fallback para SPA configurada.');
-
   // Servir arquivos estáticos do diretório dist
   const distPath = path.join(__dirname, '..', 'dist');
+  
+  // Verificar se o diretório dist existe
+  if (!fs.existsSync(distPath)) {
+    logger.warn(`Diretório de arquivos estáticos não encontrado: ${distPath}`);
+    console.warn(`Diretório de arquivos estáticos não encontrado: ${distPath}`);
+    
+    // Criar diretório dist se não existir
+    fs.mkdirSync(distPath, { recursive: true });
+    logger.info(`Diretório de arquivos estáticos criado: ${distPath}`);
+    console.log(`Diretório de arquivos estáticos criado: ${distPath}`);
+    
+    // Criar um arquivo index.html básico para evitar erros
+    const indexHtmlPath = path.join(distPath, 'index.html');
+    const basicHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LytSpot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f5f5f5;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+    }
+    p {
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>LytSpot API</h1>
+    <p>A API está funcionando corretamente.</p>
+    <p>Acesse o frontend para utilizar a aplicação completa.</p>
+  </div>
+</body>
+</html>`;
+    
+    fs.writeFileSync(indexHtmlPath, basicHtml);
+    logger.info(`Arquivo index.html básico criado em: ${indexHtmlPath}`);
+    console.log(`Arquivo index.html básico criado em: ${indexHtmlPath}`);
+  }
+  
   app.use(express.static(distPath));
   logger.info(`Servindo arquivos estáticos do diretório: ${distPath}`);
   console.log(`Servindo arquivos estáticos do diretório: ${distPath}`);
+
+  // Rota para todas as outras requisições que não correspondem a rotas específicas
+  app.get('*', (req, res) => {
+    const indexPath = path.join(distPath, 'index.html');
+    
+    // Verificar se o arquivo index.html existe
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      // Caso o arquivo não exista, enviar uma resposta básica
+      res.send(`
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>LytSpot</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+              background-color: #f5f5f5;
+            }
+            .container {
+              text-align: center;
+              padding: 2rem;
+              background-color: white;
+              border-radius: 8px;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+            h1 {
+              color: #333;
+            }
+            p {
+              color: #666;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>LytSpot API</h1>
+            <p>A API está funcionando corretamente.</p>
+            <p>Acesse o frontend para utilizar a aplicação completa.</p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+  });
+  logger.info('Rota de fallback para SPA configurada.');
+  console.log('Rota de fallback para SPA configurada.');
 
   // Middleware para capturar erros globais
   app.use((err, req, res, next) => {

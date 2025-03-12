@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 
 /**
  * Componente de formulário para adicionar e editar serviços
- * @version 1.3.0 - Corrigido problema de cores e compatibilidade com ServicosManager
+ * @version 1.3.1 - 2025-03-12 - Corrigido problema de recebimento de dados para edição
  */
-const ServicoForm = ({ servicoInicial, onSubmit, onCancel, loading }) => {
+const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
   // Estado para armazenar os dados do formulário
   const [formData, setFormData] = useState({
     nome: '',
@@ -28,35 +28,37 @@ const ServicoForm = ({ servicoInicial, onSubmit, onCancel, loading }) => {
 
   // Inicializar o formulário com os dados do serviço em edição, se houver
   useEffect(() => {
-    if (servicoInicial) {
-      console.log('Inicializando formulário com serviço:', servicoInicial);
-      // Se o servicoInicial vier no formato do PriceSimulator (com detalhes agrupados)
-      if (servicoInicial.detalhes) {
+    if (servico) {
+      console.log('Inicializando formulário com serviço:', servico);
+      // Se o serviço vier no formato do PriceSimulator (com detalhes agrupados)
+      if (servico.detalhes) {
         setFormData({
-          nome: servicoInicial.nome || '',
-          descricao: servicoInicial.descricao || '',
-          preco_base: servicoInicial.preco_base?.toString() || '',
-          duracao_media_captura: servicoInicial.detalhes?.captura || '',
-          duracao_media_tratamento: servicoInicial.detalhes?.tratamento || '',
-          entregaveis: servicoInicial.detalhes?.entregaveis || '',
-          possiveis_adicionais: servicoInicial.detalhes?.adicionais || '',
-          valor_deslocamento: servicoInicial.detalhes?.deslocamento?.toString() || ''
+          id: servico.id, // Importante manter o ID para edição
+          nome: servico.nome || '',
+          descricao: servico.descricao || '',
+          preco_base: servico.preco_base?.toString() || '',
+          duracao_media_captura: servico.detalhes?.captura || '',
+          duracao_media_tratamento: servico.detalhes?.tratamento || '',
+          entregaveis: servico.detalhes?.entregaveis || '',
+          possiveis_adicionais: servico.detalhes?.adicionais || '',
+          valor_deslocamento: servico.detalhes?.deslocamento?.toString() || ''
         });
       } else {
         // Formato original do banco de dados
         setFormData({
-          nome: servicoInicial.nome || '',
-          descricao: servicoInicial.descricao || '',
-          preco_base: servicoInicial.preco_base?.toString() || '',
-          duracao_media_captura: servicoInicial.duracao_media_captura || '',
-          duracao_media_tratamento: servicoInicial.duracao_media_tratamento || '',
-          entregaveis: servicoInicial.entregaveis || '',
-          possiveis_adicionais: servicoInicial.possiveis_adicionais || '',
-          valor_deslocamento: servicoInicial.valor_deslocamento?.toString() || ''
+          id: servico.id, // Importante manter o ID para edição
+          nome: servico.nome || '',
+          descricao: servico.descricao || '',
+          preco_base: servico.preco_base?.toString() || '',
+          duracao_media_captura: servico.duracao_media_captura || '',
+          duracao_media_tratamento: servico.duracao_media_tratamento || '',
+          entregaveis: servico.entregaveis || '',
+          possiveis_adicionais: servico.possiveis_adicionais || '',
+          valor_deslocamento: servico.valor_deslocamento?.toString() || ''
         });
       }
     }
-  }, [servicoInicial]);
+  }, [servico]);
 
   // Função para atualizar o estado do formulário
   const handleChange = (e) => {
@@ -136,7 +138,7 @@ const ServicoForm = ({ servicoInicial, onSubmit, onCancel, loading }) => {
       // Manter os campos originais para compatibilidade com o banco de dados
       
       // Chamar a função de callback com os dados do formulário
-      await onSubmit(dadosFormatados);
+      await onSave(dadosFormatados);
       
       setLoadingInterno(false);
     } catch (error) {
@@ -203,13 +205,13 @@ const ServicoForm = ({ servicoInicial, onSubmit, onCancel, loading }) => {
           name="descricao"
           value={formData.descricao}
           onChange={handleChange}
-          rows={3}
+          rows={4}
           className={`w-full px-4 py-2 border rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
             errosValidacao.descricao ? 'border-red-500' : 'border-gray-300'
           }`}
-          placeholder="Descreva o serviço..."
+          placeholder="Descreva o serviço em detalhes..."
           disabled={isLoading}
-        ></textarea>
+        />
         {errosValidacao.descricao && (
           <p className="mt-1 text-sm text-red-600">{errosValidacao.descricao}</p>
         )}
@@ -228,7 +230,7 @@ const ServicoForm = ({ servicoInicial, onSubmit, onCancel, loading }) => {
             value={formData.duracao_media_captura}
             onChange={handleChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Ex: 2 dias"
+            placeholder="Ex: 2 horas"
             disabled={isLoading}
           />
         </div>
@@ -245,7 +247,7 @@ const ServicoForm = ({ servicoInicial, onSubmit, onCancel, loading }) => {
             value={formData.duracao_media_tratamento}
             onChange={handleChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Ex: 5 dias"
+            placeholder="Ex: 3 dias"
             disabled={isLoading}
           />
         </div>
@@ -261,11 +263,11 @@ const ServicoForm = ({ servicoInicial, onSubmit, onCancel, loading }) => {
           name="entregaveis"
           value={formData.entregaveis}
           onChange={handleChange}
-          rows={2}
+          rows={3}
           className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Ex: 20 fotos em alta resolução, álbum digital..."
+          placeholder="Ex: 20 fotos editadas em alta resolução, álbum digital..."
           disabled={isLoading}
-        ></textarea>
+        />
       </div>
       
       {/* Possíveis adicionais */}
@@ -278,11 +280,11 @@ const ServicoForm = ({ servicoInicial, onSubmit, onCancel, loading }) => {
           name="possiveis_adicionais"
           value={formData.possiveis_adicionais}
           onChange={handleChange}
-          rows={2}
+          rows={3}
           className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Ex: Fotos extras, álbum impresso..."
+          placeholder="Ex: Fotos extras, álbum impresso, pôster..."
           disabled={isLoading}
-        ></textarea>
+        />
       </div>
       
       {/* Valor de deslocamento */}
@@ -302,31 +304,24 @@ const ServicoForm = ({ servicoInicial, onSubmit, onCancel, loading }) => {
         />
       </div>
       
+      {/* Botões de ação */}
       <div className="flex justify-end space-x-4 pt-4">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
           disabled={isLoading}
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`px-4 py-2 bg-blue-500 text-white rounded-md ${
+            isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-600'
+          } transition-colors`}
           disabled={isLoading}
         >
-          {isLoading ? (
-            <span className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Salvando...
-            </span>
-          ) : (
-            'Salvar Serviço'
-          )}
+          {isLoading ? 'Salvando...' : 'Salvar'}
         </button>
       </div>
     </form>
