@@ -1,76 +1,101 @@
 /**
- * Serviço centralizado para configuração e gerenciamento de requisições API
- * @version 1.0.0 - 2025-03-12
- * @description Fornece uma instância configurada do axios e utilitários para comunicação com o backend
+ * Serviço centralizado para requisições API
+ * @version 1.2.0 - 2025-03-12 - Melhorado tratamento de erros e logs
+ * @description Configura cliente Axios com interceptores para autenticação e tratamento de erros
  */
 
 import axios from 'axios';
-import getEnvironment from '../utils/environment';
+import { getEnvironment } from '../utils/environment';
 
 /**
- * Cria e configura um cliente axios com interceptores e configurações apropriadas
- * @param {Object} options - Opções adicionais para configuração
- * @returns {AxiosInstance} Cliente axios configurado
+ * Cria e configura uma instância do cliente Axios
+ * @returns {AxiosInstance} Cliente Axios configurado
  */
-export const createApiClient = (options = {}) => {
+const createApiClient = () => {
   const env = getEnvironment();
   
-  // Configuração base do cliente
+  // Cria cliente com URL base do ambiente atual
   const client = axios.create({
     baseURL: env.baseUrl,
+    timeout: 15000, // 15 segundos
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Cache-Control': 'no-cache',
-      ...options.headers
-    },
-    timeout: 15000,
-    // Não usamos withCredentials por padrão para evitar problemas de CORS
-    // JWT é enviado via Authorization header, não requer withCredentials
-    withCredentials: false
+      'Accept': 'application/json'
+    }
   });
   
-  // Interceptor para adicionar token JWT automaticamente
+  // Interceptor para adicionar token de autenticação
   client.interceptors.request.use(
     config => {
-      // Adiciona o token ao cabeçalho se estiver disponível no localStorage
-      const token = localStorage.getItem('token');
+      // Adiciona token de autenticação se disponível
+      const token = localStorage.getItem('authToken');
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers['Authorization'] = `Bearer ${token}`;
       }
+      
+      // Log de depuração em desenvolvimento
+      if (env.isDev) {
+        console.log(`[API Request] ${config.method.toUpperCase()} ${config.url}`, config.data);
+      }
+      
       return config;
     },
-    error => Promise.reject(error)
+    error => {
+      console.error('[API Request Error]', error);
+      return Promise.reject(error);
+    }
   );
   
-  // Interceptor para lidar com erros e implementar fallback de URLs
+  // Interceptor para tratamento de respostas
   client.interceptors.response.use(
-    response => response,
+    response => {
+      // Log de depuração em desenvolvimento
+      if (env.isDev) {
+        console.log(`[API Response] ${response.config.method.toUpperCase()} ${response.config.url}`, response.data);
+      }
+      return response;
+    },
     async error => {
-      const originalRequest = error.config;
+      // Log detalhado do erro
+      console.error('[API Error]', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers
+      });
       
-      // Se não estamos em modo de desenvolvimento e não é uma retentativa
-      if (!env.isDev && !originalRequest._retry && env.prodApiUrls && env.prodApiUrls.length > 1) {
-        // Marca como retentativa para evitar loop infinito
-        originalRequest._retry = true;
+      // Se não estiver em produção ou não houver URLs alternativas, rejeita imediatamente
+      if (env.isDev || !env.prodApiUrls || env.prodApiUrls.length === 0) {
+        return Promise.reject(error);
+      }
+      
+      // Em produção, se o erro for de rede ou 5xx, tenta URL alternativa
+      const isNetworkError = error.message.includes('Network Error');
+      const isServerError = error.response && error.response.status >= 500;
+      
+      if ((isNetworkError || isServerError) && error.config && !error.config._retry) {
+        error.config._retry = true;
         
-        // Tenta cada URL alternativa na lista
-        for (let i = 1; i < env.prodApiUrls.length; i++) {
-          const alternativeUrl = env.prodApiUrls[i];
-          console.log(`Tentando URL alternativa: ${alternativeUrl}`);
+        // Tenta apenas a URL principal do Render
+        const alternativeUrl = env.prodApiUrls[0];
+        if (alternativeUrl && alternativeUrl !== env.baseUrl) {
+          console.log(`[API Fallback] Tentando URL alternativa: ${alternativeUrl}`);
+          
+          // Cria uma nova requisição com a URL alternativa
+          const newConfig = { ...error.config };
+          newConfig.baseURL = alternativeUrl;
           
           try {
-            // Atualiza a URL base para a alternativa
-            originalRequest.baseURL = alternativeUrl;
-            return await axios(originalRequest);
-          } catch (retryError) {
-            console.error(`Falha ao usar URL alternativa ${alternativeUrl}:`, retryError.message);
-            // Continua para a próxima URL
+            return await axios(newConfig);
+          } catch (fallbackError) {
+            console.error('[API Fallback Error]', fallbackError.message);
+            return Promise.reject(fallbackError);
           }
         }
       }
       
-      // Se todas as tentativas falharem ou não houver alternativas, rejeita com o erro original
       return Promise.reject(error);
     }
   );
@@ -78,6 +103,6 @@ export const createApiClient = (options = {}) => {
   return client;
 };
 
-// Exporta uma instância padrão do cliente API
+// Exporta cliente configurado
 const api = createApiClient();
 export default api;

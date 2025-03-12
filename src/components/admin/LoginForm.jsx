@@ -1,122 +1,165 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { FaUser, FaLock, FaSpinner } from 'react-icons/fa';
 
 /**
  * Componente de formulário de login para o painel administrativo
- * @version 2.1.0 - Corrigido nome do campo de senha para compatibilidade com o backend
+ * @version 1.2.0 - 2025-03-12 - Corrigido envio de credenciais e melhorado tratamento de erros
  */
-const LoginForm = ({ onLoginSuccess }) => {
-  // Estados para controle do formulário
+const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [erro, setErro] = useState(null);
-  const [loading, setLoading] = useState(false);
-  
+  const [erro, setErro] = useState('');
+  const [carregando, setCarregando] = useState(false);
+  const navigate = useNavigate();
+
   /**
-   * Manipula o envio do formulário de login
-   * @param {Event} e - Evento de submit do formulário
+   * Valida os campos do formulário
+   * @returns {boolean} Verdadeiro se os campos são válidos
+   */
+  const validarCampos = () => {
+    if (!email.trim()) {
+      setErro('Por favor, informe seu email');
+      return false;
+    }
+    
+    if (!senha.trim()) {
+      setErro('Por favor, informe sua senha');
+      return false;
+    }
+    
+    return true;
+  };
+
+  /**
+   * Manipula o envio do formulário
+   * @param {Event} e - Evento de submit
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErro(null);
-    setLoading(true);
+    
+    // Limpa mensagens de erro anteriores
+    setErro('');
+    
+    // Valida campos antes de enviar
+    if (!validarCampos()) {
+      return;
+    }
+    
+    setCarregando(true);
     
     try {
-      // Validação básica
-      if (!email || !senha) {
-        setErro('Por favor, preencha todos os campos.');
-        setLoading(false);
-        return;
-      }
+      console.log('Enviando requisição de login para:', api.defaults.baseURL);
       
-      // Envia requisição de login
-      console.log(`Tentando login no servidor: ${api.defaults.baseURL}`);
-      const response = await api.post('/api/auth/login', { email, password: senha });
+      // Envia requisição com campo password (não senha)
+      const response = await api.post('/api/auth/login', { 
+        email, 
+        password: senha // Importante: o backend espera "password", não "senha"
+      });
       
-      // Armazena o token JWT no localStorage
-      localStorage.setItem('token', response.data.token);
+      // Armazena token e informações do usuário
+      localStorage.setItem('authToken', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       
-      // Notifica o componente pai sobre o sucesso no login
-      onLoginSuccess(response.data);
+      // Redireciona para o dashboard
+      navigate('/admin/dashboard');
     } catch (error) {
-      console.error('Erro ao fazer login:', error);
-      console.log('Detalhes do erro:', error.response || error);
+      console.error('Erro de login:', error);
       
-      // Tratamento de erros específicos
+      // Tratamento específico por tipo de erro
       if (error.response) {
-        // O servidor respondeu com um status de erro
-        setErro(error.response.data.message || 'Credenciais inválidas. Verifique seu email e senha.');
+        // Resposta do servidor com erro
+        const status = error.response.status;
+        
+        if (status === 401) {
+          setErro('Email ou senha incorretos');
+        } else if (status === 403) {
+          setErro('Acesso não autorizado');
+        } else if (status === 429) {
+          setErro('Muitas tentativas. Tente novamente mais tarde');
+        } else {
+          setErro(`Erro no servidor: ${error.response.data?.message || 'Erro desconhecido'}`);
+        }
       } else if (error.request) {
-        // A requisição foi feita mas não houve resposta
-        setErro('Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.');
+        // Requisição enviada mas sem resposta
+        setErro('Servidor não respondeu. Verifique sua conexão');
+        console.error('Requisição sem resposta:', error.request);
       } else {
-        // Algo aconteceu na configuração da requisição
-        setErro('Ocorreu um erro ao processar sua solicitação. Tente novamente mais tarde.');
+        // Erro na configuração da requisição
+        setErro('Erro ao conectar com o servidor');
       }
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
   };
-  
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Login Administrativo
-          </h2>
+    <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+      <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Login Administrativo</h2>
+      
+      {erro && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {erro}
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+            Email
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <FaUser className="text-gray-400" />
+            </div>
+            <input
+              id="email"
+              type="email"
+              className="pl-10 w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Seu email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={carregando}
+            />
+          </div>
         </div>
         
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">Email</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+        <div className="mb-6">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="senha">
+            Senha
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <FaLock className="text-gray-400" />
             </div>
-            <div>
-              <label htmlFor="senha" className="sr-only">Senha</label>
-              <input
-                id="senha"
-                name="senha"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Senha"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-              />
-            </div>
+            <input
+              id="senha"
+              type="password"
+              className="pl-10 w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Sua senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              disabled={carregando}
+            />
           </div>
-          
-          {erro && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-              <span className="block sm:inline">{erro}</span>
-            </div>
+        </div>
+        
+        <button
+          type="submit"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 flex justify-center items-center"
+          disabled={carregando}
+        >
+          {carregando ? (
+            <>
+              <FaSpinner className="animate-spin mr-2" />
+              Entrando...
+            </>
+          ) : (
+            'Entrar'
           )}
-          
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </button>
-          </div>
-        </form>
-      </div>
+        </button>
+      </form>
     </div>
   );
 };

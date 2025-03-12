@@ -8,6 +8,7 @@ Bem-vindo à documentação oficial do projeto Lytspot. Esta documentação foi 
 - [Visão Geral da Infraestrutura](./infrastructure.md)
 - [Esquema de Banco de Dados](./database-schema.md)
 - [Fluxo de Trabalho e Padrões de Desenvolvimento](./workflow.md)
+- [Bugs e Problemas Conhecidos](./known-issues.md)
 
 ### 2. Backend
 - [Arquitetura do Backend](./backend/architecture.md)

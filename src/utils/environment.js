@@ -1,6 +1,6 @@
 /**
  * Módulo centralizado para detecção e configuração de ambiente
- * @version 1.0.0 - 2025-03-12
+ * @version 1.1.0 - 2025-03-12 - Removidas URLs inválidas
  * @description Fornece informações consistentes sobre o ambiente atual e URLs da API
  */
 
@@ -24,18 +24,16 @@ export const getEnvironment = () => {
                      window.location.hostname.startsWith('192.168.') ||
                      window.location.hostname.startsWith('10.');
   
-  // Lista de URLs para produção em ordem de prioridade
+  // Lista de URLs para produção - usando apenas a URL válida do Render
   const prodApiUrls = [
-    'https://lytspot.onrender.com',  // URL principal do Render
-    'https://api.lytspot.com.br',    // URL personalizada (quando estiver configurada)
-    window.location.origin           // URL atual como fallback
+    'https://lytspot.onrender.com'  // URL principal do Render
   ];
   
   return {
     type: 'browser',
     isDev: isLocalhost,
     // Em desenvolvimento, use localhost:3000
-    // Em produção, use a primeira URL da lista (será testada com fallback)
+    // Em produção, use a URL do Render
     baseUrl: isLocalhost ? 'http://localhost:3000' : prodApiUrls[0],
     prodApiUrls: isLocalhost ? [] : prodApiUrls, // Lista de URLs alternativas para fallback
     hostname: window.location.hostname,

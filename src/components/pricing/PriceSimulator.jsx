@@ -1,666 +1,188 @@
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { servicos as servicosDados } from '../../data/servicos.js';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
+import { getEnvironment } from '../../utils/environment';
+import ServiceCard from './ServiceCard';
+import PricingCalculator from './PricingCalculator';
+import { dadosDemonstracao } from './dadosDemonstracao';
 
 /**
- * Componente Simulador de Preços - Versão estável 
- * @version 2.9.0 - Refatorado para usar serviço de API centralizado
+ * Componente de simulação de preços
+ * @version 2.8.1 - 2025-03-12 - Refatorado para usar serviço de API centralizado e melhorado tratamento de erros
  */
-const PriceSimulator = memo(() => {
-  // Estados principais do componente
+const PriceSimulator = () => {
   const [servicos, setServicos] = useState([]);
-  const [servicosSelecionados, setServicosSelecionados] = useState([]);
-  const [precoTotal, setPrecoTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [erro, setError] = useState(null);
-  const [dadosDemonstracao, setDadosDemonstracao] = useState(false);
-  const [debugLogs, setDebugLogs] = useState([]);
-  const [mostrarDebug, setMostrarDebug] = useState(false);
-  const [isBrowser, setIsBrowser] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [maxRetries, setMaxRetries] = useState(3);
-  const [retryCount, setRetryCount] = useState(0);
-  const [retryDelay, setRetryDelay] = useState(2000); // 2 segundos de delay entre tentativas
-  
-  // Referências
-  const mounted = useRef(false);
-  const testMode = useRef(false); // Para testes automatizados
-  const testRunning = useRef(false); // Previne loops infinitos durante testes
-  const timeoutRef = useRef(null); // Armazena referência ao timeout para limpeza adequada
-  const initAttempts = useRef(0);
+  const [servicoSelecionado, setServicoSelecionado] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(null);
+  const [usandoDadosDemonstracao, setUsandoDadosDemonstracao] = useState(false);
+  const tentativasRef = useRef(0);
+  const maxTentativas = 3;
+  const env = getEnvironment();
 
-  // Data da última atualização dos preços
-  const lastUpdated = new Date('2025-03-01');
-  const lastUpdatedText = `Última atualização: ${lastUpdated.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}`;
-
-  // Efeito para detectar cliente - executado apenas uma vez
-  useEffect(() => {
-    setIsBrowser(true);
-    mounted.current = true;
+  /**
+   * Carrega os serviços da API
+   */
+  const carregarServicos = async () => {
+    // Se já estamos usando dados de demonstração, não tenta novamente
+    if (usandoDadosDemonstracao) return;
     
-    // Função de limpeza
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      
-      mounted.current = false;
-    };
-  }, []);
-
-  // Função para logging
-  const log = useCallback((mensagem, tipo = 'info') => {
-    if (!isBrowser) return;
+    setCarregando(true);
+    setErro(null);
     
-    const timestamp = new Date().toLocaleTimeString('pt-BR');
-    
-    if (typeof console !== 'undefined') {
-      if (tipo === 'erro') console.error(`[${tipo}] ${mensagem}`);
-      else if (tipo === 'aviso') console.warn(`[${tipo}] ${mensagem}`);
-      else console.log(`[${tipo}] ${mensagem}`);
-    }
-    
-    setDebugLogs(prevLogs => [...prevLogs, { timestamp, mensagem, tipo }]);
-    
-    if (tipo === 'erro' && !mostrarDebug) {
-      setTimeout(() => setMostrarDebug(true), 0);
-    }
-    
-    // Exponha logs para testes automatizados
-    if (typeof window !== 'undefined') {
-      if (!window._debugLogs) window._debugLogs = [];
-      window._debugLogs.push({ timestamp, mensagem, tipo });
-    }
-  }, [isBrowser, mostrarDebug]);
-
-  // Carrega serviços da API
-  const carregarServicos = useCallback(async (forceReload = false) => {
-    // Impede requisições durante SSR ou se o componente não estiver montado
-    if (!isBrowser || !mounted.current) {
-      return;
-    }
-    
-    // Evita múltiplas solicitações
-    if (loading && !forceReload) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    if (forceReload) {
-      log('Forçando recarregamento de serviços');
-    }
-    
-    log('Tentando carregar dados via serviço de API centralizado');
+    // Cria um controller para cancelar a requisição se necessário
+    const controller = new AbortController();
     
     try {
-      // Timeout para evitar requisições infinitas - usando o timeout configurado no serviço de API
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      console.log(`Carregando serviços da API: ${api.defaults.baseURL}/api/pricing`);
       
-      const response = await api.get('/api/pricing', {
-        signal: controller.signal
+      // Usa o serviço de API centralizado
+      const response = await api.get('/api/pricing', { 
+        signal: controller.signal,
+        timeout: 10000 // 10 segundos
       });
       
-      clearTimeout(timeoutId);
-      
-      // Teste automatizado - registra resposta
-      if (typeof window !== 'undefined' && mounted.current) {
-        window._apiResponse = {
-          url: '/api/pricing',
-          status: response.status,
-          ok: true
-        };
-      }
-      
-      if (!mounted.current) return; // Evita atualização de estado se componente já foi desmontado
-      
-      const data = response.data;
-      
-      if (Array.isArray(data) && data.length > 0) {
-        log(`Dados carregados com sucesso: ${data.length} serviços`);
-        setServicos(data);
-        setDadosDemonstracao(false);
-        setLoading(false);
-        setRetryCount(0); // Reseta o contador de tentativas
-        
-        // Teste automatizado
-        if (typeof window !== 'undefined') {
-          window._testResults = {
-            success: true,
-            servicesCount: data.length,
-            source: 'api'
-          };
-        }
+      // Verifica se a resposta contém dados válidos
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        console.log(`[PriceSimulator] Serviços carregados com sucesso: ${response.data.length} itens`);
+        setServicos(response.data);
+        setUsandoDadosDemonstracao(false);
+        tentativasRef.current = 0; // Reseta contador de tentativas
       } else {
         throw new Error('API retornou dados inválidos');
       }
     } catch (error) {
-      if (!mounted.current) return; // Evita atualização de estado se componente já foi desmontado
-      
-      log(`Erro ao carregar serviços: ${error.message}`, 'erro');
-      
-      // Se estiver em retry automático, não carregue os dados de demonstração ainda
-      if (retryCount < maxRetries) {
-        return; // Não faz nada, deixa o efeito de retry lidar com isso
+      // Ignora erros de requisição cancelada
+      if (error.name === 'AbortError' || error.name === 'CanceledError') {
+        console.log('[PriceSimulator] Requisição cancelada');
+        return;
       }
       
-      // Usa dados importados de demonstração como fallback
-      log('Usando dados de demonstração', 'aviso');
-      setServicos(servicosDados);
-      setDadosDemonstracao(true);
-      setLoading(false);
-      setRetryCount(0); // Reseta o contador de tentativas
+      console.error('[erro] Erro ao carregar serviços:', error.message);
       
-      // Mostra erro apenas na primeira carga
-      if (mounted.current) {
+      // Incrementa contador de tentativas
+      tentativasRef.current += 1;
+      
+      // Se excedeu o número máximo de tentativas, usa dados de demonstração
+      if (tentativasRef.current >= maxTentativas) {
+        console.warn(`[PriceSimulator] Máximo de tentativas (${maxTentativas}) excedido. Usando dados de demonstração.`);
+        setServicos(dadosDemonstracao);
+        setUsandoDadosDemonstracao(true);
+        setErro(`Não foi possível carregar os dados do servidor após ${maxTentativas} tentativas. Exibindo dados de demonstração.`);
+      } else {
+        // Define mensagem de erro específica
         if (error.response) {
-          // O servidor respondeu com status de erro
-          setError(`Erro ${error.response.status}: ${error.response.data.message || 'Falha ao carregar serviços'}`);
+          setErro(`Erro ao carregar dados: ${error.response.status} - ${error.response.data?.message || 'Erro no servidor'}`);
         } else if (error.request) {
-          // A requisição foi feita mas não houve resposta
-          setError('Não foi possível conectar ao servidor. Verifique sua conexão.');
+          setErro('Não foi possível conectar ao servidor. Verifique sua conexão.');
         } else {
-          // Erro na configuração da requisição
-          setError(`Não foi possível carregar os serviços: ${error.message}`);
+          setErro(`Erro ao carregar serviços: ${error.message}`);
         }
+        
+        // Agenda nova tentativa após 3 segundos
+        setTimeout(() => {
+          console.log(`[PriceSimulator] Tentando novamente (${tentativasRef.current}/${maxTentativas})...`);
+          carregarServicos();
+        }, 3000);
       }
-      
-      // Teste automatizado
-      if (typeof window !== 'undefined') {
-        window._testResults = {
-          success: false,
-          error: error.message,
-          source: 'fallback'
-        };
-      }
-    }
-  }, [loading, log, isBrowser, retryCount, maxRetries]);
-
-  // Efeito para iniciar timer de fallback para dados de demonstração quando estiver carregando
-  useEffect(() => {
-    if (!isBrowser || !mounted.current) return;
-    
-    if (loading && !dadosDemonstracao && servicos.length === 0) {
-      // Configura timeout para usar dados de demonstração
-      // Aumentamos o timeout para dar mais tempo para API responder
-      timeoutRef.current = setTimeout(() => {
-        if (mounted.current && loading) {
-          // Verifica se deve tentar novamente antes de recorrer aos dados de demonstração
-          if (retryCount < maxRetries) {
-            log(`Tentativa ${retryCount + 1}/${maxRetries} de carregar serviços`, 'info');
-            setRetryCount(prev => prev + 1);
-            carregarServicos(true);
-          } else {
-            log('Número máximo de tentativas atingido, carregando dados de demonstração', 'aviso');
-            setServicos(servicosDados);
-            setDadosDemonstracao(true);
-            setLoading(false);
-            setRetryCount(0); // Reseta o contador de tentativas
-          }
-        }
-      }, retryCount === 0 ? 8000 : retryDelay); // Primeira tentativa com 8s, retentativas com 2s
-      
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
-      };
-    }
-  }, [loading, dadosDemonstracao, servicos.length, log, isBrowser, retryCount, maxRetries, retryDelay, carregarServicos]);
-
-  // Atualiza preço total quando serviços selecionados mudam
-  useEffect(() => {
-    if (!isBrowser || !mounted.current) return;
-    
-    if (!servicosSelecionados || servicosSelecionados.length === 0) {
-      setPrecoTotal(0);
-      return;
+    } finally {
+      setCarregando(false);
     }
     
-    // Calcula o preço total
-    const total = servicosSelecionados.reduce((soma, id) => {
-      const servico = servicos.find(s => s.id === id);
-      return soma + (servico ? servico.preco_base : 0);
-    }, 0);
-    
-    setPrecoTotal(total);
-  }, [servicosSelecionados, servicos, isBrowser]);
+    // Função de limpeza para cancelar a requisição se o componente for desmontado
+    return () => {
+      controller.abort();
+    };
+  };
 
-  // Inicialização e carregamento de dados - executado apenas uma vez
+  // Carrega os serviços quando o componente é montado
   useEffect(() => {
-    if (!isBrowser || isInitialized || initAttempts.current > 0) return;
-    
-    initAttempts.current += 1;
-    log('Componente inicializado');
-    
-    // Carrega serviços na inicialização com uma leve demora para garantir
-    // que componente esteja totalmente montado
-    const timeoutId = setTimeout(() => {
-      if (mounted.current) {
-        carregarServicos();
-        setIsInitialized(true);
-      }
-    }, 100);
+    carregarServicos();
     
     // Função de limpeza
     return () => {
-      clearTimeout(timeoutId);
-      log('Componente desmontado');
+      console.log('[PriceSimulator] Componente desmontado');
     };
-  }, [carregarServicos, log, isBrowser, isInitialized]);
+  }, []);
 
-  // Seleciona ou desseleciona um serviço
-  const toggleServico = useCallback((id) => {
-    if (!isBrowser || !mounted.current) return;
+  /**
+   * Seleciona um serviço
+   * @param {Object} servico - Serviço selecionado
+   */
+  const selecionarServico = (servico) => {
+    setServicoSelecionado(servico);
     
-    setServicosSelecionados(prev => {
-      const novosSelecionados = [...prev];
-      
-      // Se já existe, remove
-      const index = novosSelecionados.indexOf(id);
-      if (index > -1) {
-        novosSelecionados.splice(index, 1);
-        return novosSelecionados;
+    // Scroll para a calculadora
+    setTimeout(() => {
+      const calculadora = document.getElementById('calculadora');
+      if (calculadora) {
+        calculadora.scrollIntoView({ behavior: 'smooth' });
       }
-      
-      // Se não existe, adiciona
-      novosSelecionados.push(id);
-      return novosSelecionados;
-    });
-  }, [isBrowser]);
-
-  // Testa a conexão com a API e o carregamento de dados
-  const testarAPI = useCallback(async () => {
-    if (!isBrowser || !mounted.current) return;
-    
-    // Evita loops infinitos de teste
-    if (testRunning.current) {
-      log('Teste já em execução, aguarde...', 'aviso');
-      return;
-    }
-    
-    log('Iniciando teste automatizado');
-    testRunning.current = true;
-    testMode.current = true;
-    
-    try {
-      // Limpa resultados anteriores
-      if (typeof window !== 'undefined') {
-        window._apiResponse = null;
-        window._testResults = null;
-      }
-      
-      // Reseta contagem de tentativas para o teste
-      setRetryCount(0);
-      
-      // Força recarregamento de serviços
-      await carregarServicos(true);
-      
-      // Verifica resultados
-      if (typeof window !== 'undefined' && window._testResults) {
-        if (window._testResults.success) {
-          log(`Teste concluído com sucesso! Origem dados: ${window._testResults.source}`, 'info');
-        } else {
-          log(`Teste concluído com falha: ${window._testResults.error}`, 'erro');
-        }
-      } else {
-        log('Teste inconclusivo: não foi possível determinar resultado', 'aviso');
-      }
-    } catch (error) {
-      log(`Erro durante teste: ${error.message}`, 'erro');
-    } finally {
-      // Encerra o modo de teste
-      testRunning.current = false;
-      // O modo de teste continua true para que os resultados possam ser vistos
-      setTimeout(() => {
-        testMode.current = false;
-      }, 3000);
-    }
-  }, [carregarServicos, log, isBrowser]);
-
-  // Inicializa a função de teste global para acesso via console
-  useEffect(() => {
-    if (!isBrowser || !mounted.current) return;
-    
-    window.runPriceSimulatorTest = testarAPI;
-    
-    return () => {
-      delete window.runPriceSimulatorTest;
-    };
-  }, [testarAPI, isBrowser]);
-
-  // Carrega dados de demonstração imediatamente
-  const usarDadosDemonstracao = useCallback(() => {
-    if (!isBrowser || !mounted.current) return;
-    
-    setServicos(servicosDados);
-    setDadosDemonstracao(true);
-    setError(null);
-    setLoading(false);
-    setRetryCount(0); // Reseta o contador de tentativas
-    log('Usando dados de demonstração (manual)', 'info');
-  }, [log, isBrowser]);
-
-  // Função para lidar com o clique no botão de solicitar orçamento
-  const handleSolicitarOrcamento = useCallback(() => {
-    // Preparar os dados do orçamento
-    const servicosSelecionadosDetalhes = servicosSelecionados.map(id => {
-      const servico = servicos.find(s => s.id === id);
-      return {
-        id: servico.id,
-        nome: servico.nome,
-        preco: servico.preco_base
-      };
-    });
-
-    // Criar dados para o envio
-    const dadosOrcamento = {
-      servicos: servicosSelecionadosDetalhes,
-      total: precoTotal,
-      data: new Date().toISOString()
-    };
-
-    // Salvar os dados no localStorage para persistência
-    if (isBrowser) {
-      try {
-        localStorage.setItem('orcamento_atual', JSON.stringify(dadosOrcamento));
-        
-        // Redirecionar para a página de contato
-        window.location.href = '/contato?orcamento=true';
-      } catch (error) {
-        console.error('Erro ao salvar dados do orçamento:', error);
-        // Fallback: apenas redirecionar
-        window.location.href = '/contato';
-      }
-    }
-  }, [servicosSelecionados, servicos, precoTotal, isBrowser]);
-
-  // Formata valores monetários
-  const formatMoney = (value) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
+    }, 100);
   };
-  
-  // Renderiza uma estrutura idêntica tanto no servidor quanto no cliente
+
   return (
-    <div className="price-simulator rounded-xl overflow-hidden shadow-lg bg-white border border-gray-200">
-      {(!isBrowser || (loading && servicos.length === 0)) ? (
-        <div className="flex flex-col items-center justify-center p-8 text-center min-h-[300px]">
-          <div className="animate-pulse mb-4">
-            <svg className="w-12 h-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-center mb-2">Simulador de Preços</h2>
+        <p className="text-center text-gray-600 mb-4">
+          Selecione um serviço para simular o valor do seu projeto
+        </p>
+        
+        {usandoDadosDemonstracao && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+            <p className="font-bold">Modo de demonstração</p>
+            <p>Os preços exibidos são apenas para demonstração e podem não refletir os valores atuais.</p>
           </div>
-          <p className="text-gray-800 text-lg font-medium mb-2">Carregando serviços...</p>
-          
-          {retryCount > 0 && (
-            <p className="text-xs text-gray-500 mb-6">
-              Tentativa {retryCount}/{maxRetries}
-            </p>
-          )}
-          
-          {isBrowser && (
+        )}
+        
+        {erro && !usandoDadosDemonstracao && (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+            <p className="font-bold">Erro ao carregar dados</p>
+            <p>{erro}</p>
             <button 
-              onClick={() => setMostrarDebug(!mostrarDebug)}
-              className="px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition duration-200"
+              onClick={carregarServicos}
+              className="mt-2 bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-sm"
             >
-              {mostrarDebug ? 'Ocultar Diagnóstico' : 'Mostrar Diagnóstico'}
+              Tentar novamente
             </button>
-          )}
-          
-          {isBrowser && mostrarDebug && (
-            <div className="debug-panel mt-6 w-full max-w-lg p-4 bg-gray-100 rounded-lg border border-gray-300 text-left">
-              <h3 className="text-blue-700 font-medium text-lg mb-3">Diagnóstico</h3>
-              <div className="mb-4">
-                <h4 className="text-gray-800 font-medium mb-2">Ambiente:</h4>
-                <pre className="bg-white p-2 rounded text-xs text-gray-700 overflow-auto max-h-[150px] border border-gray-300">
-                  {JSON.stringify({ type: 'browser', isDev: true, baseUrl: '/api' }, null, 2)}
-                </pre>
-              </div>
-              <div className="mb-4">
-                <h4 className="text-gray-800 font-medium mb-2">Logs:</h4>
-                <div className="bg-white p-2 rounded overflow-auto max-h-[200px] text-xs border border-gray-300">
-                  {debugLogs.map((log, index) => (
-                    <div key={index} className={`py-1 ${
-                      log.tipo === 'erro' ? 'text-red-600' : 
-                      log.tipo === 'aviso' ? 'text-amber-600' : 'text-blue-600'
-                    }`}>
-                      [{log.timestamp}] {log.mensagem}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button 
-                  onClick={() => carregarServicos(true)}
-                  className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition duration-200"
-                >
-                  Recarregar Dados
-                </button>
-                <button 
-                  onClick={usarDadosDemonstracao}
-                  className="px-3 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium rounded transition duration-200"
-                >
-                  Usar Demo
-                </button>
-                <button 
-                  onClick={testarAPI} 
-                  disabled={testRunning.current}
-                  className={`px-3 py-1 text-xs ${
-                    testRunning.current ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
-                  } text-white font-medium rounded transition duration-200`}
-                >
-                  Executar Teste
-                </button>
-              </div>
-            </div>
-          )}
+          </div>
+        )}
+      </div>
+      
+      {carregando ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <span className="ml-3 text-gray-600">Carregando serviços...</span>
         </div>
       ) : (
-        <div className="p-6">
-          {/* Aviso de dados de demonstração */}
-          {dadosDemonstracao && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg mb-6 flex items-center">
-              <svg className="w-5 h-5 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <div className="flex-1">
-                <p className="text-sm">Usando dados de demonstração. Os preços podem variar.</p>
-              </div>
-              <button 
-                onClick={() => carregarServicos(true)}
-                className="ml-2 text-xs px-2 py-1 bg-amber-100 hover:bg-amber-200 rounded text-amber-800 transition duration-200"
-              >
-                Tentar recarregar
-              </button>
-            </div>
-          )}
-
-          {/* Mensagem de erro */}
-          {erro && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
-              <p className="text-sm flex items-center">
-                <svg className="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {erro}
-              </p>
-            </div>
-          )}
-
-          {/* Layout de duas colunas */}
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Coluna da esquerda: Lista de serviços */}
-            <div className="w-full md:w-2/3">
-              <h2 className="text-gray-800 text-xl font-medium mb-6">Serviços Disponíveis</h2>
-              <div className="divide-y divide-gray-200">
-                {servicos.map(servico => (
-                  <div key={servico.id} className="py-4 hover:bg-gray-50 transition-all duration-200">
-                    <label className="flex items-start cursor-pointer gap-3">
-                      <div className="relative pt-1 flex-shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={servicosSelecionados.includes(servico.id)}
-                          onChange={() => toggleServico(servico.id)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-5 h-5 border-2 border-gray-300 rounded peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all duration-200"></div>
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 peer-checked:opacity-100 text-white">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <span className="text-gray-800 font-medium">{servico.nome}</span>
-                        <p className="text-sm text-gray-500 mt-1">{servico.descricao}</p>
-                        
-                        {servico.detalhes && (
-                          <div className="mt-2 text-xs text-gray-500 grid grid-cols-1 sm:grid-cols-2 gap-1">
-                            <div>
-                              <span className="font-medium">Duração:</span> {servico.detalhes.captura}
-                            </div>
-                            <div>
-                              <span className="font-medium">Entrega:</span> {servico.detalhes.tratamento}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-blue-600 font-medium text-lg whitespace-nowrap">
-                          {formatMoney(servico.preco_base)}
-                        </span>
-                        <span className="text-xs text-gray-500 mt-1 whitespace-nowrap">
-                          Duração média: {servico.duracao_media}h
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-                ))}
-              </div>
-
-              <p className="text-xs text-gray-500 mt-3">
-                Dados de demonstração {dadosDemonstracao ? "ativos" : "não ativos"}
-              </p>
-              <p className="text-xs text-gray-500 mt-3">
-                {lastUpdatedText}
-              </p>
-            </div>
-
-            {/* Coluna da direita: Resumo e Total */}
-            <div className="w-full md:w-1/3">
-              <div className="bg-gray-100 rounded-lg p-5 sticky top-24">
-                <h2 className="text-gray-800 text-xl font-medium mb-6">Resumo</h2>
-                
-                <div className="mb-6">
-                  <h3 className="text-gray-700 font-medium mb-3">Serviços Selecionados</h3>
-                  {servicosSelecionados.length === 0 ? (
-                    <p className="text-gray-500 text-sm italic">Nenhum serviço selecionado</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {servicosSelecionados.map(id => {
-                        const servico = servicos.find(s => s.id === id);
-                        return servico ? (
-                          <div key={id} className="flex justify-between text-sm">
-                            <span className="text-gray-700">{servico.nome}</span>
-                            <span className="text-gray-700 font-medium">{formatMoney(servico.preco_base)}</span>
-                          </div>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-                </div>
-                
-                <div className="border-t border-gray-300 pt-4 mb-6">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-gray-800 font-medium">Total:</h3>
-                    <span className="text-blue-600 text-2xl font-bold">
-                      {formatMoney(precoTotal)}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="mt-4 text-sm text-gray-600">
-                  <p>Este simulador fornece uma estimativa inicial baseada em nossos preços padrão. Para um orçamento personalizado detalhado, entre em contato conosco.</p>
-                </div>
-                
-                <div className="mt-6">
-                  <button 
-                    onClick={handleSolicitarOrcamento}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-md transition duration-200 font-medium"
-                  >
-                    Solicitar Orçamento Personalizado
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Botão de diagnóstico */}
-          <div className="mt-8 text-center">
-            <button 
-              onClick={() => setMostrarDebug(!mostrarDebug)}
-              className="text-xs text-gray-500 hover:text-blue-600 underline transition duration-200"
-            >
-              {mostrarDebug ? 'Ocultar Diagnóstico' : 'Mostrar Diagnóstico'}
-            </button>
-            
-            {mostrarDebug && (
-              <div className="mt-4 w-full p-4 bg-gray-100 rounded-lg border border-gray-300 text-left">
-                <h3 className="text-blue-700 font-medium text-lg mb-3">Diagnóstico</h3>
-                <div className="mb-4">
-                  <h4 className="text-gray-800 font-medium mb-2">Ambiente:</h4>
-                  <pre className="bg-white p-2 rounded text-xs text-gray-700 overflow-auto max-h-[150px] border border-gray-300">
-                    {JSON.stringify({ type: 'browser', isDev: true, baseUrl: '/api' }, null, 2)}
-                  </pre>
-                </div>
-                <div className="mb-4">
-                  <h4 className="text-gray-800 font-medium mb-2">Logs:</h4>
-                  <div className="bg-white p-2 rounded overflow-auto max-h-[200px] text-xs border border-gray-300">
-                    {debugLogs.map((log, index) => (
-                      <div key={index} className={`py-1 ${
-                        log.tipo === 'erro' ? 'text-red-600' : 
-                        log.tipo === 'aviso' ? 'text-amber-600' : 'text-blue-600'
-                      }`}>
-                        [{log.timestamp}] {log.mensagem}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button 
-                    onClick={() => carregarServicos(true)}
-                    className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition duration-200"
-                  >
-                    Recarregar Dados
-                  </button>
-                  <button 
-                    onClick={usarDadosDemonstracao}
-                    className="px-3 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium rounded transition duration-200"
-                  >
-                    Usar Demo
-                  </button>
-                  <button 
-                    onClick={testarAPI} 
-                    disabled={testRunning.current}
-                    className={`px-3 py-1 text-xs ${
-                      testRunning.current ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
-                    } text-white font-medium rounded transition duration-200`}
-                  >
-                    Executar Teste
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {servicos.map((servico) => (
+            <ServiceCard
+              key={servico.id}
+              servico={servico}
+              selecionado={servicoSelecionado?.id === servico.id}
+              onClick={() => selecionarServico(servico)}
+            />
+          ))}
+        </div>
+      )}
+      
+      {servicoSelecionado && (
+        <div id="calculadora" className="mt-16 pt-4 border-t border-gray-200">
+          <PricingCalculator servico={servicoSelecionado} />
+        </div>
+      )}
+      
+      {env.isDev && (
+        <div className="mt-8 p-4 bg-gray-100 rounded text-xs">
+          <p>Ambiente: {env.isDev ? 'Desenvolvimento' : 'Produção'}</p>
+          <p>API Base URL: {api.defaults.baseURL}</p>
+          <p>Origem: {window.location.origin}</p>
+          <p>Modo de demonstração: {usandoDadosDemonstracao ? 'Sim' : 'Não'}</p>
         </div>
       )}
     </div>
   );
-});
+};
 
 export default PriceSimulator;
