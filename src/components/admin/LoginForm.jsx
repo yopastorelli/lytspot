@@ -3,7 +3,7 @@ import axios from 'axios';
 
 /**
  * Configuração do axios para usar a URL correta da API
- * @version 1.3.0
+ * @version 1.4.0 - Corrigida a detecção de ambiente e URLs da API
  */
 const getEnvironment = () => {
   // Verificação segura para SSR
@@ -22,12 +22,15 @@ const getEnvironment = () => {
                       window.location.hostname.startsWith('10.');
   
   // No ambiente de desenvolvimento, sempre use localhost:3000
-  // Em produção, use a URL base do domínio atual
+  // Em produção, use a URL base do domínio atual ou uma URL específica para a API
+  const prodApiUrl = 'https://api.lytspot.com.br'; // URL da API em produção
+  
   return {
     type: 'browser',
     isDev: isLocalhost,
     // Em desenvolvimento, aponte explicitamente para o servidor Express
-    baseUrl: isLocalhost ? 'http://localhost:3000' : window.location.origin,
+    // Em produção, use a URL da API dedicada
+    baseUrl: isLocalhost ? 'http://localhost:3000' : prodApiUrl,
     hostname: window.location.hostname,
     href: window.location.href
   };
@@ -40,12 +43,13 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
-  timeout: 15000
+  timeout: 15000,
+  withCredentials: !getEnvironment().isDev // Habilita cookies em produção para CORS
 });
 
 /**
  * Componente de formulário de login para o painel administrativo
- * @version 1.3.0 - URL de API corrigida para apontar explicitamente para o servidor Express
+ * @version 1.4.0 - Corrigida a URL da API e rotas de autenticação
  */
 const LoginForm = ({ onLoginSuccess }) => {
   // Estado para armazenar os dados do formulário
@@ -80,7 +84,7 @@ const LoginForm = ({ onLoginSuccess }) => {
       console.log('Tentando login no servidor:', getEnvironment().baseUrl);
       
       // Enviar requisição de login
-      // O axios já está configurado com a baseURL, então não precisa incluir '/api' novamente
+      // Corrigido para usar o caminho correto da API
       const response = await api.post('/api/auth/login', formData);
       
       // Chamar a função de callback com os dados de sucesso

@@ -11,6 +11,7 @@ import Button from './common/Button';
       loop 
       muted 
       playsinline 
+      preload="auto"
       class="absolute inset-0 w-full h-full object-cover"
       style={{
         opacity: 0,
@@ -20,6 +21,17 @@ import Button from './common/Button';
     >
       <source src="/videos/drone-hero.mp4" type="video/mp4" />
     </video>
+    <!-- Fallback para navegadores que não suportam vídeo -->
+    <img 
+      src="/images/drone-hero-fallback.jpg" 
+      alt="Filmagem aérea com drone" 
+      class="absolute inset-0 w-full h-full object-cover"
+      style={{
+        opacity: 1,
+        transition: 'opacity 0.5s ease-in-out'
+      }}
+      id="hero-fallback"
+    />
     <div class="absolute inset-0 bg-primary/30"></div>
   </div>
 
@@ -45,10 +57,22 @@ import Button from './common/Button';
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const videoElement = document.getElementById('hero-video') as HTMLVideoElement;
+      const fallbackImage = document.getElementById('hero-fallback') as HTMLImageElement;
       
-      if (!videoElement) return;
+      if (!videoElement || !fallbackImage) return;
       
       let videoLoaded = false;
+
+      // Função para verificar se o navegador é Safari
+      const isSafari = () => {
+        const ua = navigator.userAgent.toLowerCase();
+        return ua.includes('safari') && !ua.includes('chrome') && !ua.includes('android');
+      };
+
+      // Função para verificar se estamos em um dispositivo iOS
+      const isIOS = () => {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      };
 
       // Configurar o ponto de início aleatório do vídeo quando estiver pronto
       const setRandomStartTime = () => {
@@ -64,10 +88,13 @@ import Button from './common/Button';
           videoElement.play()
             .then(() => {
               videoElement.style.opacity = '1';
+              fallbackImage.style.opacity = '0';
               videoLoaded = true;
             })
             .catch(error => {
               console.error('Erro ao reproduzir vídeo com início aleatório:', error);
+              // Se houver erro na reprodução, mantenha a imagem de fallback visível
+              fallbackImage.style.opacity = '1';
             });
         }
       };
@@ -75,6 +102,7 @@ import Button from './common/Button';
       const showVideo = () => {
         if (!videoLoaded && videoElement) {
           videoElement.style.opacity = '1';
+          fallbackImage.style.opacity = '0';
           videoLoaded = true;
         }
       };
@@ -90,11 +118,33 @@ import Button from './common/Button';
         }
       };
 
-      // Tenta reproduzir assim que os metadados estiverem carregados
-      if (videoElement.readyState >= 2) {
-        attemptPlayVideo();
+      // Se for Safari ou iOS, adiciona tratamento especial
+      if (isSafari() || isIOS()) {
+        console.log('Detectado Safari ou iOS, aplicando configurações especiais para vídeo');
+        
+        // Certifique-se de que a imagem de fallback está visível inicialmente
+        fallbackImage.style.opacity = '1';
+        
+        // Adiciona um evento de canplay para tentar reproduzir o vídeo quando estiver pronto
+        videoElement.addEventListener('canplay', () => {
+          videoElement.play()
+            .then(() => {
+              videoElement.style.opacity = '1';
+              fallbackImage.style.opacity = '0';
+              videoLoaded = true;
+            })
+            .catch(error => {
+              console.error('Erro ao reproduzir vídeo no Safari/iOS:', error);
+            });
+        }, { once: true });
       } else {
-        videoElement.addEventListener('loadeddata', attemptPlayVideo, { once: true });
+        // Para outros navegadores, use o comportamento normal
+        // Tenta reproduzir assim que os metadados estiverem carregados
+        if (videoElement.readyState >= 2) {
+          attemptPlayVideo();
+        } else {
+          videoElement.addEventListener('loadeddata', attemptPlayVideo, { once: true });
+        }
       }
 
       // Força o carregamento do vídeo se ainda não tiver começado

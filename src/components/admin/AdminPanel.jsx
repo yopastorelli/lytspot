@@ -5,7 +5,7 @@ import ServicosManager from './ServicosManager';
 
 /**
  * Configuração do axios para usar a URL correta da API
- * @version 1.3.0
+ * @version 1.4.0 - Corrigida a detecção de ambiente e URLs da API
  */
 const getEnvironment = () => {
   // Verificação segura para SSR
@@ -24,12 +24,15 @@ const getEnvironment = () => {
                       window.location.hostname.startsWith('10.');
   
   // No ambiente de desenvolvimento, sempre use localhost:3000
-  // Em produção, use a URL base do domínio atual
+  // Em produção, use a URL base do domínio atual ou uma URL específica para a API
+  const prodApiUrl = 'https://api.lytspot.com.br'; // URL da API em produção
+  
   return {
     type: 'browser',
     isDev: isLocalhost,
     // Em desenvolvimento, aponte explicitamente para o servidor Express
-    baseUrl: isLocalhost ? 'http://localhost:3000' : window.location.origin,
+    // Em produção, use a URL da API dedicada
+    baseUrl: isLocalhost ? 'http://localhost:3000' : prodApiUrl,
     hostname: window.location.hostname,
     href: window.location.href
   };
@@ -42,13 +45,14 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
-  timeout: 15000
+  timeout: 15000,
+  withCredentials: !getEnvironment().isDev // Habilita cookies em produção para CORS
 });
 
 /**
  * Componente principal do painel administrativo
  * Gerencia autenticação e exibe o painel de gerenciamento de serviços
- * @version 1.3.0 - URL de API corrigida para apontar explicitamente para o servidor Express
+ * @version 1.4.0 - Corrigida a URL da API e rotas de autenticação
  */
 const AdminPanel = () => {
   // Estado para armazenar o token JWT
@@ -79,8 +83,8 @@ const AdminPanel = () => {
         // Configurar o cabeçalho de autorização
         api.defaults.headers.common['Authorization'] = `Bearer ${tokenSalvo}`;
         
-        // Verificar o token (sem '/api' pois já está na baseURL)
-        const response = await api.get('/auth/verify');
+        // Verificar o token (com '/api' pois não está na baseURL)
+        const response = await api.get('/api/auth/verify');
         
         // Atualizar os estados
         setToken(tokenSalvo);
