@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { verificarToken } from '../middleware/auth.js';
+import { authenticateJWT } from '../middleware/auth.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
  * @version 1.0.0
  * @date 2025-03-11
  */
-router.post('/demo-data', verificarToken, async (req, res) => {
+router.post('/demo-data', authenticateJWT, async (req, res) => {
   try {
     // Buscar todos os serviços do banco de dados
     const servicos = await prisma.servico.findMany({
