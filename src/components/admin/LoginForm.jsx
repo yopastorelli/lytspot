@@ -3,7 +3,7 @@ import axios from 'axios';
 
 /**
  * Configuração do axios para usar a URL correta da API
- * @version 1.4.0 - Corrigida a detecção de ambiente e URLs da API
+ * @version 1.5.0 - Implementada estratégia de fallback com múltiplas URLs
  */
 const getEnvironment = () => {
   // Verificação segura para SSR
@@ -21,16 +21,20 @@ const getEnvironment = () => {
                       window.location.hostname.startsWith('192.168.') ||
                       window.location.hostname.startsWith('10.');
   
-  // No ambiente de desenvolvimento, sempre use localhost:3000
-  // Em produção, use a URL base do domínio atual ou uma URL específica para a API
-  const prodApiUrl = 'https://api.lytspot.com.br'; // URL da API em produção
+  // Lista de URLs para produção em ordem de prioridade
+  const prodApiUrls = [
+    'https://lytspot.onrender.com',  // URL principal do Render
+    'https://api.lytspot.com.br',    // URL personalizada (quando estiver configurada)
+    window.location.origin           // URL atual como fallback
+  ];
   
   return {
     type: 'browser',
     isDev: isLocalhost,
-    // Em desenvolvimento, aponte explicitamente para o servidor Express
-    // Em produção, use a URL da API dedicada
-    baseUrl: isLocalhost ? 'http://localhost:3000' : prodApiUrl,
+    // Em desenvolvimento, use localhost:3000
+    // Em produção, use a primeira URL da lista (será testada com fallback)
+    baseUrl: isLocalhost ? 'http://localhost:3000' : prodApiUrls[0],
+    prodApiUrls: isLocalhost ? [] : prodApiUrls, // Lista de URLs alternativas para fallback
     hostname: window.location.hostname,
     href: window.location.href
   };
@@ -44,7 +48,7 @@ const api = axios.create({
     'Accept': 'application/json'
   },
   timeout: 15000,
-  withCredentials: !getEnvironment().isDev // Habilita cookies em produção para CORS
+  withCredentials: true // Habilita cookies para CORS em todos os ambientes
 });
 
 /**
@@ -73,41 +77,82 @@ const LoginForm = ({ onLoginSuccess }) => {
     }));
   };
 
-  // Função para enviar o formulário
+  /**
+   * Função para fazer login no sistema
+   * @version 1.1.0 - Implementada estratégia de fallback com múltiplas URLs
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setErro('');
     
-    try {
-      setLoading(true);
-      setErro(null);
-      
-      console.log('Tentando login no servidor:', getEnvironment().baseUrl);
-      
-      // Enviar requisição de login
-      // Corrigido para usar o caminho correto da API
-      const response = await api.post('/api/auth/login', formData);
-      
-      // Chamar a função de callback com os dados de sucesso
-      onLoginSuccess(response.data);
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Erro ao fazer login:', error);
-      console.error('Detalhes do erro:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        config: error.config
-      });
-      
-      // Exibir mensagem de erro
-      setErro(
-        error.response?.data?.message || 
-        'Não foi possível fazer login. Por favor, tente novamente mais tarde.'
-      );
-      
-      setLoading(false);
+    const env = getEnvironment();
+    
+    // Em desenvolvimento, usa a instância padrão do axios
+    if (env.isDev) {
+      try {
+        console.log('Tentando login no servidor:', api.defaults.baseURL);
+        const response = await api.post('/api/auth/login', formData);
+        
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          onLoginSuccess(response.data);
+        } else {
+          setErro('Resposta inválida do servidor.');
+        }
+      } catch (error) {
+        console.error('Erro ao fazer login:', error);
+        console.error('Detalhes do erro:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+          config: error.config
+        });
+        setErro(error.response?.data?.message || 'Erro ao conectar com o servidor.');
+      } finally {
+        setLoading(false);
+      }
+      return;
     }
+    
+    // Em produção, tenta cada URL da lista até conseguir
+    let loginSucesso = false;
+    
+    for (const baseURL of env.prodApiUrls) {
+      if (loginSucesso) break;
+      
+      try {
+        console.log(`Tentando login no servidor: ${baseURL}`);
+        
+        const response = await axios.post(`${baseURL}/api/auth/login`, 
+          formData,
+          { 
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 8000, // Timeout mais curto para tentar a próxima URL mais rapidamente
+            withCredentials: true
+          }
+        );
+        
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          loginSucesso = true;
+          onLoginSuccess(response.data);
+          console.log(`Login bem-sucedido usando: ${baseURL}`);
+        }
+      } catch (error) {
+        console.warn(`Falha ao fazer login usando ${baseURL}:`, error.message);
+        // Continua para a próxima URL
+      }
+    }
+    
+    if (!loginSucesso) {
+      console.error('Não foi possível fazer login com nenhuma URL.');
+      setErro('Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.');
+    }
+    
+    setLoading(false);
   };
 
   return (

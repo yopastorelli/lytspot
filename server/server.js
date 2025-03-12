@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import contactRoutes from './routes/contact.js';
 import pricingRoutes from './routes/pricing.js';
 import authRoutes from './routes/auth.js';
+import syncRoutes from './routes/sync.js';
 import cors from 'cors';
 
 // Configuração para ES modules
@@ -100,6 +101,11 @@ try {
   app.use('/api/auth', authRoutes);
   logger.info('Rotas de autenticação registradas.');
   console.log('Rotas de autenticação registradas.');
+  
+  // Rotas de sincronização
+  app.use('/api/sync', syncRoutes);
+  logger.info('Rotas de sincronização registradas.');
+  console.log('Rotas de sincronização registradas.');
 
   // Rota para todas as outras requisições que não correspondem a rotas específicas
   app.get('*', (req, res) => {

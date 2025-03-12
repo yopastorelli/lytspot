@@ -4,7 +4,7 @@ import ServicoForm from './ServicoForm';
 
 /**
  * Configuração do axios para usar a URL correta da API
- * @version 1.4.0 - Corrigida a detecção de ambiente e URLs da API
+ * @version 1.5.0 - Implementada estratégia de fallback com múltiplas URLs
  */
 const getEnvironment = () => {
   // Verificação segura para SSR
@@ -22,15 +22,20 @@ const getEnvironment = () => {
                       window.location.hostname.startsWith('192.168.') ||
                       window.location.hostname.startsWith('10.');
   
-  // No ambiente de desenvolvimento, sempre use localhost:3000
-  // Em produção, use a URL da API dedicada
-  const prodApiUrl = 'https://api.lytspot.com.br'; // URL da API em produção
+  // Lista de URLs para produção em ordem de prioridade
+  const prodApiUrls = [
+    'https://lytspot.onrender.com',  // URL principal do Render
+    'https://api.lytspot.com.br',    // URL personalizada (quando estiver configurada)
+    window.location.origin           // URL atual como fallback
+  ];
   
   return {
     type: 'browser',
     isDev: isLocalhost,
-    // Em produção, use a URL da API dedicada
-    baseUrl: isLocalhost ? 'http://localhost:3000' : prodApiUrl,
+    // Em desenvolvimento, use localhost:3000
+    // Em produção, use a primeira URL da lista (será testada com fallback)
+    baseUrl: isLocalhost ? 'http://localhost:3000' : prodApiUrls[0],
+    prodApiUrls: isLocalhost ? [] : prodApiUrls, // Lista de URLs alternativas para fallback
     hostname: window.location.hostname,
     href: window.location.href
   };
@@ -45,7 +50,7 @@ const api = axios.create({
     'Cache-Control': 'no-cache'
   },
   timeout: 15000, // 15 segundos, igual ao PriceSimulator
-  withCredentials: !getEnvironment().isDev // Habilita cookies em produção para CORS
+  withCredentials: true // Habilita cookies para CORS em todos os ambientes
 });
 
 /**
@@ -226,17 +231,57 @@ const ServicosManager = ({ token }) => {
     }
   };
   
-  // Função para sincronizar dados de demonstração
+  /**
+   * Sincroniza os dados de demonstração com o banco de dados
+   * @version 1.1.0 - Implementada estratégia de fallback com múltiplas URLs
+   */
   const sincronizarDadosDemonstracao = async () => {
-    try {
-      // Chamar a API para sincronizar os dados de demonstração
-      await api.post('/api/sync/demo-data', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      console.log('Dados de demonstração sincronizados com sucesso!');
-    } catch (error) {
-      console.error('Erro ao sincronizar dados de demonstração:', error);
-      // Não exibimos erro para o usuário, pois isso é uma operação em segundo plano
+    const env = getEnvironment();
+    
+    // Se estiver em desenvolvimento, usa a URL padrão
+    if (env.isDev) {
+      try {
+        await api.post('/api/sync/demo-data', {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log('Dados de demonstração sincronizados com sucesso!');
+      } catch (error) {
+        console.error('Erro ao sincronizar dados de demonstração:', error);
+        // Não exibimos erro para o usuário, pois isso é uma operação em segundo plano
+      }
+      return;
+    }
+    
+    // Em produção, tenta cada URL da lista até conseguir
+    let sincronizado = false;
+    
+    for (const baseURL of env.prodApiUrls) {
+      if (sincronizado) break;
+      
+      try {
+        console.log(`Tentando sincronizar dados usando: ${baseURL}`);
+        
+        const response = await axios.post(`${baseURL}/api/sync/demo-data`, {}, {
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          timeout: 8000, // Timeout mais curto para tentar a próxima URL mais rapidamente
+          withCredentials: true
+        });
+        
+        if (response.status === 200) {
+          console.log(`Dados sincronizados com sucesso usando: ${baseURL}`);
+          sincronizado = true;
+        }
+      } catch (error) {
+        console.warn(`Falha ao sincronizar usando ${baseURL}:`, error.message);
+        // Continua para a próxima URL
+      }
+    }
+    
+    if (!sincronizado) {
+      console.error('Não foi possível sincronizar os dados de demonstração com nenhuma URL.');
     }
   };
   
