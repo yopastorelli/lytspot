@@ -1,6 +1,6 @@
 /**
  * Script para popular o banco de dados com serviços básicos
- * @version 1.2.0 - 2025-03-12 - Adicionado controle de execução
+ * @version 1.2.1 - 2025-03-12 - Corrigido controle de execução e proteção para outras tabelas
  * @description Este script pode ser executado independentemente para garantir que o banco de dados tenha os serviços atualizados
  */
 
@@ -13,7 +13,7 @@ import path from 'path';
 dotenv.config();
 
 // Verificar se o script deve ser executado
-const FORCE_UPDATE = process.env.FORCE_UPDATE === 'false';
+const FORCE_UPDATE = process.env.FORCE_UPDATE === 'true';
 const SKIP_DB_POPULATION = process.env.SKIP_DB_POPULATION === 'true';
 
 // Função principal
@@ -28,7 +28,7 @@ async function popularBancoDados() {
   }
   
   // Verificar variáveis de ambiente
-  console.log('DATABASE_URL:', process.env.DATABASE_URL || 'Não definida');
+  console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Configurada' : 'Não definida');
   console.log('NODE_ENV:', process.env.NODE_ENV || 'Não definido');
   
   const prisma = new PrismaClient();
@@ -43,7 +43,7 @@ async function popularBancoDados() {
     const servicosExistentes = await prisma.servico.count();
     console.log(`Serviços existentes no banco de dados: ${servicosExistentes}`);
     
-    // Remover serviços existentes para garantir que os dados estejam atualizados
+    // Remover APENAS serviços existentes, não afetando outras tabelas
     console.log('Removendo serviços existentes para atualização...');
     await prisma.servico.deleteMany({});
     console.log('Serviços existentes removidos com sucesso.');

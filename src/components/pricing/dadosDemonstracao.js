@@ -119,4 +119,5 @@ export const dadosDemonstracao = [
   }
 ];
 
+export const servicos = dadosDemonstracao;
 export default dadosDemonstracao;
