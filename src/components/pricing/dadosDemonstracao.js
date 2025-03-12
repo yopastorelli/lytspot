@@ -1,92 +1,120 @@
 /**
  * Dados de demonstração para o simulador de preços
- * @version 1.0.0 - 2025-03-12
+ * @version 2.0.0 - 2025-03-12 - Atualização dos serviços oferecidos
  * @description Dados de fallback usados quando a API não está disponível
  */
 
 export const dadosDemonstracao = [
   {
     id: 1,
-    nome: "Fotografia de Produto",
-    descricao: "Fotografia profissional para e-commerce e catálogos",
-    preco_base: 250.00,
+    nome: "Ensaio Fotográfico Pessoal",
+    descricao: "Sessão individual em locação externa ou estúdio, ideal para redes sociais, uso profissional ou pessoal. Inclui direção de poses, correção básica de cor e entrega digital em alta resolução.",
+    preco_base: 200.00,
     duracao_media: 3,
     detalhes: {
-      captura: "1-2 dias",
-      tratamento: "2-3 dias",
-      entregaveis: "10 fotos em alta resolução",
-      adicionais: "Fotos adicionais, fundos personalizados",
-      deslocamento: "Sob consulta"
+      captura: "2 a 3 horas",
+      tratamento: "7 dias úteis",
+      entregaveis: "20 fotos com correção básica (em alta resolução)",
+      adicionais: "Edição Mediana, Edição Avançada",
+      deslocamento: "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
     }
   },
   {
     id: 2,
-    nome: "Ensaio Corporativo",
-    descricao: "Fotos profissionais para perfis corporativos e LinkedIn",
+    nome: "Ensaio Externo de Casal ou Família",
+    descricao: "Sessão fotográfica externa para casais e famílias, com momentos espontâneos e dirigidos, correção básica e entrega digital em alta resolução.",
     preco_base: 350.00,
     duracao_media: 4,
     detalhes: {
-      captura: "1 dia",
-      tratamento: "3-4 dias",
-      entregaveis: "5 fotos em alta resolução",
-      adicionais: "Maquiagem, fotos adicionais",
-      deslocamento: "Gratuito em até 10km"
+      captura: "2 a 4 horas",
+      tratamento: "10 dias úteis",
+      entregaveis: "30 fotos com correção básica (em alta resolução)",
+      adicionais: "Edição Mediana, Edição Avançada",
+      deslocamento: "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
     }
   },
   {
     id: 3,
-    nome: "Cobertura de Eventos",
-    descricao: "Registro profissional de eventos corporativos e sociais",
-    preco_base: 1200.00,
+    nome: "Cobertura Fotográfica de Evento Social",
+    descricao: "Cobertura profissional de fotos em eventos (aniversários, batizados, corporativos, etc.), com 4 horas de captura, correção básica e entrega digital em alta resolução.",
+    preco_base: 600.00,
     duracao_media: 7,
     detalhes: {
-      captura: "Duração do evento",
-      tratamento: "5-7 dias",
-      entregaveis: "100 fotos em alta resolução",
-      adicionais: "Álbum impresso, fotos adicionais",
-      deslocamento: "Sob consulta"
+      captura: "4 horas",
+      tratamento: "10 dias úteis",
+      entregaveis: "40 fotos com correção básica (em alta resolução)",
+      adicionais: "Edição Mediana, Edição Avançada",
+      deslocamento: "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
     }
   },
   {
     id: 4,
-    nome: "Ensaio Gastronômico",
-    descricao: "Fotografia especializada para cardápios e marketing de restaurantes",
-    preco_base: 600.00,
-    duracao_media: 5,
+    nome: "Filmagem de Evento Social (Solo)",
+    descricao: "Filmagem profissional para eventos sociais ou corporativos, com 4 horas de captura. Entrega dos arquivos colorizados e organizados (sem edição completa).",
+    preco_base: 1000.00,
+    duracao_media: 7,
     detalhes: {
-      captura: "2-3 dias",
-      tratamento: "3-4 dias",
-      entregaveis: "20 fotos em alta resolução",
-      adicionais: "Vídeos curtos, fotos adicionais",
-      deslocamento: "Gratuito em até 15km"
+      captura: "4 horas",
+      tratamento: "10 dias úteis",
+      entregaveis: "Arquivos de vídeo brutos (já colorizados e cortados, porém sem montagem final)",
+      adicionais: "Edição Mediana, Edição Avançada",
+      deslocamento: "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
     }
   },
   {
     id: 5,
-    nome: "Vídeo Institucional",
-    descricao: "Produção de vídeo profissional para apresentação da empresa",
-    preco_base: 3500.00,
-    duracao_media: 14,
+    nome: "Fotografia Aérea com Drone",
+    descricao: "Captação de imagens aéreas profissionais para imóveis, paisagens ou eventos, com correção básica aplicada.",
+    preco_base: 400.00,
+    duracao_media: 5,
     detalhes: {
-      captura: "1-2 dias",
-      tratamento: "10-14 dias",
-      entregaveis: "Vídeo de 2-3 minutos em alta resolução",
-      adicionais: "Versões para redes sociais, legendas",
-      deslocamento: "Sob consulta"
+      captura: "2 horas",
+      tratamento: "7 dias úteis",
+      entregaveis: "15 fotos aéreas com correção básica (em alta resolução)",
+      adicionais: "Edição Mediana, Edição Avançada",
+      deslocamento: "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
     }
   },
   {
     id: 6,
-    nome: "Ensaio Imobiliário",
-    descricao: "Fotografia profissional para imóveis e corretoras",
-    preco_base: 450.00,
-    duracao_media: 4,
+    nome: "Filmagem Aérea com Drone",
+    descricao: "Filmagens aéreas para eventos, vídeos institucionais ou publicidade, com 2 horas de captura e entrega dos arquivos brutos colorizados (sem edição final).",
+    preco_base: 600.00,
+    duracao_media: 5,
     detalhes: {
-      captura: "1 dia",
-      tratamento: "2-3 dias",
-      entregaveis: "15 fotos em alta resolução",
-      adicionais: "Tour virtual, fotos com drone",
-      deslocamento: "Sob consulta"
+      captura: "2 horas",
+      tratamento: "7 dias úteis",
+      entregaveis: "Arquivos de vídeo bruto (colorizados e cortados)",
+      adicionais: "Edição Mediana, Edição Avançada",
+      deslocamento: "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
+    }
+  },
+  {
+    id: 7,
+    nome: "Pacote VLOG Family (Ilha do Mel ou Outros Lugares)",
+    descricao: "Produção personalizada de vlog familiar em destinos especiais, com cobertura fotográfica e de vídeo (8 a 12 horas de captura). Entrega de fotos e vídeos brutos organizados.",
+    preco_base: 1000.00,
+    duracao_media: 14,
+    detalhes: {
+      captura: "8 a 12 horas",
+      tratamento: "14 dias úteis",
+      entregaveis: "Arquivos de foto e vídeo em formato bruto (já com correção básica)",
+      adicionais: "Edição Mediana, Edição Avançada",
+      deslocamento: "Gratuito até 20 km do centro de Curitiba, excedente de R$ 1,20/km + despesas adicionais"
+    }
+  },
+  {
+    id: 8,
+    nome: "Pacote VLOG Friends & Community",
+    descricao: "Cobertura fotográfica e de vídeo para grupos de amigos ou comunidades (6 a 10 horas), perfeita para registrar viagens, encontros ou eventos colaborativos. Entrega de fotos e vídeos brutos organizados.",
+    preco_base: 900.00,
+    duracao_media: 10,
+    detalhes: {
+      captura: "6 a 10 horas",
+      tratamento: "14 dias úteis",
+      entregaveis: "Arquivos de foto e vídeo em formato bruto (já com correção básica)",
+      adicionais: "Edição Mediana, Edição Avançada",
+      deslocamento: "Gratuito até 20 km do centro de Curitiba, excedente de R$ 1,20/km + despesas adicionais"
     }
   }
 ];

@@ -119,7 +119,7 @@ try {
         // Dados básicos para o simulador de preços
         const servicos = [
           {
-            nome: 'Ensaio Fotográfico Pessoal',
+            nome: 'TESTE - Ensaio Fotográfico Pessoal',
             descricao: 'Sessão individual em locação externa ou estúdio, ideal para redes sociais, uso profissional ou pessoal.',
             preco_base: 200.00,
             duracao_media_captura: '2 a 3 horas',
@@ -129,7 +129,7 @@ try {
             valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
           },
           {
-            nome: 'Ensaio Externo de Casal ou Família',
+            nome: 'TESTE - Ensaio Externo de Casal ou Família',
             descricao: 'Sessão fotográfica externa para casais e famílias, capturando momentos espontâneos e dirigidos.',
             preco_base: 350.00,
             duracao_media_captura: '2 a 4 horas',
@@ -139,7 +139,7 @@ try {
             valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
           },
           {
-            nome: 'Fotografia de Eventos',
+            nome: 'TESTE - Fotografia de Eventos',
             descricao: 'Cobertura fotográfica de eventos sociais, corporativos ou festas, com entrega de galeria digital.',
             preco_base: 500.00,
             duracao_media_captura: '4 a 8 horas',

@@ -7,11 +7,11 @@ import { dadosDemonstracao } from './dadosDemonstracao';
 
 /**
  * Componente de simulação de preços
- * @version 2.8.4 - 2025-03-12 - Corrigido problema de URL da API em produção
+ * @version 3.0.0 - 2025-03-12 - Adicionado suporte para seleção múltipla de serviços
  */
 const PriceSimulator = () => {
   const [servicos, setServicos] = useState([]);
-  const [servicoSelecionado, setServicoSelecionado] = useState(null);
+  const [servicosSelecionados, setServicosSelecionados] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
   const [usandoDadosDemonstracao, setUsandoDadosDemonstracao] = useState(false);
@@ -111,14 +111,30 @@ const PriceSimulator = () => {
     };
   }, []);
 
-  // Seleciona um serviço
-  const selecionarServico = (servico) => {
-    setServicoSelecionado(servico);
+  // Alterna a seleção de um serviço
+  const toggleServico = (servico) => {
+    setServicosSelecionados(prev => {
+      // Verifica se o serviço já está selecionado
+      const jaExiste = prev.some(item => item.id === servico.id);
+      
+      if (jaExiste) {
+        // Remove o serviço da lista se já estiver selecionado
+        return prev.filter(item => item.id !== servico.id);
+      } else {
+        // Adiciona o serviço à lista se não estiver selecionado
+        return [...prev, servico];
+      }
+    });
   };
 
-  // Volta para a lista de serviços
-  const voltarParaLista = () => {
-    setServicoSelecionado(null);
+  // Verifica se um serviço está selecionado
+  const isServicoSelecionado = (servico) => {
+    return servicosSelecionados.some(item => item.id === servico.id);
+  };
+
+  // Limpa todas as seleções
+  const limparSelecoes = () => {
+    setServicosSelecionados([]);
   };
 
   // Renderiza o componente
@@ -139,35 +155,57 @@ const PriceSimulator = () => {
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-      ) : servicoSelecionado ? (
-        <div>
-          <button 
-            onClick={voltarParaLista}
-            className="mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded inline-flex items-center"
-          >
-            <span>← Voltar para lista</span>
-          </button>
-          <PricingCalculator servico={servicoSelecionado} />
-        </div>
       ) : (
-        <div>
-          <h2 className="text-2xl font-bold mb-6 text-center">Escolha um serviço para simular</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {servicos.map((servico) => (
-              <ServiceCard 
-                key={servico.id} 
-                servico={servico} 
-                onClick={() => selecionarServico(servico)}
-              />
-            ))}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Coluna de serviços (2/3 em desktop) */}
+          <div className="lg:col-span-2">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Escolha um ou mais serviços para simular</h2>
+              
+              {servicosSelecionados.length > 0 && (
+                <button 
+                  onClick={limparSelecoes}
+                  className="text-sm text-gray-600 hover:text-gray-800 underline"
+                >
+                  Limpar seleções
+                </button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {servicos.map((servico) => (
+                <ServiceCard 
+                  key={servico.id} 
+                  servico={servico} 
+                  selecionado={isServicoSelecionado(servico)}
+                  onClick={() => toggleServico(servico)}
+                />
+              ))}
+            </div>
+            
+            {servicos.length === 0 && !carregando && (
+              <div className="text-center py-12">
+                <p className="text-gray-500">Nenhum serviço disponível no momento.</p>
+              </div>
+            )}
           </div>
           
-          {servicos.length === 0 && !carregando && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">Nenhum serviço disponível no momento.</p>
+          {/* Coluna da calculadora (1/3 em desktop) */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6">
+              {servicosSelecionados.length > 0 ? (
+                <PricingCalculator servicos={servicosSelecionados} />
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-700 mb-4">Calculadora de Preço</h3>
+                  <p className="text-gray-500 mb-6">Selecione um ou mais serviços para calcular o preço.</p>
+                  <svg className="w-20 h-20 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>

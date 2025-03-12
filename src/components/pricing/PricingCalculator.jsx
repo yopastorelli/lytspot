@@ -3,10 +3,10 @@ import PropTypes from 'prop-types';
 
 /**
  * Componente de calculadora de preços para o simulador
- * @version 1.0.0 - 2025-03-12
+ * @version 2.0.0 - 2025-03-12 - Adicionado suporte para múltiplos serviços
  */
-const PricingCalculator = ({ servico }) => {
-  const [quantidade, setQuantidade] = useState(1);
+const PricingCalculator = ({ servicos }) => {
+  const [quantidades, setQuantidades] = useState({});
   const [adicionais, setAdicionais] = useState([]);
   const [deslocamento, setDeslocamento] = useState(false);
   const [precoTotal, setPrecoTotal] = useState(0);
@@ -19,11 +19,26 @@ const PricingCalculator = ({ servico }) => {
     { id: 4, nome: 'Versão para redes sociais', valor: 80 }
   ];
 
+  // Inicializa as quantidades quando os serviços mudam
+  useEffect(() => {
+    const novasQuantidades = {};
+    servicos.forEach(servico => {
+      // Se já existe uma quantidade para este serviço, mantém. Senão, inicializa com 1
+      novasQuantidades[servico.id] = quantidades[servico.id] || 1;
+    });
+    setQuantidades(novasQuantidades);
+  }, [servicos]);
+
   // Calcula o preço total quando as opções mudam
   useEffect(() => {
-    if (!servico) return;
+    if (!servicos || servicos.length === 0) return;
 
-    let total = servico.preco_base * quantidade;
+    let total = 0;
+    
+    // Soma o preço de cada serviço multiplicado pela quantidade
+    servicos.forEach(servico => {
+      total += servico.preco_base * (quantidades[servico.id] || 1);
+    });
     
     // Adiciona valores dos adicionais selecionados
     adicionais.forEach(adicionalId => {
@@ -39,7 +54,7 @@ const PricingCalculator = ({ servico }) => {
     }
     
     setPrecoTotal(total);
-  }, [servico, quantidade, adicionais, deslocamento]);
+  }, [servicos, quantidades, adicionais, deslocamento]);
 
   // Formata valores monetários
   const formatMoney = (value) => {
@@ -60,51 +75,77 @@ const PricingCalculator = ({ servico }) => {
     });
   };
 
-  if (!servico) return null;
+  // Atualiza a quantidade de um serviço
+  const atualizarQuantidade = (servicoId, novaQuantidade) => {
+    setQuantidades(prev => ({
+      ...prev,
+      [servicoId]: Math.max(1, novaQuantidade)
+    }));
+  };
+
+  // Calcula o tempo médio de entrega (o maior entre todos os serviços)
+  const calcularTempoEntrega = () => {
+    if (!servicos || servicos.length === 0) return 0;
+    
+    return Math.max(...servicos.map(servico => servico.duracao_media || 0));
+  };
+
+  if (!servicos || servicos.length === 0) return null;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Calculadora de Preço</h2>
       
-      <div className="mb-6">
+      {/* Lista de serviços selecionados */}
+      <div className="space-y-4 mb-6">
         <h3 className="text-lg font-semibold text-gray-700 mb-3">
-          {servico.nome}
+          Serviços Selecionados
         </h3>
-        <p className="text-gray-600 mb-2">{servico.descricao}</p>
-        <p className="text-blue-600 font-medium">
-          Preço base: {formatMoney(servico.preco_base)}
-        </p>
+        
+        {servicos.map(servico => (
+          <div key={servico.id} className="border-b border-gray-100 pb-4">
+            <div className="flex justify-between mb-2">
+              <h4 className="font-medium text-gray-800">{servico.nome}</h4>
+              <span className="text-blue-600 font-medium">
+                {formatMoney(servico.preco_base)}
+              </span>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-3">{servico.descricao}</p>
+            
+            {/* Controle de quantidade */}
+            <div className="flex items-center">
+              <span className="text-sm text-gray-600 mr-3">Quantidade:</span>
+              <div className="flex items-center">
+                <button 
+                  onClick={() => atualizarQuantidade(servico.id, (quantidades[servico.id] || 1) - 1)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-1 px-2 rounded-l text-sm"
+                >
+                  -
+                </button>
+                <input 
+                  type="number" 
+                  min="1"
+                  value={quantidades[servico.id] || 1}
+                  onChange={(e) => atualizarQuantidade(servico.id, parseInt(e.target.value) || 1)}
+                  className="w-12 py-1 px-2 text-center border-t border-b border-gray-300 text-sm"
+                />
+                <button 
+                  onClick={() => atualizarQuantidade(servico.id, (quantidades[servico.id] || 1) + 1)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-1 px-2 rounded-r text-sm"
+                >
+                  +
+                </button>
+              </div>
+              <span className="ml-auto font-medium text-gray-700">
+                {formatMoney(servico.preco_base * (quantidades[servico.id] || 1))}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
       
       <div className="space-y-6">
-        {/* Quantidade */}
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">
-            Quantidade
-          </label>
-          <div className="flex items-center">
-            <button 
-              onClick={() => setQuantidade(prev => Math.max(1, prev - 1))}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-l"
-            >
-              -
-            </button>
-            <input 
-              type="number" 
-              min="1"
-              value={quantidade}
-              onChange={(e) => setQuantidade(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-16 py-2 px-3 text-center border-t border-b border-gray-300"
-            />
-            <button 
-              onClick={() => setQuantidade(prev => prev + 1)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-r"
-            >
-              +
-            </button>
-          </div>
-        </div>
-        
         {/* Adicionais */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
@@ -150,7 +191,7 @@ const PricingCalculator = ({ servico }) => {
             <span className="text-2xl font-bold text-blue-600">{formatMoney(precoTotal)}</span>
           </div>
           <p className="text-sm text-gray-500 mt-2">
-            Tempo estimado de entrega: {servico.duracao_media} dias
+            Tempo estimado de entrega: {calcularTempoEntrega()} dias
           </p>
         </div>
         
@@ -164,13 +205,15 @@ const PricingCalculator = ({ servico }) => {
 };
 
 PricingCalculator.propTypes = {
-  servico: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    nome: PropTypes.string.isRequired,
-    descricao: PropTypes.string.isRequired,
-    preco_base: PropTypes.number.isRequired,
-    duracao_media: PropTypes.number.isRequired
-  })
+  servicos: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      nome: PropTypes.string.isRequired,
+      descricao: PropTypes.string.isRequired,
+      preco_base: PropTypes.number.isRequired,
+      duracao_media: PropTypes.number.isRequired
+    })
+  ).isRequired
 };
 
 export default PricingCalculator;
