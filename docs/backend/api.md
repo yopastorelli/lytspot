@@ -53,7 +53,7 @@ Todas as respostas são retornadas no formato JSON com a seguinte estrutura:
 
 Autentica um usuário e retorna um token JWT.
 
-- **URL**: `/auth/login`
+- **URL**: `/api/auth/login`
 - **Método**: `POST`
 - **Autenticação**: Não requerida
 
@@ -61,8 +61,8 @@ Autentica um usuário e retorna um token JWT.
 
 ```json
 {
-  "email": "usuario@exemplo.com",
-  "password": "senha_segura"
+  "email": "admin@lytspot.com",
+  "password": "Admin@123456"
 }
 ```
 
@@ -70,13 +70,14 @@ Autentica um usuário e retorna um token JWT.
 
 ```json
 {
-  "message": "Login realizado com sucesso",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": 1,
-    "email": "usuario@exemplo.com",
-    "nome": "Nome do Usuário"
-  }
+    "email": "admin@lytspot.com",
+    "nome": "Administrador",
+    "createdAt": "2025-03-12T19:48:14.433Z",
+    "updatedAt": "2025-03-12T19:48:14.433Z"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -88,11 +89,11 @@ Autentica um usuário e retorna um token JWT.
 }
 ```
 
-#### Registro
+#### Registro (Apenas Uso Administrativo)
 
-Registra um novo usuário.
+Registra um novo usuário administrador. Este endpoint é destinado apenas para uso administrativo inicial.
 
-- **URL**: `/auth/register`
+- **URL**: `/api/auth/register`
 - **Método**: `POST`
 - **Autenticação**: Não requerida
 
@@ -134,7 +135,7 @@ Registra um novo usuário.
 
 Verifica se um token JWT é válido.
 
-- **URL**: `/auth/verify`
+- **URL**: `/api/auth/verify`
 - **Método**: `GET`
 - **Autenticação**: Requerida
 
@@ -504,7 +505,7 @@ A API atual está na versão 1.0. O versionamento é implícito na URL base.
 // Exemplo de login com JavaScript/Axios
 const login = async (email, password) => {
   try {
-    const response = await axios.post('https://api.lytspot.com.br/auth/login', {
+    const response = await axios.post('https://api.lytspot.com.br/api/auth/login', {
       email,
       password
     });

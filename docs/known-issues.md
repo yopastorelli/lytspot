@@ -20,22 +20,6 @@ Cada bug é documentado com as seguintes informações:
 
 ## Bugs Ativos
 
-### LYTSPOT-001
-
-- **Título**: Incompatibilidade no campo de senha do LoginForm
-- **Descrição**: O componente LoginForm.jsx está enviando o campo 'senha', mas o backend espera 'password', causando falhas de autenticação.
-- **Componente**: Frontend > Admin > LoginForm
-- **Severidade**: Alta
-- **Status**: Aberto
-- **Data de Identificação**: 2025-03-01
-- **Responsável**: Não atribuído
-- **Workaround**: Modificar temporariamente o endpoint de autenticação para aceitar 'senha' como alternativa a 'password'.
-- **Passos para Reproduzir**:
-  1. Acessar a página de administração
-  2. Tentar fazer login com credenciais válidas
-  3. Observar falha na autenticação
-  4. Verificar nos logs do console que o campo 'senha' está sendo enviado em vez de 'password'
-
 ### LYTSPOT-002
 
 - **Título**: URLs hardcoded no ContactForm
@@ -97,6 +81,40 @@ Cada bug é documentado com as seguintes informações:
 
 ## Bugs Resolvidos Recentemente
 
+### LYTSPOT-001
+
+- **Título**: Incompatibilidade no campo de senha do LoginForm
+- **Descrição**: O componente LoginForm.jsx estava enviando o campo 'senha', mas o backend esperava 'password', causando falhas de autenticação.
+- **Componente**: Frontend > Admin > LoginForm
+- **Severidade**: Alta
+- **Status**: Resolvido
+- **Data de Identificação**: 2025-03-01
+- **Data de Resolução**: 2025-03-12
+- **Responsável**: Equipe de Desenvolvimento
+- **Solução**: Corrigido o componente LoginForm para enviar o campo 'password' conforme esperado pelo backend.
+- **Detalhes da Resolução**:
+  1. Modificado o formulário de login para usar o campo 'password' em vez de 'senha'
+  2. Atualizada a documentação da API para esclarecer o formato esperado
+  3. Adicionados testes para garantir a compatibilidade futura
+
+### LYTSPOT-007
+
+- **Título**: Erro 401 Unauthorized na autenticação do painel administrativo
+- **Descrição**: O frontend não conseguia autenticar-se na API devido à falta de um usuário administrador válido no banco de dados, resultando em erro 401 Unauthorized.
+- **Componente**: Backend > Autenticação
+- **Severidade**: Crítica
+- **Status**: Resolvido
+- **Data de Identificação**: 2025-03-12
+- **Data de Resolução**: 2025-03-12
+- **Responsável**: Equipe de Desenvolvimento
+- **Solução**: Criado um usuário administrador usando o script `create-admin-user.js` e documentado o processo em `docs/backend/authentication.md`.
+- **Detalhes da Resolução**:
+  1. Verificado que as variáveis JWT_SECRET e JWT_EXPIRES_IN estavam corretamente configuradas
+  2. Confirmado que o sistema de autenticação JWT estava implementado corretamente
+  3. Criado um usuário administrador com credenciais padrão (admin@lytspot.com / Admin@123456)
+  4. Testado o login com sucesso usando o script `login-admin.js`
+  5. Atualizada a documentação para incluir procedimentos de solução de problemas
+
 ### LYTSPOT-006
 
 - **Título**: Erro ao importar next/router em projeto Astro
@@ -109,7 +127,7 @@ Cada bug é documentado com as seguintes informações:
 - **Responsável**: João Oliveira
 - **Solução**: Removida a dependência de next/router e substituída a navegação baseada em router.push() por window.location.href com URLSearchParams.
 
-### LYTSPOT-007
+### LYTSPOT-005
 
 - **Título**: Falha no carregamento de serviços quando a API está indisponível
 - **Descrição**: O simulador de preços não exibia nenhum serviço quando a API estava indisponível, em vez de usar dados de fallback.
