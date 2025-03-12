@@ -233,6 +233,7 @@ async function atualizarArquivoDadosDemonstracao(servicos) {
  */
 
 export const servicos = ${JSON.stringify(servicos, null, 2)};
+export const dadosDemonstracao = servicos;
 
 export default servicos;
 `;
