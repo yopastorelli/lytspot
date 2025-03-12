@@ -1,6 +1,6 @@
 /**
  * Script para popular o banco de dados com serviços básicos
- * @version 1.1.0 - 2025-03-12 - Atualizado com novos serviços e preços
+ * @version 1.2.0 - 2025-03-12 - Adicionado controle de execução
  * @description Este script pode ser executado independentemente para garantir que o banco de dados tenha os serviços atualizados
  */
 
@@ -12,9 +12,20 @@ import path from 'path';
 // Carregar variáveis de ambiente
 dotenv.config();
 
+// Verificar se o script deve ser executado
+const FORCE_UPDATE = process.env.FORCE_UPDATE === 'false';
+const SKIP_DB_POPULATION = process.env.SKIP_DB_POPULATION === 'true';
+
 // Função principal
 async function popularBancoDados() {
   console.log('Iniciando script de população do banco de dados...');
+  
+  // Verificar se o script deve ser pulado
+  if (SKIP_DB_POPULATION && !FORCE_UPDATE) {
+    console.log('SKIP_DB_POPULATION está ativado. Pulando população do banco de dados.');
+    console.log('Para forçar a execução, defina FORCE_UPDATE=true');
+    return;
+  }
   
   // Verificar variáveis de ambiente
   console.log('DATABASE_URL:', process.env.DATABASE_URL || 'Não definida');

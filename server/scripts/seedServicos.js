@@ -166,7 +166,7 @@ async function main() {
       },
       {
         nome: 'Filmagem de Evento Social (Solo)',
-        descricao: 'Captação profissional de vídeo para eventos sociais, com edição básica.',
+        descricao: 'Captação de vídeo para eventos sociais, com edição básica.',
         preco_base: 1200,
         duracao_media_captura: '4 horas',
         duracao_media_tratamento: 'até 14 dias úteis',
@@ -176,7 +176,7 @@ async function main() {
         versoes: [
           {
             tipo: 'Captura de Vídeo',
-            descricao: 'Captação profissional de vídeo para eventos sociais, com edição básica.',
+            descricao: 'Captação de vídeo para eventos sociais, com edição básica.',
             preco: 1200,
             duracao_media_captura: '4 horas',
             duracao_media_tratamento: 'até 14 dias úteis'
