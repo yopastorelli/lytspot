@@ -1,6 +1,6 @@
 /**
  * Serviço centralizado para comunicação com a API
- * @version 1.0.1 - 2025-03-12
+ * @version 1.0.2 - 2025-03-12 - Corrigido nome do token no localStorage
  * @description Fornece métodos para interagir com a API do backend
  */
 import axios from 'axios';
@@ -27,7 +27,7 @@ const createApiInstance = () => {
     (config) => {
       // Verificar se estamos no browser
       if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -49,7 +49,8 @@ const createApiInstance = () => {
         // Se for erro 401 (não autorizado), podemos limpar o token
         if (error.response.status === 401) {
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('authToken');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
           }
         }
       } else if (error.request) {

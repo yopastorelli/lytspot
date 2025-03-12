@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../services/api';
+import api, { authAPI } from '../../services/api';
 import LoginForm from './LoginForm';
 import ServicosManager from './ServicosManager';
 
 /**
  * Componente principal do painel administrativo
- * @version 2.0.0 - Refatorado para usar serviço de API centralizado
+ * @version 2.0.1 - 2025-03-12 - Atualizado para usar o serviço authAPI centralizado
  */
 const AdminPanel = () => {
   const [token, setToken] = useState(null);
@@ -22,6 +22,20 @@ const AdminPanel = () => {
       try {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
+        
+        // Verificar se o token ainda é válido
+        const verifyToken = async () => {
+          try {
+            await authAPI.verificarToken();
+            // Token válido, não precisa fazer nada
+          } catch (error) {
+            console.error('Token inválido ou expirado:', error);
+            // Limpar dados de autenticação
+            handleLogout();
+          }
+        };
+        
+        verifyToken();
       } catch (e) {
         console.error('Erro ao processar dados do usuário:', e);
         // Limpa dados inválidos
@@ -99,11 +113,9 @@ const AdminPanel = () => {
       </main>
       
       {/* Rodapé */}
-      <footer className="bg-white border-t border-gray-200 mt-auto">
-        <div className="container mx-auto px-4 py-4">
-          <p className="text-sm text-gray-500 text-center">
-            &copy; {new Date().getFullYear()} LytSpot - Todos os direitos reservados
-          </p>
+      <footer className="bg-white shadow-sm mt-8 py-4">
+        <div className="container mx-auto px-4 text-center text-gray-500 text-sm">
+          &copy; {new Date().getFullYear()} LytSpot - Todos os direitos reservados
         </div>
       </footer>
     </div>

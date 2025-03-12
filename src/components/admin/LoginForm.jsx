@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import api from '../../services/api';
+import api, { authAPI } from '../../services/api';
 
 /**
  * Componente de formulário de login para o painel administrativo
- * @version 1.0.0 - 2025-03-12
+ * @version 1.0.1 - 2025-03-12 - Atualizado para usar o serviço authAPI centralizado
  */
 const LoginForm = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
@@ -23,7 +23,8 @@ const LoginForm = ({ onLoginSuccess }) => {
     setError(null);
     
     try {
-      const response = await api.post('/api/auth/login', { email, password });
+      // Usar o serviço authAPI centralizado em vez de chamar api.post diretamente
+      const response = await authAPI.login({ email, password });
       
       if (response.data && response.data.token) {
         // Login bem-sucedido
