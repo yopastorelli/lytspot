@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { servicos as servicosDados } from '../../data/servicos.js';
+import api from '../../services/api';
 
 /**
  * Componente Simulador de Preços - Versão estável 
- * @version 2.8.0
+ * @version 2.9.0 - Refatorado para usar serviço de API centralizado
  */
 const PriceSimulator = memo(() => {
   // Estados principais do componente
@@ -73,33 +74,6 @@ const PriceSimulator = memo(() => {
     }
   }, [isBrowser, mostrarDebug]);
 
-  // Detecta ambiente
-  const getEnvironment = useCallback(() => {
-    // Verificação segura para SSR
-    if (!isBrowser) {
-      return { 
-        type: 'server', 
-        isDev: true,
-        baseUrl: '/api'
-      };
-    }
-    
-    // Detecta ambiente de desenvolvimento tanto pelo localhost quanto por IPs locais
-    const isLocalhost = window.location.hostname === 'localhost' || 
-                        window.location.hostname === '127.0.0.1' ||
-                        window.location.hostname.startsWith('192.168.') ||
-                        window.location.hostname.startsWith('10.');
-    
-    // A base URL agora sempre usa a origem atual da janela
-    return {
-      type: 'browser',
-      isDev: isLocalhost,
-      baseUrl: window.location.origin,
-      hostname: window.location.hostname,
-      href: window.location.href
-    };
-  }, [isBrowser]);
-
   // Carrega serviços da API
   const carregarServicos = useCallback(async (forceReload = false) => {
     // Impede requisições durante SSR ou se o componente não estiver montado
@@ -117,27 +91,15 @@ const PriceSimulator = memo(() => {
       log('Forçando recarregamento de serviços');
     }
     
-    const env = getEnvironment();
-    log(`Ambiente: ${JSON.stringify(env)}`);
-    
-    // Determina URL a ser usada - sempre usa a URL relativa ao domínio atual
-    const apiUrl = `${env.baseUrl}/api/pricing`;
-    log(`Tentando carregar dados de: ${apiUrl}`);
+    log('Tentando carregar dados via serviço de API centralizado');
     
     try {
-      // Timeout para evitar requisições infinitas - aumentado para 15 segundos
+      // Timeout para evitar requisições infinitas - usando o timeout configurado no serviço de API
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
       
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        signal: controller.signal,
-        mode: 'cors'
+      const response = await api.get('/api/pricing', {
+        signal: controller.signal
       });
       
       clearTimeout(timeoutId);
@@ -145,19 +107,15 @@ const PriceSimulator = memo(() => {
       // Teste automatizado - registra resposta
       if (typeof window !== 'undefined' && mounted.current) {
         window._apiResponse = {
-          url: apiUrl,
+          url: '/api/pricing',
           status: response.status,
-          ok: response.ok
+          ok: true
         };
       }
       
-      if (!response.ok) {
-        throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
       if (!mounted.current) return; // Evita atualização de estado se componente já foi desmontado
+      
+      const data = response.data;
       
       if (Array.isArray(data) && data.length > 0) {
         log(`Dados carregados com sucesso: ${data.length} serviços`);
@@ -196,7 +154,16 @@ const PriceSimulator = memo(() => {
       
       // Mostra erro apenas na primeira carga
       if (mounted.current) {
-        setError(`Não foi possível carregar os serviços: ${error.message}`);
+        if (error.response) {
+          // O servidor respondeu com status de erro
+          setError(`Erro ${error.response.status}: ${error.response.data.message || 'Falha ao carregar serviços'}`);
+        } else if (error.request) {
+          // A requisição foi feita mas não houve resposta
+          setError('Não foi possível conectar ao servidor. Verifique sua conexão.');
+        } else {
+          // Erro na configuração da requisição
+          setError(`Não foi possível carregar os serviços: ${error.message}`);
+        }
       }
       
       // Teste automatizado
@@ -204,11 +171,11 @@ const PriceSimulator = memo(() => {
         window._testResults = {
           success: false,
           error: error.message,
-          source: 'mock'
+          source: 'fallback'
         };
       }
     }
-  }, [loading, log, getEnvironment, isBrowser, retryCount, maxRetries]);
+  }, [loading, log, isBrowser, retryCount, maxRetries]);
 
   // Efeito para iniciar timer de fallback para dados de demonstração quando estiver carregando
   useEffect(() => {
@@ -451,7 +418,7 @@ const PriceSimulator = memo(() => {
               <div className="mb-4">
                 <h4 className="text-gray-800 font-medium mb-2">Ambiente:</h4>
                 <pre className="bg-white p-2 rounded text-xs text-gray-700 overflow-auto max-h-[150px] border border-gray-300">
-                  {JSON.stringify(getEnvironment(), null, 2)}
+                  {JSON.stringify({ type: 'browser', isDev: true, baseUrl: '/api' }, null, 2)}
                 </pre>
               </div>
               <div className="mb-4">
@@ -648,7 +615,7 @@ const PriceSimulator = memo(() => {
                 <div className="mb-4">
                   <h4 className="text-gray-800 font-medium mb-2">Ambiente:</h4>
                   <pre className="bg-white p-2 rounded text-xs text-gray-700 overflow-auto max-h-[150px] border border-gray-300">
-                    {JSON.stringify(getEnvironment(), null, 2)}
+                    {JSON.stringify({ type: 'browser', isDev: true, baseUrl: '/api' }, null, 2)}
                   </pre>
                 </div>
                 <div className="mb-4">

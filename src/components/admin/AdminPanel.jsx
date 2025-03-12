@@ -1,194 +1,111 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import LoginForm from './LoginForm';
 import ServicosManager from './ServicosManager';
 
 /**
- * Configuração do axios para usar a URL correta da API
- * @version 1.4.0 - Corrigida a detecção de ambiente e URLs da API
- */
-const getEnvironment = () => {
-  // Verificação segura para SSR
-  if (typeof window === 'undefined') {
-    return { 
-      type: 'server', 
-      isDev: true,
-      baseUrl: 'http://localhost:3000'
-    };
-  }
-  
-  // Detecta ambiente de desenvolvimento tanto pelo localhost quanto por IPs locais
-  const isLocalhost = window.location.hostname === 'localhost' || 
-                      window.location.hostname === '127.0.0.1' ||
-                      window.location.hostname.startsWith('192.168.') ||
-                      window.location.hostname.startsWith('10.');
-  
-  // No ambiente de desenvolvimento, sempre use localhost:3000
-  // Em produção, use a URL base do domínio atual ou uma URL específica para a API
-  const prodApiUrl = 'https://api.lytspot.com.br'; // URL da API em produção
-  
-  return {
-    type: 'browser',
-    isDev: isLocalhost,
-    // Em desenvolvimento, aponte explicitamente para o servidor Express
-    // Em produção, use a URL da API dedicada
-    baseUrl: isLocalhost ? 'http://localhost:3000' : prodApiUrl,
-    hostname: window.location.hostname,
-    href: window.location.href
-  };
-};
-
-// Configuração do axios para apontar para o servidor backend
-const api = axios.create({
-  baseURL: getEnvironment().baseUrl,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  },
-  timeout: 15000,
-  withCredentials: !getEnvironment().isDev // Habilita cookies em produção para CORS
-});
-
-/**
  * Componente principal do painel administrativo
- * Gerencia autenticação e exibe o painel de gerenciamento de serviços
- * @version 1.4.0 - Corrigida a URL da API e rotas de autenticação
+ * @version 2.0.0 - Refatorado para usar serviço de API centralizado
  */
 const AdminPanel = () => {
-  // Estado para armazenar o token JWT
-  const [token, setToken] = useState('');
-  // Estado para armazenar os dados do usuário autenticado
-  const [usuario, setUsuario] = useState(null);
-  // Estado para armazenar o status de carregamento
+  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  // Estado para armazenar erros
-  const [erro, setErro] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Verificar se o usuário já está autenticado ao carregar o componente
+  // Verifica se o usuário está autenticado ao carregar o componente
   useEffect(() => {
-    const verificarAutenticacao = async () => {
-      // Obter o token do localStorage
-      const tokenSalvo = localStorage.getItem('lytspot_admin_token');
-      
-      if (!tokenSalvo) {
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        setLoading(true);
-        
-        console.log('Verificando autenticação no servidor:', getEnvironment().baseUrl);
-        
-        // Configurar o cabeçalho de autorização
-        api.defaults.headers.common['Authorization'] = `Bearer ${tokenSalvo}`;
-        
-        // Verificar o token (com '/api' pois não está na baseURL)
-        const response = await api.get('/api/auth/verify');
-        
-        // Atualizar os estados
-        setToken(tokenSalvo);
-        setUsuario(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
-        console.error('Detalhes do erro:', {
-          message: error.message,
-          status: error.response?.status,
-          data: error.response?.data,
-          config: error.config
-        });
-        
-        // Limpar o token inválido
-        localStorage.removeItem('lytspot_admin_token');
-        delete api.defaults.headers.common['Authorization'];
-        
-        setToken('');
-        setUsuario(null);
-        setLoading(false);
-      }
-    };
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
     
-    verificarAutenticacao();
+    if (storedToken && storedUser) {
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error('Erro ao processar dados do usuário:', e);
+        // Limpa dados inválidos
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    }
+    
+    setLoading(false);
   }, []);
 
   // Função para lidar com o login bem-sucedido
-  const handleLoginSuccess = (data) => {
-    // Salvar o token no localStorage
-    localStorage.setItem('lytspot_admin_token', data.token);
-    
-    // Configurar o cabeçalho de autorização
-    api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-    
-    // Atualizar os estados
-    setToken(data.token);
-    setUsuario(data.user);
-    setErro(null);
+  const handleLoginSuccess = (userData, authToken) => {
+    setToken(authToken);
+    setUser(userData);
+    localStorage.setItem('token', authToken);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   // Função para fazer logout
   const handleLogout = () => {
-    // Limpar o token do localStorage
-    localStorage.removeItem('lytspot_admin_token');
-    
-    // Remover o cabeçalho de autorização
-    delete api.defaults.headers.common['Authorization'];
-    
-    // Atualizar os estados
-    setToken('');
-    setUsuario(null);
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
   };
 
-  // Renderizar o componente de carregamento
+  // Exibe o formulário de login se não estiver autenticado
+  if (!token && !loading) {
+    return <LoginForm onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // Exibe um indicador de carregamento enquanto verifica a autenticação
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando...</p>
+        </div>
       </div>
     );
   }
 
-  // Renderizar o formulário de login se o usuário não estiver autenticado
-  if (!token || !usuario) {
-    return (
-      <div className="min-h-screen bg-white rounded-lg border border-gray-200 shadow-lg p-6">
-        <h1 className="text-2xl font-serif font-bold text-gray-800 mb-6">
-          Login Administrativo
-        </h1>
-        <LoginForm onLoginSuccess={handleLoginSuccess} />
-        
-        {erro && (
-          <div className="bg-red-100 border border-red-400 rounded-lg p-4 mb-6">
-            <p className="text-red-700">{erro}</p>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Renderizar o painel de gerenciamento de serviços se o usuário estiver autenticado
+  // Exibe o painel administrativo quando autenticado
   return (
-    <div className="min-h-screen bg-white rounded-lg border border-gray-200 shadow-lg p-6">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-serif font-bold text-gray-800">
+    <div className="min-h-screen bg-gray-100">
+      {/* Cabeçalho do painel */}
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-xl font-serif font-bold text-gray-800">
             Painel Administrativo
           </h1>
-          <p className="text-gray-600 mt-1">
-            Bem-vindo, {usuario.nome}
+          
+          <div className="flex items-center space-x-4">
+            {user && (
+              <span className="text-sm text-gray-600">
+                Olá, {user.nome || user.email}
+              </span>
+            )}
+            
+            <button
+              onClick={handleLogout}
+              className="text-sm text-red-600 hover:text-red-800 transition-colors"
+            >
+              Sair
+            </button>
+          </div>
+        </div>
+      </header>
+      
+      {/* Conteúdo principal */}
+      <main className="container mx-auto px-4 py-6">
+        <ServicosManager token={token} />
+      </main>
+      
+      {/* Rodapé */}
+      <footer className="bg-white border-t border-gray-200 mt-auto">
+        <div className="container mx-auto px-4 py-4">
+          <p className="text-sm text-gray-500 text-center">
+            &copy; {new Date().getFullYear()} LytSpot - Todos os direitos reservados
           </p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors"
-        >
-          Sair
-        </button>
-      </div>
-      
-      <div className="mt-8">
-        <ServicosManager token={token} />
-      </div>
+      </footer>
     </div>
   );
 };

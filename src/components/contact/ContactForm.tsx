@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { validateEmail, validatePhone, validateRequired } from '../../utils/validation';
+import api from '../../services/api';
 
 interface FormData {
   name: string;
@@ -13,6 +14,10 @@ interface FormErrors {
   [key: string]: string;
 }
 
+/**
+ * Componente de formulário de contato
+ * @version 2.0.0 - Refatorado para usar serviço de API centralizado
+ */
 export default function ContactForm() {
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -69,19 +74,10 @@ export default function ContactForm() {
     console.info("Tentativa de envio do formulário", formData);
 
     try {
-      const response = await fetch("https://lytspot.onrender.com/api/contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await api.post("/api/contact", formData);
       
-
-      const result = await response.json();
-
-      if (response.ok) {
-        console.info("Mensagem enviada com sucesso", result);
+      if (response.status === 200 || response.status === 201) {
+        console.info("Mensagem enviada com sucesso", response.data);
         setSuccessMessage("Mensagem enviada com sucesso!");
         setFormData({
           name: "",
@@ -91,12 +87,23 @@ export default function ContactForm() {
           message: "",
         });
       } else {
-        console.error("Erro no envio da mensagem", result.error);
-        setErrorMessage(result.error || "Erro ao enviar a mensagem.");
+        console.error("Erro no envio da mensagem", response.data.error);
+        setErrorMessage(response.data.error || "Erro ao enviar a mensagem.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro inesperado no envio", error);
-      setErrorMessage("Erro inesperado. Tente novamente mais tarde.");
+      
+      // Tratamento de erro mais detalhado
+      if (error.response) {
+        // O servidor respondeu com um status de erro
+        setErrorMessage(`Erro ${error.response.status}: ${error.response.data.message || 'Falha ao enviar mensagem'}`);
+      } else if (error.request) {
+        // A requisição foi feita mas não houve resposta
+        setErrorMessage("Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.");
+      } else {
+        // Algo aconteceu na configuração da requisição
+        setErrorMessage("Erro inesperado. Tente novamente mais tarde.");
+      }
     } finally {
       setIsSubmitting(false);
     }

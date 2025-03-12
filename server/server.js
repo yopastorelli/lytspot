@@ -72,18 +72,22 @@ try {
   logger.info('Configurando middleware...');
   console.log('Configurando middleware...');
   
-  // Configuração de CORS
-  app.use(cors({
-    origin: [
-      'https://lytspot.com.br',
-      'https://www.lytspot.com.br',
-      'http://localhost:3000',
-      'http://localhost:4321'
-    ],
+  // Configuração de CORS adaptativa baseada no ambiente
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const corsOptions = {
+    origin: isDevelopment
+      ? true // Em desenvolvimento, aceita qualquer origem
+      : [
+          'https://lytspot.com.br',
+          'https://www.lytspot.com.br',
+          'https://lytspot.onrender.com'
+        ],
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control',
-    credentials: true // Habilita o uso de cookies e credenciais
-  }));
+    credentials: true // Mantemos true para compatibilidade com código existente
+  };
+  
+  app.use(cors(corsOptions));
 
   app.use(express.json());
   logger.info('Middleware configurado.');
