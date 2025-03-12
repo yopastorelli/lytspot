@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import contactRoutes from './routes/contact.js';
 import pricingRoutes from './routes/pricing.js';
 import authRoutes from './routes/auth.js';
+import cors from 'cors';
 
 // Configuração para ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -70,23 +71,13 @@ try {
   logger.info('Configurando middleware...');
   console.log('Configurando middleware...');
   
-  // Configuração simplificada de CORS para desenvolvimento
-  app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
-    
-    // Registre todas as origens de requisições para depuração
-    console.log(`Requisição recebida de: ${req.headers.origin || 'origem não especificada'} para ${req.url}`);
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-    
-    next();
-  });
-  
+  // Configuração de CORS
+  app.use(cors({
+    origin: '*',
+    methods: 'GET, POST, PUT, DELETE, OPTIONS',
+    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control',
+  }));
+
   app.use(express.json());
   logger.info('Middleware configurado.');
   console.log('Middleware configurado.');
@@ -110,18 +101,19 @@ try {
   logger.info('Rotas de autenticação registradas.');
   console.log('Rotas de autenticação registradas.');
 
+  // Rota para todas as outras requisições que não correspondem a rotas específicas
+  app.get('*', (req, res) => {
+    const distPath = path.join(__dirname, '..', 'dist');
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+  logger.info('Rota de fallback para SPA configurada.');
+  console.log('Rota de fallback para SPA configurada.');
+
   // Servir arquivos estáticos do diretório dist
   const distPath = path.join(__dirname, '..', 'dist');
   app.use(express.static(distPath));
   logger.info(`Servindo arquivos estáticos do diretório: ${distPath}`);
   console.log(`Servindo arquivos estáticos do diretório: ${distPath}`);
-
-  // Rota para todas as outras requisições que não correspondem a rotas específicas
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-  logger.info('Rota de fallback para SPA configurada.');
-  console.log('Rota de fallback para SPA configurada.');
 
   // Middleware para capturar erros globais
   app.use((err, req, res, next) => {

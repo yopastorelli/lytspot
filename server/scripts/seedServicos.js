@@ -1,9 +1,20 @@
 // Script para inserir serviços reais no banco de dados
 import { PrismaClient } from '@prisma/client';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import readline from 'readline';
+
 const prisma = new PrismaClient();
+
+// Obter o diretório atual
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Função principal para adicionar serviços de exemplo ao banco de dados
+ * @version 1.2.0 - Adicionado suporte para sincronização com dados de demonstração
+ * @date 2025-03-11
  */
 async function main() {
   try {
@@ -410,21 +421,232 @@ async function main() {
       }
     ];
         
+    // Inserindo os serviços no banco de dados
+    console.log('📝 Inserindo serviços no banco de dados...');
+    let servicosInseridos = 0;
+    
+    // Função para criar um serviço no banco de dados
+    async function criarServico(nome, descricao, preco, duracao_captura, duracao_tratamento, entregaveis, adicionais, deslocamento) {
+      try {
+        await prisma.servico.create({
+          data: {
+            nome: nome,
+            descricao: descricao,
+            preco_base: preco,
+            duracao_media_captura: duracao_captura,
+            duracao_media_tratamento: duracao_tratamento,
+            entregaveis: entregaveis || '',
+            possiveis_adicionais: adicionais || '',
+            valor_deslocamento: deslocamento || 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+          }
+        });
+        console.log(`✅ Serviço inserido: ${nome}`);
+        servicosInseridos++;
+      } catch (error) {
+        console.error(`❌ Erro ao inserir serviço ${nome}:`, error);
+      }
+    }
+    
+    // Processar todos os serviços, versões e opções
+    for (const servico of servicosPrecificados) {
+      try {
+        // Extrair possíveis adicionais das opções
+        let possiveis_adicionais = '';
+        if (servico.versoes) {
+          const opcoes = servico.versoes
+            .filter(v => v.opcoes)
+            .flatMap(v => v.opcoes)
+            .map(o => o.nome);
+          
+          if (opcoes.length > 0) {
+            possiveis_adicionais = opcoes.join(', ');
+          }
+        }
+        
+        // Criar o serviço principal
+        await criarServico(
+          servico.nome,
+          servico.descricao,
+          servico.preco_base,
+          servico.duracao_media_captura,
+          servico.versoes?.[0]?.duracao_media_tratamento || 'até 7 dias úteis',
+          servico.entregaveis,
+          possiveis_adicionais,
+          servico.valor_deslocamento
+        );
+        
+        // Criar as versões como serviços separados
+        if (servico.versoes) {
+          for (const versao of servico.versoes) {
+            // Pular a versão "Captura" que já é o serviço principal
+            if (versao.tipo === 'Captura' || versao.tipo === 'Captura Aérea' || versao.tipo === 'Captura de Vídeo' || versao.tipo === 'Captura de Vídeo Aéreo') {
+              continue;
+            }
+            
+            // Criar a versão como um serviço
+            const nomeVersao = `${servico.nome} - ${versao.tipo}`;
+            await criarServico(
+              nomeVersao,
+              versao.descricao,
+              versao.preco || 0,
+              versao.duracao_media_captura || servico.duracao_media_captura,
+              versao.duracao_media_tratamento || 'até 10 dias úteis',
+              servico.entregaveis,
+              '',
+              servico.valor_deslocamento
+            );
+            
+            // Criar as opções como serviços separados
+            if (versao.opcoes) {
+              for (const opcao of versao.opcoes) {
+                const nomeOpcao = `${servico.nome} - ${versao.tipo} - ${opcao.nome}`;
+                await criarServico(
+                  nomeOpcao,
+                  opcao.descricao,
+                  opcao.preco || 0,
+                  versao.duracao_media_captura || servico.duracao_media_captura,
+                  opcao.duracao_media_tratamento || versao.duracao_media_tratamento || 'até 10 dias úteis',
+                  servico.entregaveis,
+                  '',
+                  servico.valor_deslocamento
+                );
+              }
+            }
+          }
+        }
+         
+      } catch (error) {
+        console.error(`❌ Erro ao inserir serviço ${servico.nome}:`, error);
+      }
+    }
+    
+    console.log(`\n📊 Total de serviços inseridos: ${servicosInseridos}`);
+    console.log('🔍 Incluindo serviços principais, versões e opções');
+ 
     // Consultando os serviços cadastrados para confirmar
     const servicosCadastrados = await prisma.servico.findMany();
     console.log(`\n🎉 Processo concluído! ${servicosCadastrados.length} serviços cadastrados:`);
     console.table(servicosCadastrados.map(s => ({
       id: s.id,
       nome: s.nome,
-      preco: `R$ ${s.preco_base.toFixed(2)}`
+      preco_base: s.preco_base
     })));
+    
+    return servicosCadastrados;
     
   } catch (error) {
     console.error('❌ Erro ao cadastrar serviços:', error);
-  } finally {
-    await prisma.$disconnect();
+    throw error;
   }
 }
 
-// Executando a função principal
-main();
+/**
+ * Função para sincronizar os dados de demonstração com os dados do banco
+ * Garante que o simulador de preços use os mesmos dados do painel administrativo
+ * mesmo quando a API não estiver disponível
+ * 
+ * @version 1.0.0
+ * @date 2025-03-11
+ */
+async function sincronizarDadosDemonstracao() {
+  try {
+    console.log('\n🔄 Iniciando sincronização dos dados de demonstração...');
+    
+    // Buscar todos os serviços do banco de dados
+    const servicos = await prisma.servico.findMany({
+      orderBy: {
+        nome: 'asc'
+      }
+    });
+    
+    if (servicos.length === 0) {
+      console.error('❌ Nenhum serviço encontrado no banco de dados. Abortando sincronização.');
+      return;
+    }
+    
+    // Transformar os serviços para o formato do PriceSimulator
+    const servicosTransformados = servicos.map(servico => {
+      // Calcula a duração média aproximada baseada nos campos individuais
+      const duracaoCaptura = parseInt(servico.duracao_media_captura?.split(' ')[0] || 0);
+      const duracaoTratamento = parseInt(servico.duracao_media_tratamento?.split(' ')[0] || 0);
+      const duracaoMedia = Math.ceil((duracaoCaptura + duracaoTratamento) / 2) || 3; // Fallback para 3 dias
+      
+      return {
+        id: servico.id,
+        nome: servico.nome,
+        descricao: servico.descricao,
+        preco_base: servico.preco_base,
+        duracao_media: duracaoMedia,
+        detalhes: {
+          captura: servico.duracao_media_captura || '',
+          tratamento: servico.duracao_media_tratamento || '',
+          entregaveis: servico.entregaveis || '',
+          adicionais: servico.possiveis_adicionais || '',
+          deslocamento: servico.valor_deslocamento || ''
+        }
+      };
+    });
+    
+    // Caminho para o arquivo de dados de demonstração
+    const caminhoArquivo = path.resolve(__dirname, '../../src/data/servicos.js');
+    
+    // Criar o conteúdo do arquivo
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    const conteudoArquivo = `/**
+ * Dados de serviços para o Simulador de Preços - Versão 2.0
+ * Este arquivo centraliza os dados para uso consistente entre a API e o fallback
+ * Última atualização: ${dataAtual}
+ * ATENÇÃO: Este arquivo é gerado automaticamente pelo script seedServicos.js
+ * Não edite manualmente!
+ */
+
+export const servicos = ${JSON.stringify(servicosTransformados, null, 2)};
+`;
+    
+    // Escrever o arquivo
+    await fs.writeFile(caminhoArquivo, conteudoArquivo, 'utf8');
+    
+    console.log(`✅ Dados de demonstração sincronizados com sucesso! (${servicosTransformados.length} serviços)`);
+    console.log(`📝 Arquivo atualizado: ${caminhoArquivo}`);
+    
+  } catch (error) {
+    console.error('❌ Erro ao sincronizar dados de demonstração:', error);
+  }
+}
+
+/**
+ * Função principal que executa o script
+ * Primeiro insere os serviços no banco de dados
+ * Depois pergunta se deseja sincronizar os dados de demonstração
+ */
+async function executarScript() {
+  try {
+    // Executar a função principal para seed dos serviços
+    await main();
+    
+    // Perguntar ao usuário se deseja sincronizar os dados de demonstração
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    rl.question('\n🔄 Deseja sincronizar os dados de demonstração com os dados do banco? (s/n) ', async (resposta) => {
+      if (resposta.toLowerCase() === 's') {
+        await sincronizarDadosDemonstracao();
+      } else {
+        console.log('❌ Sincronização de dados de demonstração cancelada.');
+      }
+      
+      rl.close();
+      await prisma.$disconnect();
+      process.exit(0);
+    });
+  } catch (error) {
+    console.error('❌ Erro ao executar o script:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  }
+}
+
+// Executando o script
+executarScript();
