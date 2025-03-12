@@ -7,7 +7,7 @@ import { dadosDemonstracao } from './dadosDemonstracao';
 
 /**
  * Componente de simulação de preços
- * @version 2.8.3 - 2025-03-12 - Corrigido problema de URL da API e melhorado tratamento de erros
+ * @version 2.8.4 - 2025-03-12 - Corrigido problema de URL da API em produção
  */
 const PriceSimulator = () => {
   const [servicos, setServicos] = useState([]);
@@ -33,17 +33,26 @@ const PriceSimulator = () => {
     const controller = new AbortController();
     
     try {
-      console.log(`Carregando serviços da API: ${env.baseUrl}/pricing`);
+      console.log(`Carregando serviços da API: ${env.baseUrl}/api/pricing`);
       
       // Usa o serviço de API centralizado com o método específico
       const response = await servicosAPI.listar();
       
       // Verifica se a resposta contém dados válidos
-      if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
-        console.log(`[PriceSimulator] Serviços carregados com sucesso: ${response.data.length} itens`);
-        setServicos(response.data);
-        setUsandoDadosDemonstracao(false);
-        tentativasRef.current = 0; // Reseta contador de tentativas
+      if (response && response.data && Array.isArray(response.data)) {
+        console.log(`[PriceSimulator] Serviços carregados: ${JSON.stringify(response.data)}`);
+        
+        if (response.data.length > 0) {
+          console.log(`[PriceSimulator] Serviços carregados com sucesso: ${response.data.length} itens`);
+          setServicos(response.data);
+          setUsandoDadosDemonstracao(false);
+          tentativasRef.current = 0; // Reseta contador de tentativas
+        } else {
+          console.warn('[PriceSimulator] API retornou array vazio. Usando dados de demonstração.');
+          setServicos(dadosDemonstracao);
+          setUsandoDadosDemonstracao(true);
+          setErro('Nenhum serviço encontrado no servidor. Exibindo dados de demonstração.');
+        }
       } else {
         console.warn('[PriceSimulator] API retornou dados vazios ou inválidos:', response?.data);
         throw new Error('API retornou dados inválidos ou vazios');

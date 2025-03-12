@@ -1,6 +1,6 @@
 /**
  * Módulo centralizado para detecção e configuração de ambiente
- * @version 1.1.0 - 2025-03-12 - Removidas URLs inválidas
+ * @version 1.2.0 - 2025-03-12 - Corrigido problema de URL da API em produção
  * @description Fornece informações consistentes sobre o ambiente atual e URLs da API
  */
 
@@ -29,12 +29,23 @@ export const getEnvironment = () => {
     'https://lytspot.onrender.com'  // URL principal do Render
   ];
   
+  // Determinar a URL base da API
+  let baseUrl;
+  
+  if (isLocalhost) {
+    // Em desenvolvimento, use localhost:3000
+    baseUrl = 'http://localhost:3000';
+    console.log('[Environment] Ambiente de desenvolvimento detectado. Usando API local:', baseUrl);
+  } else {
+    // Em produção, use a URL do Render
+    baseUrl = prodApiUrls[0];
+    console.log('[Environment] Ambiente de produção detectado. Usando API remota:', baseUrl);
+  }
+  
   return {
     type: 'browser',
     isDev: isLocalhost,
-    // Em desenvolvimento, use localhost:3000
-    // Em produção, use a URL do Render
-    baseUrl: isLocalhost ? 'http://localhost:3000' : prodApiUrls[0],
+    baseUrl: baseUrl,
     prodApiUrls: isLocalhost ? [] : prodApiUrls, // Lista de URLs alternativas para fallback
     hostname: window.location.hostname,
     href: window.location.href
