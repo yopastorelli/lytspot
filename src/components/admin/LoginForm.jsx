@@ -51,6 +51,43 @@ const api = axios.create({
   withCredentials: true // Habilita cookies para CORS em todos os ambientes
 });
 
+// Adiciona interceptor para lidar com erros de CORS e tentar URLs alternativas
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config;
+    
+    // Se não estamos em modo de desenvolvimento e não é uma retentativa
+    if (!getEnvironment().isDev && !originalRequest._retry) {
+      const env = getEnvironment();
+      
+      // Se temos URLs alternativas para tentar
+      if (env.prodApiUrls && env.prodApiUrls.length > 1) {
+        // Marca como retentativa para evitar loop infinito
+        originalRequest._retry = true;
+        
+        // Começa do segundo item da lista (o primeiro já foi tentado)
+        for (let i = 1; i < env.prodApiUrls.length; i++) {
+          const alternativeUrl = env.prodApiUrls[i];
+          console.log(`Tentando login no servidor: ${alternativeUrl}`);
+          
+          try {
+            // Atualiza a URL base para a alternativa
+            originalRequest.baseURL = alternativeUrl;
+            return await axios(originalRequest);
+          } catch (retryError) {
+            console.error(`Falha ao fazer login usando ${alternativeUrl}: ${retryError.message}`);
+            // Continua para a próxima URL
+          }
+        }
+      }
+    }
+    
+    // Se todas as tentativas falharem ou não houver alternativas, rejeita com o erro original
+    return Promise.reject(error);
+  }
+);
+
 /**
  * Componente de formulário de login para o painel administrativo
  * @version 1.4.0 - Corrigida a URL da API e rotas de autenticação
