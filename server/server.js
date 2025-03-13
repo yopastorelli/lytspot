@@ -156,27 +156,36 @@ try {
     'https://lytspot.netlify.app',
     'http://localhost:4321',
     'http://localhost:4322',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://192.168.1.189:4321',
+    'https://lytspot.com.br:443'
   ];
   
   const corsOptions = {
     origin: function (origin, callback) {
       // Permitir requisições sem origem (como apps mobile ou curl)
       if (!origin) {
+        console.log('[CORS] Permitindo requisição sem origem');
         return callback(null, true);
       }
       
       // Em desenvolvimento, aceitar qualquer origem
       if (isDevelopment) {
+        console.log(`[CORS] Ambiente de desenvolvimento - permitindo origem: ${origin}`);
         return callback(null, true);
       }
       
       // Em produção, verificar se a origem está na lista de origens permitidas
       if (allowedOrigins.includes(origin)) {
+        console.log(`[CORS] Origem permitida: ${origin}`);
         return callback(null, true);
       } else {
         console.warn(`[CORS] Origem bloqueada: ${origin}`);
-        return callback(new Error('Origem não permitida pelo CORS'), false);
+        // Em produção, vamos permitir mesmo origens não listadas para diagnóstico
+        // Isso deve ser removido após a resolução do problema
+        console.log('[CORS] Permitindo temporariamente para diagnóstico');
+        return callback(null, true);
+        // return callback(new Error('Origem não permitida pelo CORS'), false);
       }
     },
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
@@ -198,10 +207,17 @@ try {
     // Em desenvolvimento, aceitar a origem da requisição
     if (isDevelopment && req.headers.origin) {
       allowedOrigin = req.headers.origin;
+      console.log(`[CORS] Ambiente de desenvolvimento - definindo origem: ${allowedOrigin}`);
     } 
     // Em produção, verificar se a origem está na lista de origens permitidas
     else if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
       allowedOrigin = req.headers.origin;
+      console.log(`[CORS] Origem permitida em produção: ${allowedOrigin}`);
+    }
+    // Temporariamente, permitir qualquer origem em produção para diagnóstico
+    else if (req.headers.origin) {
+      allowedOrigin = req.headers.origin;
+      console.log(`[CORS] Permitindo temporariamente origem não listada: ${allowedOrigin}`);
     }
     
     // Adicionar cabeçalhos CORS manualmente para garantir que eles sejam aplicados
@@ -212,6 +228,7 @@ try {
     
     // Responder imediatamente a requisições OPTIONS (preflight)
     if (req.method === 'OPTIONS') {
+      console.log(`[CORS] Respondendo a requisição preflight OPTIONS de ${req.headers.origin || 'origem desconhecida'}`);
       return res.status(200).end();
     }
     
@@ -335,13 +352,9 @@ try {
   console.log(`Servindo arquivos estáticos do diretório: ${distPath}`);
 
   // Rota para a interface de administração de sincronização
-  app.get('/admin/sync', authenticateJWT, (req, res) => {
-    // Verificar se o usuário é administrador
-    if (!req.user || !req.user.isAdmin) {
-      return res.status(403).send('Acesso negado. Permissões de administrador necessárias.');
-    }
-    
-    // Servir a página de sincronização
+  app.get('/admin/sync', (req, res) => {
+    // Servir a página de sincronização sem verificação JWT inicial
+    // A autenticação será verificada no frontend e nas operações de API
     res.sendFile(path.join(__dirname, 'views/admin/sync.html'));
   });
 

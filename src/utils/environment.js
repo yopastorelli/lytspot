@@ -1,6 +1,6 @@
 /**
  * Módulo centralizado para detecção e configuração de ambiente
- * @version 1.3.0 - 2025-03-12 - Adicionado prefixo /api na URL base
+ * @version 1.3.1 - 2025-03-14 - Melhorado o diagnóstico e adicionado fallback para URLs da API
  * @description Fornece informações consistentes sobre o ambiente atual e URLs da API
  */
 
@@ -24,9 +24,11 @@ export const getEnvironment = () => {
                      window.location.hostname.startsWith('192.168.') ||
                      window.location.hostname.startsWith('10.');
   
-  // Lista de URLs para produção - usando apenas a URL válida do Render
+  // Lista de URLs para produção - incluindo alternativas para fallback
   const prodApiUrls = [
-    'https://lytspot.onrender.com/api'  // URL principal do Render com prefixo /api
+    'https://lytspot.onrender.com/api',  // URL principal do Render com prefixo /api
+    'https://lytspot.com.br/api',        // URL do domínio principal com prefixo /api
+    'https://www.lytspot.com.br/api'     // URL com www e prefixo /api
   ];
   
   // Determinar a URL base da API
@@ -40,6 +42,7 @@ export const getEnvironment = () => {
     // Em produção, use a URL do Render com prefixo /api
     baseUrl = prodApiUrls[0];
     console.log('[Environment] Ambiente de produção detectado. Usando API remota:', baseUrl);
+    console.log('[Environment] URLs alternativas disponíveis:', prodApiUrls.slice(1).join(', '));
   }
   
   return {
@@ -50,6 +53,51 @@ export const getEnvironment = () => {
     hostname: window.location.hostname,
     href: window.location.href
   };
+};
+
+/**
+ * Tenta acessar uma URL da API com fallback para URLs alternativas
+ * @param {string} endpoint - Endpoint da API (sem a URL base)
+ * @param {Object} options - Opções para fetch
+ * @returns {Promise<Response>} Resposta da API
+ */
+export const fetchWithFallback = async (endpoint, options = {}) => {
+  const env = getEnvironment();
+  
+  // Se estamos em desenvolvimento, não precisamos de fallback
+  if (env.isDev) {
+    const url = `${env.baseUrl}/${endpoint}`.replace(/\/+/g, '/').replace('http:/', 'http://').replace('https:/', 'https://');
+    console.log(`[API] Fazendo requisição para: ${url}`);
+    return fetch(url, options);
+  }
+  
+  // Em produção, tentamos cada URL da lista até uma funcionar
+  let lastError = null;
+  
+  for (const baseUrl of env.prodApiUrls) {
+    try {
+      const url = `${baseUrl}/${endpoint}`.replace(/\/+/g, '/').replace('http:/', 'http://').replace('https:/', 'https://');
+      console.log(`[API] Tentando requisição para: ${url}`);
+      
+      const response = await fetch(url, options);
+      
+      // Se a resposta não for ok, continuamos tentando
+      if (!response.ok) {
+        console.warn(`[API] Resposta não ok de ${url}: ${response.status} ${response.statusText}`);
+        lastError = new Error(`Resposta não ok: ${response.status} ${response.statusText}`);
+        continue;
+      }
+      
+      console.log(`[API] Requisição bem-sucedida para: ${url}`);
+      return response;
+    } catch (error) {
+      console.warn(`[API] Erro ao acessar ${baseUrl}/${endpoint}:`, error.message);
+      lastError = error;
+    }
+  }
+  
+  // Se chegamos aqui, todas as tentativas falharam
+  throw lastError || new Error('Falha ao acessar a API em todas as URLs disponíveis');
 };
 
 export default getEnvironment;
