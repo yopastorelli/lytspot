@@ -140,32 +140,65 @@ try {
   
   // Configuração de CORS adaptativa baseada no ambiente
   const isDevelopment = process.env.NODE_ENV !== 'production';
+  
+  // Lista de origens permitidas
+  const allowedOrigins = [
+    'https://lytspot.com.br',
+    'https://www.lytspot.com.br',
+    'https://lytspot.onrender.com',
+    'https://lytspot.netlify.app',
+    'http://localhost:4321',
+    'http://localhost:4322',
+    'http://localhost:3000'
+  ];
+  
   const corsOptions = {
-    origin: isDevelopment
-      ? true // Em desenvolvimento, aceita qualquer origem
-      : [
-          'https://lytspot.com.br',
-          'https://www.lytspot.com.br',
-          'https://lytspot.onrender.com',
-          'https://lytspot.netlify.app',
-          'http://localhost:4321',
-          // Adicionar domínios adicionais conforme necessário
-        ],
+    origin: function (origin, callback) {
+      // Permitir requisições sem origem (como apps mobile ou curl)
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      // Em desenvolvimento, aceitar qualquer origem
+      if (isDevelopment) {
+        return callback(null, true);
+      }
+      
+      // Em produção, verificar se a origem está na lista de origens permitidas
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        console.warn(`[CORS] Origem bloqueada: ${origin}`);
+        return callback(new Error('Origem não permitida pelo CORS'), false);
+      }
+    },
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control',
-    credentials: true, // Mantemos true para compatibilidade com código existente
+    credentials: true,
     maxAge: 86400 // Cache de preflight por 24 horas (em segundos)
   };
   
   // Aplicar middleware CORS
   app.use(cors(corsOptions));
   
-  // Adicionar logging de diagnóstico para CORS
+  // Adicionar logging de diagnóstico para CORS e garantir que os cabeçalhos sejam aplicados corretamente
   app.use((req, res, next) => {
     console.log(`[CORS] Requisição de origem: ${req.headers.origin || 'desconhecida'} para ${req.method} ${req.path}`);
     
+    // Determinar a origem permitida
+    let allowedOrigin = '*';
+    
+    // Em desenvolvimento, aceitar a origem da requisição
+    if (isDevelopment && req.headers.origin) {
+      allowedOrigin = req.headers.origin;
+    } 
+    // Em produção, verificar se a origem está na lista de origens permitidas
+    else if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
+      allowedOrigin = req.headers.origin;
+    }
+    
     // Adicionar cabeçalhos CORS manualmente para garantir que eles sejam aplicados
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Origin', allowedOrigin);
     res.header('Access-Control-Allow-Methods', corsOptions.methods);
     res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders);
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -210,6 +243,25 @@ try {
   app.use('/api/setup', setupRoutes);
   logger.info('Rotas de configuração registradas.');
   console.log('Rotas de configuração registradas.');
+
+  // Endpoint de health check para verificar se a API está funcionando
+  app.get('/api/health', (req, res) => {
+    logger.info('Health check solicitado');
+    console.log(`Health check solicitado de origem: ${req.headers.origin || 'desconhecida'}`);
+    
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.npm_package_version || '1.0.0',
+      cors: {
+        origin: req.headers.origin || 'não especificada',
+        method: req.method
+      }
+    });
+  });
+  logger.info('Endpoint de health check registrado.');
+  console.log('Endpoint de health check registrado.');
 
   // Servir arquivos estáticos do diretório dist
   const distPath = path.join(__dirname, '..', 'dist');
