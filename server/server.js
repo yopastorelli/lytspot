@@ -11,7 +11,6 @@ import setupRoutes from './routes/setup.js';
 import cors from 'cors';
 import fs from 'fs';
 import { ensureAdminUser } from './scripts/ensureAdminUser.js';
-import { authenticateJWT } from './middleware/auth.js';
 
 // Configuração para ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -327,17 +326,6 @@ try {
   app.use(express.static(distPath));
   logger.info(`Servindo arquivos estáticos do diretório: ${distPath}`);
   console.log(`Servindo arquivos estáticos do diretório: ${distPath}`);
-
-  // Rota para a interface de administração de sincronização
-  app.get('/admin/sync', authenticateJWT, (req, res) => {
-    // Verificar se o usuário é administrador
-    if (!req.user || !req.user.isAdmin) {
-      return res.status(403).send('Acesso negado. Permissões de administrador necessárias.');
-    }
-    
-    // Servir a página de sincronização
-    res.sendFile(path.join(__dirname, 'views/admin/sync.html'));
-  });
 
   // Rota para todas as outras requisições que não correspondem a rotas específicas
   app.get('*', (req, res) => {

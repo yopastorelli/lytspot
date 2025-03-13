@@ -4,7 +4,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { authenticateJWT } from '../middleware/auth.js';
-import { syncServicesToDatabase, syncDatabaseToDemo } from '../scripts/syncDatabase.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -87,88 +86,6 @@ export const servicos = ${JSON.stringify(servicosTransformados, null, 2)};
       sucesso: false, 
       mensagem: 'Erro ao sincronizar dados de demonstração.', 
       erro: error.message 
-    });
-  }
-});
-
-/**
- * Rota para sincronizar dados de demonstração com o banco de dados de produção
- * @version 1.0.0
- * @date 2025-03-13
- */
-router.post('/sync-to-production', authenticateJWT, async (req, res) => {
-  try {
-    const { forceUpdate = false, deleteExisting = false } = req.body;
-    
-    console.log(`Iniciando sincronização com o banco de dados de produção...`);
-    console.log(`Parâmetros: forceUpdate=${forceUpdate}, deleteExisting=${deleteExisting}`);
-    
-    // Validar parâmetros
-    if (deleteExisting === true && process.env.NODE_ENV === 'production') {
-      console.warn('Tentativa de exclusão de dados em ambiente de produção!');
-      return res.status(403).json({
-        sucesso: false,
-        mensagem: 'Exclusão de dados não permitida em ambiente de produção.'
-      });
-    }
-    
-    // Executar a sincronização
-    const resultado = await syncServicesToDatabase(forceUpdate, deleteExisting);
-    
-    if (resultado.success) {
-      return res.status(200).json({
-        sucesso: true,
-        mensagem: resultado.message,
-        estatisticas: resultado.stats
-      });
-    } else {
-      return res.status(500).json({
-        sucesso: false,
-        mensagem: resultado.message,
-        erro: resultado.error
-      });
-    }
-  } catch (error) {
-    console.error('Erro ao sincronizar com o banco de dados de produção:', error);
-    return res.status(500).json({
-      sucesso: false,
-      mensagem: 'Erro ao sincronizar com o banco de dados de produção.',
-      erro: error.message
-    });
-  }
-});
-
-/**
- * Rota para sincronizar o banco de dados com o arquivo de dados de demonstração
- * @version 1.0.0
- * @date 2025-03-13
- */
-router.post('/sync-from-production', authenticateJWT, async (req, res) => {
-  try {
-    console.log(`Iniciando sincronização do banco de dados para o arquivo de demonstração...`);
-    
-    // Executar a sincronização
-    const resultado = await syncDatabaseToDemo();
-    
-    if (resultado.success) {
-      return res.status(200).json({
-        sucesso: true,
-        mensagem: resultado.message,
-        quantidade: resultado.count
-      });
-    } else {
-      return res.status(500).json({
-        sucesso: false,
-        mensagem: resultado.message,
-        erro: resultado.error
-      });
-    }
-  } catch (error) {
-    console.error('Erro ao sincronizar do banco de dados para o arquivo de demonstração:', error);
-    return res.status(500).json({
-      sucesso: false,
-      mensagem: 'Erro ao sincronizar do banco de dados para o arquivo de demonstração.',
-      erro: error.message
     });
   }
 });
