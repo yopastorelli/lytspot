@@ -4,12 +4,12 @@
  * Responsável por encapsular o acesso ao banco de dados para operações relacionadas a usuários,
  * incluindo autenticação, criação, atualização e consultas.
  * 
- * @version 1.2.0 - 2025-03-14 - Corrigido import do bcrypt para bcryptjs
+ * @version 1.1.0 - 2025-03-14 - Adicionado método findAll
  * @module repositories/userRepository
  */
 
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 // Cliente Prisma para acesso ao banco de dados
 const prisma = new PrismaClient({

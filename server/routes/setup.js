@@ -1,5 +1,6 @@
 import express from 'express';
 import userRepository from '../repositories/userRepository.js';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,7 +10,7 @@ const router = express.Router();
 /**
  * Endpoint temporário para criar um usuário administrador
  * IMPORTANTE: Este endpoint deve ser removido após o uso inicial
- * @version 1.2.0 - 2025-03-14 - Removida duplicação de hash de senha
+ * @version 1.1.0 - 2025-03-14 - Refatorado para usar userRepository
  */
 router.post('/create-admin', async (req, res) => {
   try {
@@ -25,9 +26,11 @@ router.post('/create-admin', async (req, res) => {
     
     if (usuarioExistente) {
       // Atualizar a senha do usuário existente
-      // O userRepository já faz o hash da senha
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('Black&Red2025', salt);
+      
       await userRepository.update(usuarioExistente.id, {
-        senha: 'Black&Red2025'
+        senha: hashedPassword
       });
       
       return res.status(200).json({ 
@@ -38,10 +41,12 @@ router.post('/create-admin', async (req, res) => {
     }
     
     // Criar um novo usuário administrador
-    // O userRepository já faz o hash da senha
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('Black&Red2025', salt);
+    
     const novoUsuario = await userRepository.create({
       email: 'admin@lytspot.com.br',
-      senha: 'Black&Red2025',
+      senha: hashedPassword,
       nome: 'Administrador',
       role: 'ADMIN'
     });
