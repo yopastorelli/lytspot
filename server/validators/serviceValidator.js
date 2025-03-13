@@ -1,7 +1,7 @@
 /**
  * Validador de Serviços
  * @description Funções de validação para dados de serviços
- * @version 1.1.0 - 2025-03-12 - Melhorada a validação para aceitar diferentes tipos de dados
+ * @version 1.2.0 - 2025-03-13 - Implementada validação mais rigorosa para campos obrigatórios
  */
 
 /**
@@ -11,7 +11,7 @@ class ServiceValidator {
   /**
    * Valida os dados de um serviço para criação ou atualização
    * 
-   * @version 1.2.0 - 2025-03-13 - Melhorada a validação para aceitar diferentes tipos de dados
+   * @version 1.3.0 - 2025-03-13 - Adicionada validação de comprimento e tipo para todos os campos
    * @param {Object} serviceData Dados do serviço a serem validados
    * @returns {Object} Resultado da validação { isValid, errors }
    */

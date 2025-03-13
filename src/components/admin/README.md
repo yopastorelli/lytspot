@@ -6,7 +6,7 @@ Este diretório contém os componentes utilizados no painel administrativo do Ly
 
 ### ServicoForm
 
-**Versão:** 1.5.0 (2025-03-12)
+**Versão:** 1.6.0 (2025-03-13)
 
 Componente de formulário para adicionar e editar serviços fotográficos.
 
@@ -60,13 +60,20 @@ O componente detecta automaticamente o formato e normaliza os dados para o forma
 
 #### Validação
 
-O componente implementa validação para os seguintes campos obrigatórios:
-- `nome`
-- `descricao`
-- `preco_base`
+O componente implementa validação robusta para os seguintes campos obrigatórios:
+- `nome` (mínimo 3 caracteres)
+- `descricao` (mínimo 10 caracteres)
+- `preco_base` (número positivo)
 - `duracao_media_captura`
 - `duracao_media_tratamento`
 - `entregaveis`
+
+A validação inclui:
+- Verificação de campos vazios
+- Validação de comprimento mínimo para campos de texto
+- Conversão e validação de valores numéricos
+- Feedback visual imediato para o usuário
+- Mensagens de erro específicas para cada tipo de validação
 
 #### Exemplo de Uso
 
@@ -116,12 +123,18 @@ export default ServicoEditor;
 #### Notas de Implementação
 
 1. **Formato de Dados:** O componente converte automaticamente entre os formatos do simulador e do banco de dados.
-2. **Validação:** Implementa validação de campos obrigatórios e formatos específicos.
-3. **Feedback Visual:** Fornece feedback visual para campos com erro e durante o carregamento.
-4. **Acessibilidade:** Implementa atributos ARIA para melhorar a acessibilidade.
+2. **Validação:** Implementa validação rigorosa de campos obrigatórios e formatos específicos.
+3. **Sanitização de Dados:** Realiza limpeza e formatação de dados antes do envio para o backend:
+   - Remove espaços em branco extras com `trim()`
+   - Converte valores numéricos corretamente
+   - Garante que todos os campos obrigatórios estejam presentes e válidos
+4. **Feedback Visual:** Fornece feedback visual imediato para campos com erro e durante o carregamento.
+5. **Acessibilidade:** Implementa atributos ARIA para melhorar a acessibilidade.
+6. **Prevenção de Erros:** Impede o envio do formulário se houver campos inválidos.
 
 #### Histórico de Alterações
 
+- **1.6.0 (2025-03-13):** Implementada validação mais rigorosa e sanitização de dados para resolver erros 400 e 500 na API
 - **1.5.0 (2025-03-12):** Melhorada a validação e formatação de dados para compatibilidade com o backend
 - **1.4.0 (2025-03-10):** Corrigido problema de formato de dados para edição
 - **1.3.0 (2025-03-05):** Implementada validação de campos obrigatórios

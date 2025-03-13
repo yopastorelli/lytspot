@@ -20,6 +20,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/spec/v2.0.
   - Verificação de permissões de arquivos para garantir acesso ao banco de dados.
   - Sistema de logs detalhados para rastreamento de operações de banco de dados.
   - Mecanismo de recuperação automática com dados de demonstração em caso de falha.
+- Método `prepareServiceData` no `pricingService.js` para centralizar a sanitização de dados de serviços.
+- Validação mais rigorosa no componente `ServicoForm.jsx` para garantir que todos os campos obrigatórios sejam preenchidos corretamente.
 
 ### Modificado
 - Refatoração do `pricingService.js` com melhorias significativas:
@@ -27,6 +29,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/spec/v2.0.
   - Mecanismo de verificação de persistência após operações de banco de dados.
   - Estratégia de fallback para dados de demonstração em caso de falha.
   - Sincronização automática entre dados de demonstração e banco de dados.
+  - Melhorado o tratamento de dados e validação nos métodos `createService` e `updateService`.
 
 ### Corrigido
 - Problema de persistência de dados no ambiente de produção (Render).
@@ -49,6 +52,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/spec/v2.0.
 - Inconsistências na validação de formulários:
   - Corrigido o tratamento de campos de texto para garantir que valores vazios sejam tratados corretamente.
   - Melhorada a conversão de tipos para campos numéricos.
+  - Aprimorada a validação no componente `ServicoForm.jsx` com feedback visual mais claro para o usuário.
 
 ## [1.6.0] - 2025-03-13
 
@@ -56,16 +60,27 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/spec/v2.0.
 - Problema de persistência de dados no ambiente de produção (Render)
 - Configuração do caminho do banco de dados SQLite para usar um diretório persistente no Render
 - Tratamento de erros aprimorado nas operações de banco de dados
+- Erro 500 ao atualizar serviços:
+  - Corrigido o formato de dados enviado do frontend para o backend.
+  - Melhorado o sanitizador de dados no repositório de serviços para tratar corretamente campos vazios e valores numéricos.
+  - Adicionada validação mais robusta para campos obrigatórios.
+- Erro 400 ao criar novos serviços:
+  - Implementada sanitização de dados antes do envio para o backend.
+  - Melhorado o tratamento de erros específicos, como serviços com nomes duplicados.
+  - Adicionado log detalhado para facilitar o diagnóstico de problemas.
 
 ### Adicionado
 - Sistema de logs detalhados para diagnóstico de problemas de banco de dados
 - Teste de conexão com o banco de dados antes de cada operação
 - Verificação de permissões de arquivos para o banco de dados SQLite
+- Método `prepareServiceData` no `pricingService.js` para centralizar a sanitização de dados de serviços.
+- Validação mais rigorosa no componente `ServicoForm.jsx` para garantir que todos os campos obrigatórios sejam preenchidos corretamente.
 
 ### Modificado
 - Função `updateDemonstrationService` para aceitar um objeto de serviço completo como parâmetro
 - Melhorado o tratamento de erros no repositório de serviços
 - Refatorado o serviço de preços para melhor lidar com erros de banco de dados
+- Melhorado o tratamento de dados e validação nos métodos `createService` e `updateService`.
 
 ## [1.5.1] - 2025-03-12
 

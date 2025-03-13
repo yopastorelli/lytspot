@@ -2,6 +2,26 @@
 
 Este arquivo documenta todas as alterações significativas feitas na API do Lytspot.
 
+## [2.1.0] - 2025-03-13
+
+### Melhorias na Validação e Processamento de Dados
+
+#### Adicionado
+- Método `prepareServiceData` no `pricingService.js` para centralizar a sanitização de dados de serviços
+- Validação mais rigorosa para campos obrigatórios no `serviceValidator.js`
+- Logs detalhados para diagnóstico de problemas em operações de serviços
+
+#### Modificado
+- Refatorados os métodos `createService` e `updateService` no `pricingService.js` para melhor tratamento de dados e validação
+- Melhorada a sanitização de dados no repositório de serviços
+- Aprimorado o tratamento de erros específicos, como serviços com nomes duplicados
+
+#### Corrigido
+- Erro 500 ao atualizar serviços devido a problemas de formato de dados
+- Erro 400 ao criar novos serviços devido a validação inadequada
+- Tratamento inconsistente de campos vazios e valores numéricos
+- Verificação de persistência após operações de banco de dados
+
 ## [2.0.0] - 2025-03-12
 
 ### Refatoração da Arquitetura da API
