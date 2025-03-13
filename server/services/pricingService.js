@@ -115,8 +115,33 @@ class PricingService {
       if (existsInDatabase) {
         try {
           console.log('PricingService.updateService - Tentando atualizar no banco de dados');
-          updatedService = await serviceRepository.update(id, serviceData);
-          console.log('PricingService.updateService - Atualizado com sucesso no banco de dados');
+          
+          // Garantir que todos os campos estejam no formato correto para o Prisma
+          const sanitizedData = {
+            nome: serviceData.nome,
+            descricao: serviceData.descricao,
+            preco_base: typeof serviceData.preco_base === 'string' 
+              ? parseFloat(serviceData.preco_base) 
+              : serviceData.preco_base,
+            duracao_media_captura: serviceData.duracao_media_captura,
+            duracao_media_tratamento: serviceData.duracao_media_tratamento,
+            entregaveis: serviceData.entregaveis,
+            possiveis_adicionais: serviceData.possiveis_adicionais,
+            valor_deslocamento: serviceData.valor_deslocamento
+          };
+          
+          console.log('PricingService.updateService - Dados sanitizados para o Prisma:', sanitizedData);
+          
+          // Atualizar no banco de dados
+          updatedService = await serviceRepository.update(id, sanitizedData);
+          console.log('PricingService.updateService - Atualizado com sucesso no banco de dados:', updatedService);
+          
+          // Atualizar também nos dados de demonstração para manter consistência
+          if (existsInDemo) {
+            console.log('PricingService.updateService - Atualizando também nos dados de demonstração para consistência');
+            updateDemonstrationService(id, sanitizedData);
+          }
+          
           return serviceTransformer.toSimulatorFormat(updatedService);
         } catch (updateError) {
           console.error('PricingService.updateService - Erro ao atualizar no banco de dados:', updateError);

@@ -65,16 +65,48 @@ class ServiceRepository {
   }
 
   /**
-   * Atualiza um serviço existente
+   * Atualiza um serviço
    * @param {number} id ID do serviço
    * @param {Object} data Dados atualizados
    * @returns {Promise<Object>} Serviço atualizado
    */
   async update(id, data) {
-    return prisma.servico.update({
-      where: { id: Number(id) },
-      data
-    });
+    try {
+      console.log('ServiceRepository.update - Iniciando atualização do serviço ID:', id);
+      console.log('ServiceRepository.update - Dados recebidos:', data);
+      
+      // Garantir que o ID seja um número
+      const numericId = Number(id);
+      
+      // Verificar se o serviço existe
+      const exists = await this.exists(numericId);
+      if (!exists) {
+        console.error('ServiceRepository.update - Serviço não encontrado com ID:', numericId);
+        throw new Error(`Serviço com ID ${numericId} não encontrado`);
+      }
+      
+      // Garantir que preco_base seja um número
+      const sanitizedData = { ...data };
+      if (sanitizedData.preco_base !== undefined) {
+        sanitizedData.preco_base = typeof sanitizedData.preco_base === 'string' 
+          ? parseFloat(sanitizedData.preco_base) 
+          : sanitizedData.preco_base;
+      }
+      
+      console.log('ServiceRepository.update - Dados sanitizados:', sanitizedData);
+      
+      // Atualizar o serviço
+      const updatedService = await prisma.servico.update({
+        where: { id: numericId },
+        data: sanitizedData
+      });
+      
+      console.log('ServiceRepository.update - Serviço atualizado com sucesso:', updatedService);
+      return updatedService;
+    } catch (error) {
+      console.error('ServiceRepository.update - Erro ao atualizar serviço:', error);
+      throw error;
+    }
   }
 
   /**

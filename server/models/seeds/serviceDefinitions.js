@@ -207,7 +207,7 @@ export const getServiceDefinitionsForFrontend = () => {
 
 /**
  * Atualiza um serviço nos dados de demonstração
- * @param {number} id ID do serviço a ser atualizado
+ * @param {number|string} id ID do serviço
  * @param {Object} data Novos dados do serviço
  * @returns {Object|null} Serviço atualizado ou null se não encontrado
  */
@@ -238,14 +238,34 @@ export const updateDemonstrationService = (id, data) => {
   // Fazer uma cópia profunda do objeto para evitar referências indesejadas
   const originalService = JSON.parse(JSON.stringify(demonstrationData[index]));
   
+  // Sanitizar os dados para garantir consistência
+  const sanitizedData = { ...data };
+  if (sanitizedData.preco_base !== undefined) {
+    sanitizedData.preco_base = typeof sanitizedData.preco_base === 'string' 
+      ? parseFloat(sanitizedData.preco_base) 
+      : sanitizedData.preco_base;
+  }
+  
   // Atualizar o serviço preservando o ID original
   demonstrationData[index] = {
     ...originalService,
-    ...data,
+    ...sanitizedData,
     id: numericId // Garantir que o ID não seja alterado
   };
   
   console.log('updateDemonstrationService - Serviço atualizado:', demonstrationData[index]);
+  
+  // Atualizar também os dados originais para manter consistência
+  const originalIndex = serviceDefinitions.findIndex(service => service.id === numericId);
+  if (originalIndex !== -1) {
+    console.log('updateDemonstrationService - Atualizando também os dados originais para consistência');
+    serviceDefinitions[originalIndex] = {
+      ...serviceDefinitions[originalIndex],
+      ...sanitizedData,
+      id: numericId
+    };
+  }
+  
   return demonstrationData[index];
 };
 
