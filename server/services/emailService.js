@@ -1,7 +1,19 @@
 import nodemailer from 'nodemailer';
-import { log, logError } from '../utils/dbUtils.js';
-import { fileURLToPath } from 'url';
-import path from 'path';
+import winston from 'winston';
+
+// Configuração do logger
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(({ timestamp, level, message }) => `${timestamp} [${level.toUpperCase()}]: ${message}`)
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+  ],
+});
 
 /**
  * Cria e retorna o transportador SMTP configurado.
@@ -10,21 +22,24 @@ function createTransporter() {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE } = process.env;
 
   // Registrar as configurações SMTP para debug
-  log('Configurações SMTP: ' + 
-    `host: ${SMTP_HOST || 'não definido'}, ` +
-    `port: ${SMTP_PORT || 'não definido'}, ` +
-    `user: ${SMTP_USER ? 'definido' : 'não definido'}, ` +
-    `pass: ${SMTP_PASS ? 'definido' : 'não definido'}, ` +
-    `secure: ${SMTP_SECURE || 'não definido'}`, 
-    'debug', 'email'
-  );
+  logger.debug('Configurações SMTP:', {
+    host: SMTP_HOST || 'não definido',
+    port: SMTP_PORT || 'não definido',
+    user: SMTP_USER ? 'definido' : 'não definido',
+    pass: SMTP_PASS ? 'definido' : 'não definido',
+    secure: SMTP_SECURE || 'não definido'
+  });
 
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    logError('Configurações SMTP ausentes', new Error('Configurações SMTP ausentes. Verifique as variáveis de ambiente.'), 'email');
+    logger.error('Configurações SMTP ausentes');
     throw new Error('Configurações SMTP ausentes. Verifique as variáveis de ambiente.');
   }
 
-  log(`Criando transportador SMTP: host=${SMTP_HOST}, port=${SMTP_PORT}, secure=${SMTP_SECURE === 'true'}`, 'debug', 'email');
+  logger.debug('Criando transportador SMTP', {
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE === 'true',
+  });
 
   // Converter string 'true'/'false' para boolean
   const secure = SMTP_SECURE === 'true';
@@ -50,14 +65,14 @@ function createTransporter() {
  * @returns {Promise<Object>} - Resultado do envio.
  */
 export async function sendEmail(options) {
-  log(`Iniciando envio de e-mail para ${options.to}: ${options.subject}`, 'info', 'email');
+  logger.info('Iniciando envio de e-mail', { to: options.to, subject: options.subject });
   
   try {
     // Verificar se as configurações SMTP estão disponíveis
     const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
     
     if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-      log('Configurações SMTP ausentes. Salvando mensagem localmente.', 'warn', 'email');
+      logger.warn('Configurações SMTP ausentes. Salvando mensagem localmente.');
       
       // Salvar a mensagem em um arquivo local como fallback
       await saveMessageToFile({
@@ -87,11 +102,14 @@ export async function sendEmail(options) {
       html: options.html,
     };
     
-    log(`Enviando e-mail: ${JSON.stringify({to: options.to, subject: options.subject})}`, 'debug', 'email');
+    logger.debug('Enviando e-mail', mailOptions);
     
     const info = await transporter.sendMail(mailOptions);
     
-    log(`E-mail enviado com sucesso: messageId=${info.messageId}, response=${info.response}`, 'info', 'email');
+    logger.info('E-mail enviado com sucesso', {
+      messageId: info.messageId,
+      response: info.response,
+    });
     
     return {
       success: true,
@@ -99,11 +117,11 @@ export async function sendEmail(options) {
       mode: 'smtp'
     };
   } catch (error) {
-    logError('Erro ao enviar e-mail', error, 'email', { to: options.to, subject: options.subject });
+    logger.error('Erro ao enviar e-mail', { error: error.message, stack: error.stack });
     
     // Tentar salvar localmente em caso de falha no envio
     try {
-      log('Tentando salvar mensagem localmente após falha no envio SMTP', 'info', 'email');
+      logger.info('Tentando salvar mensagem localmente após falha no envio SMTP');
       
       await saveMessageToFile({
         to: options.to,
@@ -122,7 +140,7 @@ export async function sendEmail(options) {
         mode: 'local'
       };
     } catch (saveError) {
-      logError('Falha ao salvar mensagem localmente', saveError, 'email');
+      logger.error('Falha ao salvar mensagem localmente', { error: saveError.message });
       throw new Error('Não foi possível enviar o e-mail nem salvar localmente: ' + error.message);
     }
   }
@@ -156,11 +174,11 @@ async function saveMessageToFile(message) {
     // Salvar mensagem como JSON
     await fs.writeFile(filePath, JSON.stringify(message, null, 2), 'utf8');
     
-    log(`Mensagem salva com sucesso em arquivo local: ${filePath}`, 'info', 'email');
+    logger.info('Mensagem salva com sucesso em arquivo local', { filePath });
     
     return { success: true, filePath };
   } catch (error) {
-    logError('Erro ao salvar mensagem em arquivo', error, 'email');
+    logger.error('Erro ao salvar mensagem em arquivo', { error: error.message });
     throw error;
   }
 }

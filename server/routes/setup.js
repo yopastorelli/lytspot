@@ -1,5 +1,5 @@
 import express from 'express';
-import prisma from '../prisma/client.js';
+import userRepository from '../repositories/userRepository.js';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 
@@ -10,7 +10,7 @@ const router = express.Router();
 /**
  * Endpoint temporário para criar um usuário administrador
  * IMPORTANTE: Este endpoint deve ser removido após o uso inicial
- * @version 1.0.0 - 2025-03-12
+ * @version 1.1.0 - 2025-03-14 - Refatorado para usar userRepository
  */
 router.post('/create-admin', async (req, res) => {
   try {
@@ -22,24 +22,15 @@ router.post('/create-admin', async (req, res) => {
     }
     
     // Verificar se já existe um usuário com o email admin@lytspot.com.br
-    const usuarioExistente = await prisma.user.findUnique({
-      where: {
-        email: 'admin@lytspot.com.br'
-      }
-    });
+    const usuarioExistente = await userRepository.findByEmail('admin@lytspot.com.br');
     
     if (usuarioExistente) {
       // Atualizar a senha do usuário existente
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash('Black&Red2025', salt);
       
-      await prisma.user.update({
-        where: {
-          email: 'admin@lytspot.com.br'
-        },
-        data: {
-          password: hashedPassword
-        }
+      await userRepository.update(usuarioExistente.id, {
+        senha: hashedPassword
       });
       
       return res.status(200).json({ 
@@ -53,17 +44,15 @@ router.post('/create-admin', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('Black&Red2025', salt);
     
-    const novoUsuario = await prisma.user.create({
-      data: {
-        email: 'admin@lytspot.com.br',
-        password: hashedPassword,
-        nome: 'Administrador',
-        role: 'ADMIN'
-      }
+    const novoUsuario = await userRepository.create({
+      email: 'admin@lytspot.com.br',
+      senha: hashedPassword,
+      nome: 'Administrador',
+      role: 'ADMIN'
     });
     
     // Remover a senha do objeto de resposta
-    const { password: _, ...usuarioSemSenha } = novoUsuario;
+    const { senha: _, ...usuarioSemSenha } = novoUsuario;
     
     return res.status(201).json({ 
       message: 'Usuário administrador criado com sucesso',
@@ -93,17 +82,8 @@ router.post('/check-users', async (req, res) => {
       return res.status(403).json({ message: 'Acesso não autorizado' });
     }
     
-    // Buscar todos os usuários (sem retornar as senhas)
-    const usuarios = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        nome: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    });
+    // Buscar todos os usuários
+    const usuarios = await userRepository.findAll();
     
     return res.status(200).json({ 
       message: `${usuarios.length} usuários encontrados`,
