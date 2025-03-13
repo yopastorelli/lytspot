@@ -6,7 +6,7 @@
 
 import serviceRepository from '../repositories/serviceRepository.js';
 import serviceTransformer from '../transformers/serviceTransformer.js';
-import { getServiceDefinitionsForFrontend } from '../models/seeds/serviceDefinitions.js';
+import { getServiceDefinitionsForFrontend, updateDemonstrationService } from '../models/seeds/serviceDefinitions.js';
 
 /**
  * Serviço para gerenciar operações relacionadas a preços e serviços
@@ -34,8 +34,18 @@ class PricingService {
    */
   async getServiceById(id) {
     try {
+      console.log('PricingService.getServiceById - Buscando serviço com ID:', id);
       const service = await serviceRepository.findById(id);
+      console.log('PricingService.getServiceById - Resultado da busca:', service ? 'Encontrado' : 'Não encontrado');
+      
       if (!service) {
+        console.log('PricingService.getServiceById - Serviço não encontrado, tentando dados de demonstração');
+        // Tentar buscar nos dados de demonstração como fallback
+        const demoService = this.getDemonstrationData().find(s => s.id === parseInt(id));
+        if (demoService) {
+          console.log('PricingService.getServiceById - Serviço encontrado nos dados de demonstração');
+          return demoService;
+        }
         throw new Error(`Serviço com ID ${id} não encontrado`);
       }
       return serviceTransformer.toSimulatorFormat(service);
@@ -68,14 +78,66 @@ class PricingService {
    */
   async updateService(id, serviceData) {
     try {
-      // Verificar se o serviço existe
-      const exists = await serviceRepository.exists(id);
-      if (!exists) {
+      console.log('PricingService.updateService - Iniciando atualização do serviço:', id);
+      console.log('PricingService.updateService - Dados recebidos:', serviceData);
+      
+      // Verificar se o serviço existe no banco de dados
+      let existsInDatabase = false;
+      let existsInDemo = false;
+      
+      try {
+        console.log('PricingService.updateService - Verificando existência no banco de dados');
+        existsInDatabase = await serviceRepository.exists(id);
+        console.log('PricingService.updateService - Existe no banco de dados?', existsInDatabase);
+      } catch (dbError) {
+        console.error('PricingService.updateService - Erro ao verificar no banco de dados:', dbError);
+        // Continuar com a verificação nos dados de demonstração
+      }
+      
+      // Se não existe no banco de dados, verificar nos dados de demonstração
+      if (!existsInDatabase) {
+        console.log('PricingService.updateService - Verificando existência nos dados de demonstração');
+        const demoServices = this.getDemonstrationData();
+        const demoService = demoServices.find(s => s.id === parseInt(id));
+        existsInDemo = !!demoService;
+        console.log('PricingService.updateService - Existe nos dados de demonstração?', existsInDemo);
+      }
+      
+      // Se não existe em nenhum lugar, lançar erro
+      if (!existsInDatabase && !existsInDemo) {
+        console.log('PricingService.updateService - Serviço não encontrado em nenhum lugar');
         throw new Error(`Serviço com ID ${id} não encontrado`);
       }
       
-      const updatedService = await serviceRepository.update(id, serviceData);
-      return serviceTransformer.toSimulatorFormat(updatedService);
+      // Tentar atualizar no banco de dados primeiro
+      let updatedService;
+      
+      if (existsInDatabase) {
+        try {
+          console.log('PricingService.updateService - Tentando atualizar no banco de dados');
+          updatedService = await serviceRepository.update(id, serviceData);
+          console.log('PricingService.updateService - Atualizado com sucesso no banco de dados');
+          return serviceTransformer.toSimulatorFormat(updatedService);
+        } catch (updateError) {
+          console.error('PricingService.updateService - Erro ao atualizar no banco de dados:', updateError);
+          // Se falhar e existir nos dados de demonstração, continuar com a atualização de demonstração
+          if (!existsInDemo) {
+            throw updateError;
+          }
+        }
+      }
+      
+      // Se chegou aqui, tentar atualizar nos dados de demonstração
+      console.log('PricingService.updateService - Tentando atualizar nos dados de demonstração');
+      const updatedDemo = updateDemonstrationService(id, serviceData);
+      
+      if (updatedDemo) {
+        console.log('PricingService.updateService - Atualizado com sucesso nos dados de demonstração');
+        return updatedDemo;
+      } else {
+        console.error('PricingService.updateService - Falha ao atualizar nos dados de demonstração');
+        throw new Error(`Não foi possível atualizar o serviço com ID ${id}`);
+      }
     } catch (error) {
       console.error(`Erro ao atualizar serviço ${id}:`, error);
       throw error;

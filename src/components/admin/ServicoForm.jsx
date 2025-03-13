@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 /**
  * Componente de formulário para adicionar e editar serviços
- * @version 1.3.1 - 2025-03-12 - Corrigido problema de recebimento de dados para edição
+ * @version 1.4.0 - 2025-03-12 - Corrigido problema de formato de dados para edição
  */
 const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
   // Estado para armazenar os dados do formulário
@@ -96,6 +96,19 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
       erros.preco_base = 'O preço base deve ser um número válido';
     }
     
+    // Validar campos obrigatórios para o banco de dados
+    if (!formData.duracao_media_captura.trim()) {
+      erros.duracao_media_captura = 'A duração média de captura é obrigatória';
+    }
+    
+    if (!formData.duracao_media_tratamento.trim()) {
+      erros.duracao_media_tratamento = 'A duração média de tratamento é obrigatória';
+    }
+    
+    if (!formData.entregaveis.trim()) {
+      erros.entregaveis = 'Os entregáveis são obrigatórios';
+    }
+    
     // Atualizar estado de erros
     setErrosValidacao(erros);
     
@@ -115,27 +128,18 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
     try {
       setLoadingInterno(true);
       
-      // Formatar os dados para envio
-      // Criamos uma estrutura compatível com o formato do PriceSimulator 2.8.0
+      // Formatar os dados para envio no formato esperado pelo backend
       const dadosFormatados = {
-        ...formData,
+        id: formData.id, // Manter o ID para edição
+        nome: formData.nome,
+        descricao: formData.descricao,
         preco_base: parseFloat(formData.preco_base),
-        // Calcular duração média para compatibilidade com o PriceSimulator
-        duracao_media: Math.ceil((
-          parseInt(formData.duracao_media_captura.split(' ')[0] || 0) + 
-          parseInt(formData.duracao_media_tratamento.split(' ')[0] || 0)
-        ) / 2) || 3, // valor padrão de 3 dias se não conseguir calcular
-        // Adicionar a estrutura de detalhes para compatibilidade com PriceSimulator 2.8.0
-        detalhes: {
-          captura: formData.duracao_media_captura,
-          tratamento: formData.duracao_media_tratamento,
-          entregaveis: formData.entregaveis,
-          adicionais: formData.possiveis_adicionais,
-          deslocamento: formData.valor_deslocamento
-        }
+        duracao_media_captura: formData.duracao_media_captura || '',
+        duracao_media_tratamento: formData.duracao_media_tratamento || '',
+        entregaveis: formData.entregaveis || '',
+        possiveis_adicionais: formData.possiveis_adicionais || '',
+        valor_deslocamento: formData.valor_deslocamento || ''
       };
-      
-      // Manter os campos originais para compatibilidade com o banco de dados
       
       // Chamar a função de callback com os dados do formulário
       await onSave(dadosFormatados);
@@ -221,7 +225,7 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
         {/* Duração média de captura */}
         <div>
           <label htmlFor="duracao_media_captura" className="block text-sm font-medium text-gray-700 mb-1">
-            Duração Média de Captura
+            Duração Média de Captura *
           </label>
           <input
             type="text"
@@ -229,16 +233,21 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
             name="duracao_media_captura"
             value={formData.duracao_media_captura}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={`w-full px-4 py-2 border rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              errosValidacao.duracao_media_captura ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder="Ex: 2 horas"
             disabled={isLoading}
           />
+          {errosValidacao.duracao_media_captura && (
+            <p className="mt-1 text-sm text-red-600">{errosValidacao.duracao_media_captura}</p>
+          )}
         </div>
         
         {/* Duração média de tratamento */}
         <div>
           <label htmlFor="duracao_media_tratamento" className="block text-sm font-medium text-gray-700 mb-1">
-            Duração Média de Tratamento
+            Duração Média de Tratamento *
           </label>
           <input
             type="text"
@@ -246,17 +255,22 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
             name="duracao_media_tratamento"
             value={formData.duracao_media_tratamento}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={`w-full px-4 py-2 border rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              errosValidacao.duracao_media_tratamento ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder="Ex: 3 dias"
             disabled={isLoading}
           />
+          {errosValidacao.duracao_media_tratamento && (
+            <p className="mt-1 text-sm text-red-600">{errosValidacao.duracao_media_tratamento}</p>
+          )}
         </div>
       </div>
       
       {/* Entregáveis */}
       <div>
         <label htmlFor="entregaveis" className="block text-sm font-medium text-gray-700 mb-1">
-          Entregáveis
+          Entregáveis *
         </label>
         <textarea
           id="entregaveis"
@@ -264,10 +278,15 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
           value={formData.entregaveis}
           onChange={handleChange}
           rows={3}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className={`w-full px-4 py-2 border rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+            errosValidacao.entregaveis ? 'border-red-500' : 'border-gray-300'
+          }`}
           placeholder="Ex: 20 fotos editadas em alta resolução, álbum digital..."
           disabled={isLoading}
         />
+        {errosValidacao.entregaveis && (
+          <p className="mt-1 text-sm text-red-600">{errosValidacao.entregaveis}</p>
+        )}
       </div>
       
       {/* Possíveis adicionais */}

@@ -153,7 +153,11 @@ export const pricingController = {
     try {
       const { id } = req.params;
       
+      console.log('=== DEBUG updateService ===');
+      console.log('Parâmetros recebidos:', { id, body: req.body });
+      
       if (!id || isNaN(parseInt(id))) {
+        console.log('ID inválido:', id);
         return res.status(400).json({ message: 'ID de serviço inválido' });
       }
       
@@ -161,6 +165,7 @@ export const pricingController = {
       const validationResult = serviceValidator.validate(req.body);
       
       if (!validationResult.isValid) {
+        console.log('Validação falhou:', validationResult.errors);
         return res.status(400).json({ 
           message: 'Dados de serviço inválidos',
           errors: validationResult.errors
@@ -168,6 +173,15 @@ export const pricingController = {
       }
       
       try {
+        console.log('Tentando atualizar serviço com ID:', parseInt(id));
+        // Verificar se o serviço existe antes de tentar atualizar
+        const servicoExistente = await pricingService.getServiceById(parseInt(id));
+        console.log('Serviço existente:', servicoExistente ? 'Encontrado' : 'Não encontrado');
+        
+        if (!servicoExistente) {
+          return res.status(404).json({ message: 'Serviço não encontrado' });
+        }
+        
         // Atualizar serviço através do serviço
         const servicoAtualizado = await pricingService.updateService(parseInt(id), req.body);
         
@@ -175,15 +189,17 @@ export const pricingController = {
         clearCache('/api/pricing');
         clearCache(`/api/pricing/${id}`);
         
+        console.log('Serviço atualizado com sucesso:', servicoAtualizado);
         return res.status(200).json(servicoAtualizado);
       } catch (error) {
-        if (error.message.includes('não encontrado')) {
+        console.error('Erro específico na atualização:', error);
+        if (error.message && error.message.includes('não encontrado')) {
           return res.status(404).json({ message: 'Serviço não encontrado' });
         }
         throw error;
       }
     } catch (error) {
-      console.error('Erro ao atualizar serviço:', error);
+      console.error('Erro geral ao atualizar serviço:', error);
       return res.status(500).json({ 
         message: 'Erro ao atualizar serviço',
         error: environment.IS_DEVELOPMENT ? error.message : undefined

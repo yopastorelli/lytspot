@@ -62,11 +62,28 @@ export const authController = {
       const { email, password } = req.body;
       
       // Buscar o usuário pelo email
-      const usuario = await prisma.user.findUnique({
-        where: {
-          email
+      let usuario;
+      try {
+        usuario = await prisma.user.findUnique({
+          where: {
+            email
+          }
+        });
+      } catch (dbError) {
+        // Verificar se o erro é relacionado à coluna 'role'
+        if (dbError.code === 'P2022' && (dbError.meta?.column === 'role' || dbError.meta?.column === 'main.User.role')) {
+          console.log('Detectado problema com a coluna "role". Tentando consulta alternativa...');
+          
+          // Consulta alternativa usando select explícito para evitar o campo 'role'
+          const result = await prisma.$queryRaw`SELECT id, email, password, nome FROM User WHERE email = ${email}`;
+          
+          if (result && result.length > 0) {
+            usuario = result[0];
+          }
+        } else {
+          throw dbError;
         }
-      });
+      }
       
       if (!usuario) {
         return res.status(401).json({ message: 'Credenciais inválidas' });
@@ -111,11 +128,28 @@ export const authController = {
       // e adicionou o usuário decodificado à requisição
       
       // Buscar o usuário atualizado pelo ID
-      const usuario = await prisma.user.findUnique({
-        where: {
-          id: req.user.id
+      let usuario;
+      try {
+        usuario = await prisma.user.findUnique({
+          where: {
+            id: req.user.id
+          }
+        });
+      } catch (dbError) {
+        // Verificar se o erro é relacionado à coluna 'role'
+        if (dbError.code === 'P2022' && (dbError.meta?.column === 'role' || dbError.meta?.column === 'main.User.role')) {
+          console.log('Detectado problema com a coluna "role" na verificação de token. Tentando consulta alternativa...');
+          
+          // Consulta alternativa usando select explícito para evitar o campo 'role'
+          const result = await prisma.$queryRaw`SELECT id, email, password, nome FROM User WHERE id = ${req.user.id}`;
+          
+          if (result && result.length > 0) {
+            usuario = result[0];
+          }
+        } else {
+          throw dbError;
         }
-      });
+      }
       
       if (!usuario) {
         return res.status(404).json({ message: 'Usuário não encontrado' });
@@ -134,3 +168,51 @@ export const authController = {
     }
   }
 };
+
+/**
+ * Função para verificar um token JWT e retornar os dados do usuário
+ * @param {string} token - Token JWT a ser verificado
+ * @returns {Promise<Object>} - Dados do usuário decodificado
+ */
+export async function verifyToken(token) {
+  try {
+    // Verificar o token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'f23e126b7f99a3e4553c65b3f558cb6a');
+    
+    // Buscar o usuário atualizado pelo ID
+    let usuario;
+    try {
+      usuario = await prisma.user.findUnique({
+        where: {
+          id: decoded.id
+        }
+      });
+    } catch (dbError) {
+      // Verificar se o erro é relacionado à coluna 'role'
+      if (dbError.code === 'P2022' && (dbError.meta?.column === 'role' || dbError.meta?.column === 'main.User.role')) {
+        console.log('Detectado problema com a coluna "role" na verificação de token. Tentando consulta alternativa...');
+        
+        // Consulta alternativa usando select explícito para evitar o campo 'role'
+        const result = await prisma.$queryRaw`SELECT id, email, password, nome FROM User WHERE id = ${decoded.id}`;
+        
+        if (result && result.length > 0) {
+          usuario = result[0];
+        }
+      } else {
+        throw dbError;
+      }
+    }
+    
+    if (!usuario) {
+      throw new Error('Usuário não encontrado');
+    }
+    
+    // Remover a senha do objeto de resposta
+    const { password: _, ...usuarioSemSenha } = usuario;
+    
+    return usuarioSemSenha;
+  } catch (error) {
+    console.error('Erro ao verificar token:', error);
+    throw error;
+  }
+}

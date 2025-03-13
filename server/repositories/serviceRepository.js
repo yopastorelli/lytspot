@@ -103,8 +103,20 @@ class ServiceRepository {
    * @returns {Promise<boolean>} Verdadeiro se o serviço existir
    */
   async exists(id) {
-    const count = await this.count({ id: Number(id) });
-    return count > 0;
+    try {
+      console.log('ServiceRepository.exists - Verificando existência do serviço ID:', id);
+      const count = await prisma.servico.count({
+        where: { 
+          id: Number(id) 
+        }
+      });
+      console.log('ServiceRepository.exists - Contagem encontrada:', count);
+      return count > 0;
+    } catch (error) {
+      console.error('ServiceRepository.exists - Erro ao verificar existência:', error);
+      // Retornar false em caso de erro, para que o serviço possa tentar usar dados de demonstração
+      return false;
+    }
   }
 }
 

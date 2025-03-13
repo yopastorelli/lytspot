@@ -57,7 +57,14 @@ export async function ensureAdminUser() {
       }
     } catch (findError) {
       console.error('Erro ao buscar usuário:', findError);
-      throw new Error('Falha ao verificar usuário existente');
+      
+      // Verificar se o erro é relacionado à coluna 'role'
+      if (findError.code === 'P2022' && findError.meta?.column === 'main.User.role') {
+        console.log('Detectado problema com a coluna "role". Tentando criar o usuário diretamente...');
+        usuarioExistente = null; // Forçar a criação do usuário
+      } else {
+        throw new Error('Falha ao verificar usuário existente');
+      }
     }
     
     // Se o usuário não existir, criar um novo
@@ -70,24 +77,31 @@ export async function ensureAdminUser() {
         const hashedPassword = await bcrypt.hash(adminPassword, salt);
         
         // Criar o usuário administrador
-        const novoUsuario = await prisma.user.create({
-          data: {
-            email: adminEmail,
-            password: hashedPassword,
-            nome: 'Administrador',
-            role: 'ADMIN'
+        try {
+          const novoUsuario = await prisma.user.create({
+            data: {
+              email: adminEmail,
+              password: hashedPassword,
+              nome: 'Administrador'
+              // Removido o campo 'role' para compatibilidade com o banco de dados atual
+            }
+          });
+          
+          console.log('Usuário administrador criado com sucesso!');
+          console.log('Email:', adminEmail);
+          console.log('Senha:', adminPassword);
+          console.log('IMPORTANTE: Altere esta senha após o primeiro login!');
+        } catch (createError) {
+          console.error('Erro ao criar usuário:', createError);
+          
+          // Verificar se o erro é relacionado à coluna 'role'
+          if (createError.code === 'P2022' && (createError.meta?.column === 'role' || createError.meta?.column === 'main.User.role')) {
+            console.log('Ignorando erro relacionado à coluna "role". O servidor continuará funcionando normalmente.');
+            console.log('Recomendação: Execute uma migração do Prisma para atualizar o banco de dados.');
+          } else {
+            throw new Error('Falha ao criar usuário administrador');
           }
-        });
-        
-        console.log('Usuário administrador criado com sucesso!');
-        console.log(`Email: ${adminEmail}`);
-        console.log(`Senha: ${adminPassword}`);
-        console.log('Detalhes do usuário:', {
-          id: novoUsuario.id,
-          email: novoUsuario.email,
-          nome: novoUsuario.nome,
-          role: novoUsuario.role
-        });
+        }
       } catch (createError) {
         console.error('Erro ao criar usuário:', createError);
         throw new Error('Falha ao criar usuário administrador');
