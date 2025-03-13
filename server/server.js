@@ -17,12 +17,6 @@ import { authenticateJWT } from './middleware/auth.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Imprimir informações sobre o banco de dados
-console.log('📊 DATABASE_URL:', process.env.DATABASE_URL);
-const dbPath = process.env.DATABASE_URL ? process.env.DATABASE_URL.replace('file:', '') : 'não definido';
-console.log('📊 Caminho do banco de dados:', dbPath);
-console.log('📊 Caminho absoluto:', path.resolve(__dirname, dbPath));
-
 // Configuração manual das variáveis de ambiente críticas
 process.env.PORT = '3000';
 process.env.JWT_SECRET = 'f23e126b7f99a3e4553c65b3f558cb6a';
