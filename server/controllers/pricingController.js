@@ -1,7 +1,11 @@
 /**
  * Controlador de Preços
- * @description Gerencia as requisições relacionadas a serviços e preços
- * @version 2.1.0 - 2025-03-12 - Adicionado mecanismo de fallback para dados de demonstração
+ * 
+ * Responsável por gerenciar as operações relacionadas a serviços e preços,
+ * incluindo listagem, criação, atualização, exclusão e cálculo de preços.
+ * 
+ * @version 1.5.0 - 2025-03-12 - Melhorada a validação e sanitização de dados na atualização de serviços
+ * @module controllers/pricingController
  */
 
 import pricingService from '../services/pricingService.js';
@@ -148,6 +152,11 @@ export const pricingController = {
 
   /**
    * Atualizar um serviço existente
+   * 
+   * @version 1.2.0 - 2025-03-12 - Melhorada a validação e tratamento de erros
+   * @param {Object} req - Objeto de requisição Express
+   * @param {Object} res - Objeto de resposta Express
+   * @returns {Object} Resposta com o serviço atualizado ou mensagem de erro
    */
   updateService: async (req, res) => {
     try {

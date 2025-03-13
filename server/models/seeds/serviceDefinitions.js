@@ -206,7 +206,22 @@ export const getServiceDefinitionsForFrontend = () => {
 };
 
 /**
+ * Definições de serviços para o sistema
+ * 
+ * Este módulo contém as definições padrão de serviços utilizadas como dados de demonstração
+ * e para inicialização do banco de dados.
+ * 
+ * @version 1.3.0 - 2025-03-12 - Melhorada a função de atualização de serviços de demonstração
+ * @module models/seeds/serviceDefinitions
+ */
+
+/**
  * Atualiza um serviço nos dados de demonstração
+ * 
+ * Esta função permite atualizar um serviço nos dados de demonstração, mantendo
+ * a consistência entre os dados de demonstração e os dados originais.
+ * 
+ * @version 1.2.0 - 2025-03-12 - Melhorada a sanitização de dados e persistência das alterações
  * @param {number|string} id ID do serviço
  * @param {Object} data Novos dados do serviço
  * @returns {Object|null} Serviço atualizado ou null se não encontrado

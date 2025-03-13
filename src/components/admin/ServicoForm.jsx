@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 
 /**
  * Componente de formulário para adicionar e editar serviços
- * @version 1.4.0 - 2025-03-12 - Corrigido problema de formato de dados para edição
+ * 
+ * Este componente fornece uma interface para adicionar novos serviços ou editar serviços existentes.
+ * Implementa validação de campos obrigatórios e formatação de dados para envio ao backend.
+ * 
+ * @version 1.5.0 - 2025-03-12 - Melhorada a validação e formatação de dados para compatibilidade com o backend
  */
 const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
   // Estado para armazenar os dados do formulário

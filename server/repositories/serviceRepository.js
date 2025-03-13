@@ -1,7 +1,11 @@
 /**
- * Repositório de Serviços
- * @description Encapsula todas as operações de banco de dados relacionadas a serviços
- * @version 1.0.0 - 2025-03-12
+ * Repositório para acesso a dados de serviços
+ * 
+ * Responsável por encapsular o acesso ao banco de dados para operações relacionadas a serviços,
+ * incluindo listagem, criação, atualização, exclusão e consultas.
+ * 
+ * @version 1.4.0 - 2025-03-12 - Melhorado o método de criação com sanitização de dados
+ * @module repositories/serviceRepository
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -57,15 +61,32 @@ class ServiceRepository {
 
   /**
    * Cria um novo serviço
+   * 
+   * @version 1.1.0 - 2025-03-12 - Adicionada sanitização de dados
    * @param {Object} data Dados do serviço
    * @returns {Promise<Object>} Serviço criado
    */
   async create(data) {
-    return prisma.servico.create({ data });
+    try {
+      console.log('ServiceRepository.create - Iniciando criação de serviço');
+      console.log('ServiceRepository.create - Dados recebidos:', data);
+      
+      // Sanitizar dados antes de criar
+      const sanitizedData = this.sanitizeServiceData(data);
+      console.log('ServiceRepository.create - Dados sanitizados:', sanitizedData);
+      
+      // Criar serviço com dados sanitizados
+      return prisma.servico.create({ data: sanitizedData });
+    } catch (error) {
+      console.error('ServiceRepository.create - Erro ao criar serviço:', error);
+      throw error;
+    }
   }
 
   /**
    * Atualiza um serviço
+   * 
+   * @version 1.3.0 - 2025-03-12 - Refatorado para usar a função sanitizeServiceData
    * @param {number} id ID do serviço
    * @param {Object} data Dados atualizados
    * @returns {Promise<Object>} Serviço atualizado
@@ -85,24 +106,15 @@ class ServiceRepository {
         throw new Error(`Serviço com ID ${numericId} não encontrado`);
       }
       
-      // Garantir que preco_base seja um número
-      const sanitizedData = { ...data };
-      if (sanitizedData.preco_base !== undefined) {
-        sanitizedData.preco_base = typeof sanitizedData.preco_base === 'string' 
-          ? parseFloat(sanitizedData.preco_base) 
-          : sanitizedData.preco_base;
-      }
-      
+      // Sanitizar dados antes de atualizar
+      const sanitizedData = this.sanitizeServiceData(data);
       console.log('ServiceRepository.update - Dados sanitizados:', sanitizedData);
       
-      // Atualizar o serviço
-      const updatedService = await prisma.servico.update({
+      // Atualizar serviço com dados sanitizados
+      return prisma.servico.update({
         where: { id: numericId },
         data: sanitizedData
       });
-      
-      console.log('ServiceRepository.update - Serviço atualizado com sucesso:', updatedService);
-      return updatedService;
     } catch (error) {
       console.error('ServiceRepository.update - Erro ao atualizar serviço:', error);
       throw error;
@@ -149,6 +161,52 @@ class ServiceRepository {
       // Retornar false em caso de erro, para que o serviço possa tentar usar dados de demonstração
       return false;
     }
+  }
+
+  /**
+   * Sanitiza os dados de um serviço para garantir compatibilidade com o banco de dados
+   * 
+   * @version 1.0.0 - 2025-03-12
+   * @param {Object} data Dados do serviço
+   * @returns {Object} Dados sanitizados
+   */
+  sanitizeServiceData(data) {
+    // Criar uma cópia dos dados para não modificar o objeto original
+    const sanitized = { ...data };
+    
+    // Converter preço base para número
+    if (sanitized.preco_base !== undefined && sanitized.preco_base !== null) {
+      sanitized.preco_base = parseFloat(sanitized.preco_base);
+      
+      // Se o parseFloat retornar NaN, definir como 0
+      if (isNaN(sanitized.preco_base)) {
+        sanitized.preco_base = 0;
+      }
+    }
+    
+    // Garantir que campos de string não sejam undefined
+    const stringFields = [
+      'nome', 
+      'descricao', 
+      'duracao_media_captura', 
+      'duracao_media_tratamento', 
+      'entregaveis', 
+      'possiveis_adicionais', 
+      'valor_deslocamento'
+    ];
+    
+    stringFields.forEach(field => {
+      if (sanitized[field] === undefined) {
+        sanitized[field] = '';
+      }
+    });
+    
+    // Remover campos que não pertencem ao modelo Servico
+    delete sanitized.id;
+    delete sanitized.detalhes;
+    delete sanitized.duracao_media;
+    
+    return sanitized;
   }
 }
 

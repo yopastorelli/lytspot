@@ -1,7 +1,11 @@
 /**
- * Serviço de Preços
- * @description Implementa a lógica de negócios relacionada a preços e serviços
- * @version 1.0.0 - 2025-03-12
+ * Serviço para gerenciamento de preços e serviços
+ * 
+ * Responsável por implementar a lógica de negócios relacionada a serviços e preços,
+ * incluindo listagem, criação, atualização, exclusão e cálculo de preços.
+ * 
+ * @version 1.5.0 - 2025-03-12 - Melhorada a sanitização de dados e tratamento de erros na atualização de serviços
+ * @module services/pricingService
  */
 
 import serviceRepository from '../repositories/serviceRepository.js';
@@ -72,6 +76,8 @@ class PricingService {
 
   /**
    * Atualiza um serviço existente
+   * 
+   * @version 1.2.0 - 2025-03-12 - Melhorada a sanitização de dados e tratamento de erros
    * @param {number} id ID do serviço
    * @param {Object} serviceData Dados atualizados
    * @returns {Promise<Object>} Serviço atualizado e formatado para o frontend

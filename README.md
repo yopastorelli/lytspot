@@ -1,54 +1,99 @@
-# Astro Starter Kit: Basics
+# Lytspot
 
-```sh
-npm create astro@latest -- --template basics
-```
+Sistema de gerenciamento de serviços fotográficos e simulação de preços.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/basics)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/basics/devcontainer.json)
+## 📋 Descrição
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Lytspot é uma plataforma completa para gerenciamento de serviços fotográficos, permitindo a administração de serviços, simulação de preços para clientes e agendamento de sessões. O sistema é composto por um frontend desenvolvido com Astro e React, e um backend em Node.js com Express e Prisma.
 
-![just-the-basics](https://github.com/withastro/astro/assets/2244813/a0a5533c-a856-4198-8470-2d67b1d7c554)
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
+## 🚀 Estrutura do Projeto
 
 ```text
 /
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── components/
-│   │   └── Card.astro
-│   ├── layouts/
-│   │   └── Layout.astro
-│   └── pages/
-│       └── index.astro
-└── package.json
+├── public/              # Arquivos estáticos
+├── server/              # Backend da aplicação
+│   ├── config/          # Configurações do servidor
+│   ├── controllers/     # Controladores da API
+│   ├── middlewares/     # Middlewares Express
+│   ├── models/          # Definições de modelos e seeds
+│   ├── repositories/    # Acesso ao banco de dados
+│   ├── scripts/         # Scripts utilitários
+│   ├── services/        # Lógica de negócios
+│   ├── transformers/    # Transformação de dados
+│   └── server.js        # Ponto de entrada do servidor
+├── src/                 # Frontend da aplicação
+│   ├── components/      # Componentes React/Astro
+│   ├── layouts/         # Layouts Astro
+│   ├── pages/           # Páginas Astro
+│   └── services/        # Serviços do frontend
+└── package.json         # Dependências do projeto
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## 🔧 Tecnologias Utilizadas
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+- **Frontend**: Astro, React, Tailwind CSS
+- **Backend**: Node.js, Express, Prisma
+- **Banco de Dados**: PostgreSQL
+- **Autenticação**: Firebase Auth
+- **Implantação**: Vercel (frontend), Render (backend)
 
-Any static assets, like images, can be placed in the `public/` directory.
+## 🧞 Comandos
 
-## 🧞 Commands
+Todos os comandos são executados a partir da raiz do projeto:
 
-All commands are run from the root of the project, from a terminal:
+| Comando                   | Ação                                                  |
+| :------------------------ | :---------------------------------------------------- |
+| `npm install`             | Instala as dependências                               |
+| `npm run dev`             | Inicia o servidor de desenvolvimento em `localhost:4321` |
+| `npm run build`           | Compila o site para produção em `./dist/`             |
+| `npm run preview`         | Visualiza a compilação localmente antes de implantar  |
+| `npm run server:dev`      | Inicia o servidor backend em `localhost:3001`         |
+| `npm run server:build`    | Compila o servidor para produção                      |
+| `npm run server:start`    | Inicia o servidor backend em modo produção            |
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+## 📚 API Endpoints
 
-## 👀 Want to learn more?
+### Serviços
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- `GET /api/pricing` - Lista todos os serviços disponíveis
+- `GET /api/pricing/:id` - Obtém detalhes de um serviço específico
+- `POST /api/pricing` - Cria um novo serviço (requer autenticação)
+- `PUT /api/pricing/:id` - Atualiza um serviço existente (requer autenticação)
+- `DELETE /api/pricing/:id` - Remove um serviço (requer autenticação)
+
+### Simulação de Preços
+
+- `POST /api/pricing/calculate` - Calcula o preço de um serviço com base nas opções selecionadas
+
+### Autenticação
+
+- `POST /api/auth/login` - Autentica um usuário
+- `POST /api/auth/register` - Registra um novo usuário
+- `GET /api/auth/me` - Obtém informações do usuário atual (requer autenticação)
+
+### Utilitários
+
+- `GET /api/health` - Verifica o status da API e configuração CORS
+
+## 🔐 Autenticação
+
+O sistema utiliza Firebase Auth para autenticação segura. Todas as requisições para endpoints protegidos devem incluir um token JWT válido no cabeçalho `Authorization`.
+
+## 🌐 Ambientes
+
+O sistema suporta múltiplos ambientes de execução:
+
+- **Desenvolvimento**: Configurado para execução local
+- **Produção**: Otimizado para desempenho e segurança
+
+## 📝 Changelog
+
+Consulte o [CHANGELOG.md](./CHANGELOG.md) para ver o histórico de alterações do projeto.
+
+## 👥 Contribuição
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. Commit suas alterações (`git commit -m 'Adiciona nova feature'`)
+4. Push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request

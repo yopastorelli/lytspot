@@ -1,7 +1,7 @@
 /**
  * Validador de Serviços
  * @description Funções de validação para dados de serviços
- * @version 1.0.0 - 2025-03-12
+ * @version 1.1.0 - 2025-03-12 - Melhorada a validação para aceitar diferentes tipos de dados
  */
 
 /**
@@ -29,8 +29,8 @@ class ServiceValidator {
       errors.push('A descrição do serviço deve ter entre 10 e 500 caracteres');
     }
     
-    // Validar preço base
-    if (serviceData.preco_base === undefined || serviceData.preco_base === null) {
+    // Validar preço base - aceitar tanto string quanto número
+    if (serviceData.preco_base === undefined || serviceData.preco_base === null || serviceData.preco_base === '') {
       errors.push('O preço base do serviço é obrigatório');
     } else {
       const precoBase = parseFloat(serviceData.preco_base);
@@ -39,19 +39,26 @@ class ServiceValidator {
       }
     }
     
-    // Validar campos opcionais se estiverem presentes
-    if (serviceData.duracao_media_captura && typeof serviceData.duracao_media_captura !== 'string') {
+    // Validar campos obrigatórios adicionais
+    if (!serviceData.duracao_media_captura) {
+      errors.push('A duração média de captura é obrigatória');
+    } else if (typeof serviceData.duracao_media_captura !== 'string') {
       errors.push('A duração média de captura deve ser uma string');
     }
     
-    if (serviceData.duracao_media_tratamento && typeof serviceData.duracao_media_tratamento !== 'string') {
+    if (!serviceData.duracao_media_tratamento) {
+      errors.push('A duração média de tratamento é obrigatória');
+    } else if (typeof serviceData.duracao_media_tratamento !== 'string') {
       errors.push('A duração média de tratamento deve ser uma string');
     }
     
-    if (serviceData.entregaveis && typeof serviceData.entregaveis !== 'string') {
+    if (!serviceData.entregaveis) {
+      errors.push('Os entregáveis são obrigatórios');
+    } else if (typeof serviceData.entregaveis !== 'string') {
       errors.push('Os entregáveis devem ser uma string');
     }
     
+    // Validar campos opcionais se estiverem presentes
     if (serviceData.possiveis_adicionais && typeof serviceData.possiveis_adicionais !== 'string') {
       errors.push('Os possíveis adicionais devem ser uma string');
     }
