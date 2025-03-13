@@ -31,7 +31,7 @@ router.post('/create-admin', async (req, res) => {
     if (usuarioExistente) {
       // Atualizar a senha do usuário existente
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('admin123', salt);
+      const hashedPassword = await bcrypt.hash('Black&Red2025', salt);
       
       await prisma.user.update({
         where: {
@@ -45,13 +45,13 @@ router.post('/create-admin', async (req, res) => {
       return res.status(200).json({ 
         message: 'Senha do usuário administrador atualizada com sucesso',
         email: 'admin@lytspot.com.br',
-        password: 'admin123' // Apenas para uso inicial
+        password: 'Black&Red2025' // Apenas para uso inicial
       });
     }
     
     // Criar um novo usuário administrador
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('admin123', salt);
+    const hashedPassword = await bcrypt.hash('Black&Red2025', salt);
     
     const novoUsuario = await prisma.user.create({
       data: {
@@ -69,7 +69,7 @@ router.post('/create-admin', async (req, res) => {
       message: 'Usuário administrador criado com sucesso',
       user: usuarioSemSenha,
       email: 'admin@lytspot.com.br',
-      password: 'admin123' // Apenas para uso inicial
+      password: 'Black&Red2025' // Apenas para uso inicial
     });
   } catch (error) {
     console.error('Erro ao criar usuário administrador:', error);

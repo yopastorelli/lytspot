@@ -59,7 +59,7 @@ async function setup() {
     console.log('4. Acesse o painel administrativo em: http://localhost:4321/admin');
     console.log('\n🔐 Credenciais do painel administrativo:');
     console.log('Email: admin@lytspot.com.br.br');
-    console.log('Senha: admin123');
+    console.log('Senha: Black&Red2025');
     console.log('\n⚠️ IMPORTANTE: Altere a senha após o primeiro login!');
   } catch (error) {
     console.error('❌ Erro durante a configuração:', error);

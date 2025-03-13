@@ -30,7 +30,7 @@ async function createAdminUser() {
       
       // Criptografar a nova senha
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('admin123', salt);
+      const hashedPassword = await bcrypt.hash('Black&Red2025', salt);
       
       // Atualizar o usuário existente
       await prisma.user.update({
@@ -48,7 +48,7 @@ async function createAdminUser() {
       
       // Criptografar a senha
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('admin123', salt);
+      const hashedPassword = await bcrypt.hash('Black&Red2025', salt);
       
       // Criar o usuário administrador
       await prisma.user.create({

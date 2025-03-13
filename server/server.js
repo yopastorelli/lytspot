@@ -10,6 +10,7 @@ import syncRoutes from './routes/sync.js';
 import setupRoutes from './routes/setup.js';
 import cors from 'cors';
 import fs from 'fs';
+import { ensureAdminUser } from './scripts/ensureAdminUser.js';
 
 // Configuração para ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -75,7 +76,6 @@ if (process.env.NODE_ENV === 'production') {
 console.log("Inicializando o servidor...");
 
 const app = express();
-const port = 3000;
 const baseUrl = 'http://localhost:3000';
 
 // Configuração do logger
@@ -338,11 +338,20 @@ try {
   });
 
   // Inicialização do servidor
-  logger.info(`Tentando iniciar o servidor na porta ${port}...`);
-  console.log(`Tentando iniciar o servidor na porta ${port}...`);
-  app.listen(port, '0.0.0.0', () => {
-    logger.info(`Servidor backend rodando na porta ${port}`);
-    console.log(`Servidor backend rodando na porta ${port}`);
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, '0.0.0.0', async () => {
+    logger.info(`Servidor rodando na porta ${PORT}`);
+    console.log(`Servidor rodando na porta ${PORT}`);
+    
+    // Garantir que um usuário administrador exista
+    try {
+      await ensureAdminUser();
+      logger.info('Verificação de usuário administrador concluída.');
+      console.log('Verificação de usuário administrador concluída.');
+    } catch (error) {
+      logger.error('Erro ao verificar usuário administrador:', error);
+      console.error('Erro ao verificar usuário administrador:', error);
+    }
   });
 } catch (error) {
   logger.error('Erro ao iniciar o servidor', { error: error.message });

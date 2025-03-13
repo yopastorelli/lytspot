@@ -27,7 +27,7 @@ async function main() {
     if (!usuarioExistente) {
       // Criptografar a senha
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('admin123', salt);
+      const hashedPassword = await bcrypt.hash('Black&Red2025', salt);
       
       // Criar o usuário administrador
       await prisma.user.create({
@@ -40,7 +40,7 @@ async function main() {
       
       console.log('Usuário administrador criado com sucesso!');
       console.log('Email: admin@lytspot.com.br.br');
-      console.log('Senha: admin123');
+      console.log('Senha: Black&Red2025');
       console.log('IMPORTANTE: Altere esta senha após o primeiro login!');
     } else {
       console.log('Usuário administrador já existe.');
