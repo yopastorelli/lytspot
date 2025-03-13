@@ -287,20 +287,6 @@ try {
   logger.info('Endpoint de health check registrado.');
   console.log('Endpoint de health check registrado.');
 
-  // Redirecionamento específico para /precos/admin
-  app.get('/precos/admin', (req, res) => {
-    logger.info('Redirecionando de /precos/admin para /admin/sync');
-    console.log('Redirecionando de /precos/admin para /admin/sync');
-    res.redirect('/admin/sync');
-  });
-
-  // Rota para a interface de administração de sincronização
-  app.get('/admin/sync', (req, res) => {
-    // Servir a página de sincronização sem verificação JWT inicial
-    // A autenticação será verificada no frontend e nas operações de API
-    res.sendFile(path.join(__dirname, 'views/admin/sync.html'));
-  });
-
   // Servir arquivos estáticos do diretório dist
   const distPath = path.join(__dirname, '..', 'dist');
   
@@ -364,6 +350,13 @@ try {
   app.use(express.static(distPath));
   logger.info(`Servindo arquivos estáticos do diretório: ${distPath}`);
   console.log(`Servindo arquivos estáticos do diretório: ${distPath}`);
+
+  // Rota para a interface de administração de sincronização
+  app.get('/admin/sync', (req, res) => {
+    // Servir a página de sincronização sem verificação JWT inicial
+    // A autenticação será verificada no frontend e nas operações de API
+    res.sendFile(path.join(__dirname, 'views/admin/sync.html'));
+  });
 
   // Rota para todas as outras requisições que não correspondem a rotas específicas
   app.get('*', (req, res) => {
