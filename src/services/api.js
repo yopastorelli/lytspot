@@ -1,6 +1,6 @@
 /**
  * Serviço centralizado para comunicação com a API
- * @version 1.0.3 - 2025-03-12 - Corrigido prefixo duplicado nas URLs
+ * @version 1.0.4 - 2025-03-12 - Corrigido prefixo duplicado nas URLs de autenticação
  * @description Fornece métodos para interagir com a API do backend
  */
 import axios from 'axios';
@@ -54,11 +54,11 @@ const createApiInstance = () => {
           }
         }
       } else if (error.request) {
-        // Requisição foi feita mas não houve resposta
-        console.error('Sem resposta da API:', error.request);
+        // A requisição foi feita mas não houve resposta
+        console.error('Sem resposta do servidor:', error.request);
       } else {
         // Erro na configuração da requisição
-        console.error('Erro ao configurar requisição:', error.message);
+        console.error('Erro na configuração da requisição:', error.message);
       }
       
       return Promise.reject(error);
@@ -73,21 +73,21 @@ const api = createApiInstance();
 
 // Métodos específicos para diferentes recursos
 const servicosAPI = {
-  listar: () => api.get('/api/pricing'),
-  obter: (id) => api.get(`/api/pricing/${id}`),
-  criar: (dados) => api.post('/api/pricing', dados),
-  atualizar: (id, dados) => api.put(`/api/pricing/${id}`, dados),
-  excluir: (id) => api.delete(`/api/pricing/${id}`)
+  listar: () => api.get('/pricing'),
+  obter: (id) => api.get(`/pricing/${id}`),
+  criar: (dados) => api.post('/pricing', dados),
+  atualizar: (id, dados) => api.put(`/pricing/${id}`, dados),
+  excluir: (id) => api.delete(`/pricing/${id}`)
 };
 
 const authAPI = {
-  login: (credenciais) => api.post('/api/auth/login', credenciais),
-  registro: (dados) => api.post('/api/auth/register', dados),
-  verificarToken: () => api.get('/api/auth/verify')
+  login: (credenciais) => api.post('/auth/login', credenciais),
+  registro: (dados) => api.post('/auth/register', dados),
+  verificarToken: () => api.get('/auth/verify')
 };
 
 // Exportar tanto a instância padrão quanto métodos específicos
 export { servicosAPI, authAPI };
 
-// Exportação padrão para compatibilidade com importações existentes
+// Exportar a instância padrão como default
 export default api;

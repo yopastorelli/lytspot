@@ -188,22 +188,32 @@ const PriceSimulator = () => {
                 <p className="text-gray-500">Nenhum serviço disponível no momento.</p>
               </div>
             )}
+            
+            <div className="text-xs text-gray-400 mt-6 text-right">
+              Última atualização de preços: Março/2025
+            </div>
           </div>
           
           {/* Coluna da calculadora (1/3 em desktop) */}
           <div className="lg:col-span-1">
-            <div className="sticky top-6">
-              {servicosSelecionados.length > 0 ? (
-                <PricingCalculator servicos={servicosSelecionados} />
-              ) : (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700 mb-4">Calculadora de Preço</h3>
-                  <p className="text-gray-500 mb-6">Selecione um ou mais serviços para calcular o preço.</p>
-                  <svg className="w-20 h-20 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                  </svg>
-                </div>
-              )}
+            <div className="flex flex-col h-full">
+              <div className="mb-6 invisible lg:visible">
+                <h2 className="text-2xl font-bold text-gray-800 opacity-0">Espaçador</h2>
+              </div>
+              
+              <div className="sticky top-6">
+                {servicosSelecionados.length > 0 ? (
+                  <PricingCalculator servicos={servicosSelecionados} />
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                    <h3 className="text-xl font-semibold text-gray-700 mb-4">Calculadora de Preço</h3>
+                    <p className="text-gray-500 mb-6">Selecione um ou mais serviços para calcular o preço.</p>
+                    <svg className="w-20 h-20 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

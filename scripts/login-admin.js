@@ -14,8 +14,8 @@ const __dirname = path.dirname(__filename);
 
 // Obter credenciais da linha de comando
 const args = process.argv.slice(2);
-const email = args[0] || 'admin@lytspot.com';
-const password = args[1] || 'Admin@123456';
+const email = args[0] || 'admin@lytspot.com.br';
+const password = args[1] || 'Black&Red2025';
 
 // Configuração da API
 const apiUrl = 'https://lytspot.onrender.com/api/auth/login';

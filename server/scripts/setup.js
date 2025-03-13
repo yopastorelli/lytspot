@@ -58,7 +58,7 @@ async function setup() {
     console.log('3. Acesse o simulador de preços em: http://localhost:4321/precos');
     console.log('4. Acesse o painel administrativo em: http://localhost:4321/admin');
     console.log('\n🔐 Credenciais do painel administrativo:');
-    console.log('Email: admin@lytspot.com.br');
+    console.log('Email: admin@lytspot.com.br.br');
     console.log('Senha: admin123');
     console.log('\n⚠️ IMPORTANTE: Altere a senha após o primeiro login!');
   } catch (error) {

@@ -110,8 +110,8 @@ Se você estiver recebendo erros 401 (Unauthorized) ao tentar acessar endpoints 
 ### Credenciais Padrão
 
 As credenciais padrão para o usuário administrador são:
-- **Email**: admin@lytspot.com
-- **Senha**: Admin@123456
+- **Email**: admin@lytspot.com.br
+- **Senha**: Black&Red2025
 - **Nome**: Administrador
 
 **Importante**: Por segurança, altere essas credenciais em ambientes de produção.

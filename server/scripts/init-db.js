@@ -15,7 +15,7 @@ async function main() {
     console.log('Iniciando a configuração do banco de dados...');
 
     // Criar usuário administrador
-    const adminEmail = 'admin@lytspot.com.br';
+    const adminEmail = 'admin@lytspot.com.br.br';
     
     // Verificar se o usuário já existe
     const usuarioExistente = await prisma.user.findUnique({
@@ -39,7 +39,7 @@ async function main() {
       });
       
       console.log('Usuário administrador criado com sucesso!');
-      console.log('Email: admin@lytspot.com.br');
+      console.log('Email: admin@lytspot.com.br.br');
       console.log('Senha: admin123');
       console.log('IMPORTANTE: Altere esta senha após o primeiro login!');
     } else {

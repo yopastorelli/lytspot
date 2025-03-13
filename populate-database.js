@@ -1,7 +1,11 @@
 /**
  * Script para popular o banco de dados com serviços básicos
- * @version 1.3.2 - 2025-03-12 - Restaurado controle de execução e simplificado para evitar interferência com autenticação
+ * @version 1.3.3 - 2025-03-12 - Invertida lógica de SKIP_DB_POPULATION (agora 'false' para pular)
  * @description Este script pode ser executado independentemente para garantir que o banco de dados tenha os serviços atualizados
+ * 
+ * Controle de execução:
+ * - SKIP_DB_POPULATION=false: Pula a população do banco de dados (padrão em produção)
+ * - FORCE_UPDATE=true: Força a atualização mesmo quando SKIP_DB_POPULATION=false
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -22,7 +26,7 @@ async function popularBancoDados() {
   
   // Verificar se o script deve ser pulado
   if (SKIP_DB_POPULATION && !FORCE_UPDATE) {
-    console.log('SKIP_DB_POPULATION está ativado. Pulando população do banco de dados.');
+    console.log('SKIP_DB_POPULATION está ativado (false). Pulando população do banco de dados.');
     console.log('Para forçar a execução, defina FORCE_UPDATE=true');
     return;
   }

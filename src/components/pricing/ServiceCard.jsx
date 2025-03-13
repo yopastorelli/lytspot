@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 /**
  * Componente de cartão de serviço para o simulador de preços
- * @version 1.0.0 - 2025-03-12
+ * @version 1.1.0 - 2025-03-12 - Melhorado alinhamento dos elementos
  */
 const ServiceCard = ({ servico, selecionado, onClick }) => {
   // Formata valores monetários
@@ -17,14 +17,14 @@ const ServiceCard = ({ servico, selecionado, onClick }) => {
   return (
     <div 
       className={`
-        border rounded-lg overflow-hidden shadow-sm transition-all duration-300
+        border rounded-lg overflow-hidden shadow-sm transition-all duration-300 flex flex-col h-full
         ${selecionado 
           ? 'border-blue-500 shadow-md bg-blue-50' 
           : 'border-gray-200 hover:border-blue-300 hover:shadow bg-white'}
       `}
       onClick={onClick}
     >
-      <div className="p-5">
+      <div className="p-5 flex-grow flex flex-col">
         <h3 className={`text-xl font-semibold mb-2 ${selecionado ? 'text-blue-700' : 'text-gray-800'}`}>
           {servico.nome}
         </h3>
@@ -40,7 +40,7 @@ const ServiceCard = ({ servico, selecionado, onClick }) => {
           </span>
         </div>
         
-        <div className="text-xs text-gray-500 space-y-1 mb-4">
+        <div className="text-xs text-gray-500 space-y-1 mb-4 flex-grow">
           <div className="flex justify-between">
             <span>Tempo de captura:</span>
             <span className="font-medium">{servico.detalhes?.captura || 'Sob consulta'}</span>
@@ -53,7 +53,7 @@ const ServiceCard = ({ servico, selecionado, onClick }) => {
         
         <button 
           className={`
-            w-full py-2 px-4 rounded text-sm font-medium transition-colors duration-300
+            w-full py-2 px-4 rounded text-sm font-medium transition-colors duration-300 mt-auto
             ${selecionado 
               ? 'bg-blue-600 text-white hover:bg-blue-700' 
               : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}

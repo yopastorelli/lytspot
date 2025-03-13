@@ -111,7 +111,7 @@ Cada bug é documentado com as seguintes informações:
 - **Detalhes da Resolução**:
   1. Verificado que as variáveis JWT_SECRET e JWT_EXPIRES_IN estavam corretamente configuradas
   2. Confirmado que o sistema de autenticação JWT estava implementado corretamente
-  3. Criado um usuário administrador com credenciais padrão (admin@lytspot.com / Admin@123456)
+  3. Criado um usuário administrador com credenciais padrão (admin@lytspot.com.br / Black&Red2025)
   4. Testado o login com sucesso usando o script `login-admin.js`
   5. Atualizada a documentação para incluir procedimentos de solução de problemas
 

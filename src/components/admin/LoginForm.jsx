@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import api, { authAPI } from '../../services/api';
+import { authAPI } from '../../services/api';
 
 /**
  * Componente de formulário de login para o painel administrativo
- * @version 1.0.1 - 2025-03-12 - Atualizado para usar o serviço authAPI centralizado
+ * @version 1.0.2 - 2025-03-12 - Corrigida importação e uso do serviço authAPI
  */
 const LoginForm = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
@@ -23,11 +23,13 @@ const LoginForm = ({ onLoginSuccess }) => {
     setError(null);
     
     try {
-      // Usar o serviço authAPI centralizado em vez de chamar api.post diretamente
+      // Usar o serviço authAPI centralizado
       const response = await authAPI.login({ email, password });
       
       if (response.data && response.data.token) {
         // Login bem-sucedido
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
         onLoginSuccess(response.data.user, response.data.token);
       } else {
         throw new Error('Resposta inválida do servidor');
@@ -51,56 +53,62 @@ const LoginForm = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-8 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-6 text-center">Login Administrativo</h2>
+    <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Login Administrativo</h2>
       
       {error && (
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-          <p>{error}</p>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <span className="block sm:inline">{error}</span>
         </div>
       )}
       
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label htmlFor="email" className="block text-gray-700 font-medium mb-2">
+          <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">
             Email
           </label>
           <input
             type="email"
             id="email"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            placeholder="seu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="seu@email.com"
             required
           />
         </div>
         
         <div className="mb-6">
-          <label htmlFor="password" className="block text-gray-700 font-medium mb-2">
+          <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">
             Senha
           </label>
           <input
             type="password"
             id="password"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            placeholder="********"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Sua senha"
             required
           />
         </div>
         
-        <button
-          type="submit"
-          disabled={loading}
-          className={`w-full py-2 px-4 rounded-lg text-white font-medium ${
-            loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
-          }`}
-        >
-          {loading ? 'Entrando...' : 'Entrar'}
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            type="submit"
+            className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={loading}
+          >
+            {loading ? 'Entrando...' : 'Entrar'}
+          </button>
+        </div>
       </form>
+      
+      <div className="mt-4 text-center">
+        <p className="text-sm text-gray-600">
+          Credenciais de teste: teste@lytspot.com.br / senha123
+        </p>
+      </div>
     </div>
   );
 };

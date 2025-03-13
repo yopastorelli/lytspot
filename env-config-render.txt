@@ -1,0 +1,43 @@
+# Configuração de ambiente para Lytspot
+# Versão: 1.4.0 - 2025-03-12
+
+# Banco de dados
+DATABASE_URL="file:./server/database.sqlite"
+
+# JWT e Autenticação
+JWT_SECRET="f23e126b7f99a3e4553c65b3f558cb6a"
+JWT_EXPIRES_IN="7d"
+REFRESH_TOKEN="1000.6ab986833897ab97d106448be3eb113.b49abb95c1838c9e7ff9e09deeb97794"
+CLIENT_ID="lytspot-client"
+CLIENT_SECRET="lytspot_client_secret_key_2025"
+
+# Ambiente
+NODE_ENV="development"
+
+# API
+BASE_URL="http://localhost:3001"
+API_URL="http://localhost:3001/api"
+FRONTEND_URL="http://localhost:3001"
+ALLOWED_ORIGINS="http://localhost:3000,http://localhost:3001,http://localhost:4321,http://192.168.1.189:4321,https://lytspot.com.br,https://lytspot.onrender.com"
+
+# CORS
+CORS_ENABLED="true"
+
+# Configurações de seed
+SKIP_DB_POPULATION="false"
+FORCE_UPDATE="false"
+
+# Logging
+LOG_LEVEL="info"
+LOG_TO_FILE="true"
+LOG_FILE_PATH="./server/logs/app.log"
+
+# Porta do servidor
+PORT="3001"
+HOST="0.0.0.0"
+
+# Email e conta
+EMAIL_FROM="noreply@lytspot.com.br"
+RECIPIENT_EMAIL="contato@lytspot.com.br"
+SENDER_EMAIL="noreply@lytspot.com.br"
+ACCOUNT_ID="lytspot-account"

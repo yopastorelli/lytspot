@@ -1,0 +1,20 @@
+# Configuração de ambiente para Lytspot
+# Versão: 1.0.0 - 2025-03-12
+
+# Banco de dados
+DATABASE_URL="file:./server/database.sqlite"
+
+# JWT
+JWT_SECRET="seu_segredo_jwt_aqui"
+JWT_EXPIRES_IN="7d"
+
+# Ambiente
+NODE_ENV="development"
+
+# API
+API_URL="http://localhost:3000"
+ALLOWED_ORIGINS="http://localhost:3000,http://localhost:4321,http://192.168.1.189:4321"
+
+# Configurações de seed
+SKIP_DB_POPULATION="true"
+FORCE_UPDATE="false"

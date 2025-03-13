@@ -26,6 +26,8 @@ router.post(
     body('name').notEmpty().withMessage('O nome é obrigatório.'),
     body('email').isEmail().withMessage('E-mail inválido.'),
     body('message').notEmpty().withMessage('A mensagem é obrigatória.'),
+    body('phone').optional(),
+    body('service').optional(),
   ],
   async (req, res) => {
     logger.info('Nova requisição recebida no endpoint /api/contact', {
@@ -41,22 +43,45 @@ router.post(
       });
     }
 
-    const { name, email, message } = req.body;
+    const { name, email, message, phone, service } = req.body;
 
     try {
       logger.info('Tentando enviar e-mail...', { name, email });
       const result = await sendEmail({
-        to: process.env.RECIPIENT_EMAIL, // Destinatário configurado na variável de ambiente
+        to: process.env.RECIPIENT_EMAIL || 'contato@lytspot.com', // Destinatário configurado na variável de ambiente
         subject: `Novo contato de ${name}`,
-        text: `Nome: ${name}\nE-mail: ${email}\nMensagem:\n${message}`,
+        text: `Nome: ${name}\nE-mail: ${email}\nTelefone: ${phone || 'Não informado'}\nServiço: ${service || 'Não informado'}\nMensagem:\n${message}`,
+        html: `
+          <h2>Novo contato recebido</h2>
+          <p><strong>Nome:</strong> ${name}</p>
+          <p><strong>E-mail:</strong> ${email}</p>
+          <p><strong>Telefone:</strong> ${phone || 'Não informado'}</p>
+          <p><strong>Serviço de interesse:</strong> ${service || 'Não informado'}</p>
+          <p><strong>Mensagem:</strong></p>
+          <p>${message.replace(/\n/g, '<br>')}</p>
+        `
       });
 
-      logger.info('E-mail enviado com sucesso', { messageId: result.messageId });
-      res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
+      // Responder com base no resultado
+      if (result.mode === 'local') {
+        logger.info('Mensagem salva localmente', { result });
+        return res.status(200).json({
+          success: true,
+          message: 'Mensagem recebida com sucesso! (Modo de desenvolvimento)',
+          mode: 'local'
+        });
+      } else {
+        logger.info('E-mail enviado com sucesso', { messageId: result.messageId });
+        return res.status(200).json({
+          success: true,
+          message: 'Mensagem enviada com sucesso!',
+          mode: 'smtp'
+        });
+      }
     } catch (error) {
-      logger.error('Erro ao enviar e-mail', { error: error.stack, body: req.body });
-      res.status(500).json({
-        error: 'Erro ao enviar a mensagem. Tente novamente mais tarde.',
+      logger.error('Erro ao enviar e-mail', { error: error.message });
+      return res.status(500).json({
+        error: 'Erro ao enviar a mensagem. Tente novamente mais tarde.'
       });
     }
   }

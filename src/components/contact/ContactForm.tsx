@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
 import { validateEmail, validatePhone, validateRequired } from '../../utils/validation';
-import api from '../../services/api';
+import axios from 'axios';
+import { getEnvironment } from '../../utils/environment';
 
+// Definição da interface do ambiente para tipagem
+interface Environment {
+  type: string;
+  isDev: boolean;
+  baseUrl: string;
+  prodApiUrls?: string[];
+  hostname?: string;
+  href?: string;
+}
+
+/**
+ * Interface para os dados do formulário
+ * @version 1.0.1 - 2025-03-12
+ */
 interface FormData {
   name: string;
   email: string;
@@ -10,15 +25,19 @@ interface FormData {
   message: string;
 }
 
+/**
+ * Interface para os erros do formulário
+ */
 interface FormErrors {
   [key: string]: string;
 }
 
 /**
  * Componente de formulário de contato
- * @version 2.0.0 - Refatorado para usar serviço de API centralizado
+ * @version 1.0.4 - 2025-03-12 - Corrigido o endpoint da API e problemas de tipagem
+ * @returns {JSX.Element} Formulário de contato renderizado
  */
-export default function ContactForm() {
+const ContactForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -74,7 +93,12 @@ export default function ContactForm() {
     console.info("Tentativa de envio do formulário", formData);
 
     try {
-      const response = await api.post("/api/contact", formData);
+      // Obter a URL base do ambiente
+      const env = getEnvironment() as Environment;
+      
+      // Usando o axios diretamente para evitar problemas de tipagem
+      // A rota no servidor está definida como /api/contact (linha 172 do server.js)
+      const response = await axios.post(`${env.baseUrl.includes('/api') ? env.baseUrl.replace('/api', '') : env.baseUrl}/api/contact`, formData);
       
       if (response.status === 200 || response.status === 201) {
         console.info("Mensagem enviada com sucesso", response.data);
@@ -99,30 +123,27 @@ export default function ContactForm() {
         setErrorMessage(`Erro ${error.response.status}: ${error.response.data.message || 'Falha ao enviar mensagem'}`);
       } else if (error.request) {
         // A requisição foi feita mas não houve resposta
-        setErrorMessage("Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.");
+        setErrorMessage("Não foi possível conectar ao servidor. Verifique sua conexão.");
       } else {
-        // Algo aconteceu na configuração da requisição
-        setErrorMessage("Erro inesperado. Tente novamente mais tarde.");
+        // Erro na configuração da requisição
+        setErrorMessage("Erro ao preparar o envio da mensagem.");
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Limpa o erro específico quando o campo é alterado
     if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
@@ -239,3 +260,5 @@ export default function ContactForm() {
     </form>
   );
 }
+
+export default ContactForm;

@@ -61,8 +61,8 @@ Autentica um usuário e retorna um token JWT.
 
 ```json
 {
-  "email": "admin@lytspot.com",
-  "password": "Admin@123456"
+  "email": "admin@lytspot.com.br.br",
+  "password": "Black&Red2025"
 }
 ```
 
@@ -72,7 +72,7 @@ Autentica um usuário e retorna um token JWT.
 {
   "user": {
     "id": 1,
-    "email": "admin@lytspot.com",
+    "email": "admin@lytspot.com.br.br",
     "nome": "Administrador",
     "createdAt": "2025-03-12T19:48:14.433Z",
     "updatedAt": "2025-03-12T19:48:14.433Z"
@@ -603,3 +603,5 @@ Para questões relacionadas à API, entre em contato pelo email `api@lytspot.com
 - Endpoints de autenticação, serviços e contato
 - Implementação de cache e rate limiting
 - Documentação completa
+
+```

@@ -14,6 +14,18 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Configuração manual das variáveis de ambiente críticas
+process.env.PORT = '3000';
+process.env.JWT_SECRET = 'f23e126b7f99a3e4553c65b3f558cb6a';
+process.env.REFRESH_TOKEN = '1000.6ab986833897ab97d106448be3eb113.b49abb95c1838c9e7ff9e09deeb97794';
+process.env.CLIENT_ID = 'lytspot-client';
+process.env.CLIENT_SECRET = 'lytspot_client_secret_key_2025';
+process.env.ACCOUNT_ID = 'lytspot-account';
+process.env.SENDER_EMAIL = 'noreply@lytspot.com.br';
+process.env.RECIPIENT_EMAIL = 'contato@lytspot.com.br';
+process.env.BASE_URL = 'http://localhost:3000';
+process.env.API_URL = 'http://localhost:3000/api';
+
 // Identificar se estamos no ambiente Render
 if (process.env.RENDER) {
   console.log("Detectado ambiente Render. Configurando variáveis específicas...");
@@ -21,13 +33,49 @@ if (process.env.RENDER) {
 }
 
 console.log("Iniciando carregamento das variáveis de ambiente...");
-dotenv.config();
+
+// Carregar variáveis de ambiente apropriadas para o ambiente atual
+if (process.env.NODE_ENV === 'production') {
+  dotenv.config();
+} else {
+  // Em desenvolvimento, tenta carregar .env.development primeiro, depois .env como fallback
+  try {
+    // Usar caminho absoluto para o arquivo .env.development
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    
+    // Obter o diretório raiz do projeto (um nível acima do diretório server)
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const rootDir = path.resolve(__dirname, '..');
+    
+    // Caminho completo para o arquivo .env.development
+    const envPath = path.resolve(rootDir, '.env.development');
+    
+    console.log(`Tentando carregar variáveis de ambiente de: ${envPath}`);
+    const result = dotenv.config({ path: envPath });
+    
+    if (result.error) {
+      console.log('Arquivo .env.development não encontrado, tentando .env padrão...');
+      dotenv.config({ path: path.resolve(rootDir, '.env') });
+    } else {
+      console.log('Variáveis de ambiente carregadas com sucesso de .env.development');
+      
+      // Verificar se as variáveis SMTP foram carregadas
+      console.log('SMTP_HOST:', process.env.SMTP_HOST ? 'Configurado' : 'Não configurado');
+      console.log('SMTP_USER:', process.env.SMTP_USER ? 'Configurado' : 'Não configurado');
+      console.log('SMTP_PASS:', process.env.SMTP_PASS ? 'Configurado' : 'Não configurado');
+    }
+  } catch (error) {
+    console.error('Erro ao carregar variáveis de ambiente:', error);
+  }
+}
 
 console.log("Inicializando o servidor...");
 
 const app = express();
-const port = process.env.PORT || 3000;
-const baseUrl = process.env.BASE_URL || '/'; // Configuração dinâmica de BASE_URL
+const port = 3000;
+const baseUrl = 'http://localhost:3000';
 
 // Configuração do logger
 const logger = winston.createLogger({
