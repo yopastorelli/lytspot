@@ -315,3 +315,94 @@ export const pricingController = {
     }
   }
 };
+
+/**
+ * Controlador para atualização em massa de serviços
+ * @version 1.0.0 - 2025-03-13
+ * @module controllers/pricingController
+ */
+export const bulkUpdateController = {
+  /**
+   * Atualiza múltiplos serviços em uma única operação
+   */
+  updateServicesInBulk: async (req, res) => {
+    try {
+      const servicos = req.body;
+      
+      if (!Array.isArray(servicos) || servicos.length === 0) {
+        return res.status(400).json({ 
+          message: 'Formato inválido. É necessário fornecer um array de serviços.'
+        });
+      }
+      
+      const resultados = [];
+      const erros = [];
+      
+      // Processar cada serviço individualmente
+      for (const servico of servicos) {
+        try {
+          // Validar ID do serviço
+          if (!servico.id || isNaN(parseInt(servico.id))) {
+            erros.push({
+              id: servico.id || 'desconhecido',
+              mensagem: 'ID de serviço inválido'
+            });
+            continue;
+          }
+          
+          // Sanitizar dados do serviço
+          const dadosSanitizados = serviceValidator.sanitizeServiceData(servico);
+          
+          // Verificar se o serviço existe
+          const existingService = await pricingService.getServiceById(parseInt(servico.id));
+          
+          if (!existingService) {
+            erros.push({
+              id: servico.id,
+              mensagem: 'Serviço não encontrado'
+            });
+            continue;
+          }
+          
+          // Atualizar o serviço
+          const updatedService = await pricingService.updateService(parseInt(servico.id), dadosSanitizados);
+          
+          // Limpar cache específico para este serviço
+          clearCache(`/api/pricing/${servico.id}`);
+          
+          // Adicionar aos resultados
+          resultados.push({
+            id: servico.id,
+            status: 'atualizado',
+            servico: updatedService
+          });
+        } catch (error) {
+          console.error(`Erro ao atualizar serviço ID ${servico.id}:`, error);
+          erros.push({
+            id: servico.id || 'desconhecido',
+            mensagem: 'Erro ao processar serviço',
+            erro: environment.IS_DEVELOPMENT ? error.message : undefined
+          });
+        }
+      }
+      
+      // Limpar cache geral de serviços
+      clearCache('/api/pricing');
+      
+      return res.status(200).json({
+        message: `Processamento em massa concluído. ${resultados.length} serviços atualizados, ${erros.length} erros.`,
+        resultados,
+        erros: erros.length > 0 ? erros : undefined
+      });
+    } catch (error) {
+      console.error('Erro ao processar atualização em massa:', error);
+      return res.status(500).json({ 
+        message: 'Erro ao processar atualização em massa de serviços',
+        error: environment.IS_DEVELOPMENT ? error.message : undefined
+      });
+    }
+  }
+};
+
+// Exportar ambos os controladores
+export default pricingController;

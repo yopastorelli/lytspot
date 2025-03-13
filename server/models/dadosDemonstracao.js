@@ -1,12 +1,13 @@
 /**
- * Dados de serviços para o simulador
+ * Dados de demonstração para serviços
  * @version 1.0.1 - 2025-03-13
- * @description Dados para o simulador de preços
+ * @description Dados de fallback para quando o banco de dados não está disponível
  * ATENÇÃO: Este arquivo é gerado automaticamente pelo script atualizarDadosDemonstracao.js
  * Não edite manualmente!
  */
 
-export const servicos = [
+export const dadosDemonstracao = {
+  servicos: [
   {
     "id": 1,
     "nome": "Ensaio Fotográfico Pessoal",
@@ -87,4 +88,5 @@ export const servicos = [
     "entregaveis": "Vídeo editado de 5-7 minutos + 40 fotos em alta resolução",
     "ativo": true
   }
-];
+]
+};

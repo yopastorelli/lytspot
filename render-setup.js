@@ -171,6 +171,24 @@ try {
   // Executar a inicialização de serviços
   await inicializarServicos();
   
+  // Verificar se a sincronização de dados está habilitada
+  const syncEnabled = process.env.ENABLE_SERVICES_SYNC === 'true';
+  
+  // Sincronizar dados de demonstração com o banco de dados (se habilitado)
+  if (syncEnabled) {
+    console.log("Sincronização de dados habilitada. Executando sincronização...");
+    try {
+      console.log("Executando script de sincronização de dados...");
+      execSync(`node server/scripts/atualizarDadosDemonstracao.js --build`, { stdio: 'inherit' });
+      console.log("Sincronização de dados concluída com sucesso!");
+    } catch (error) {
+      console.error("Erro durante a sincronização de dados:", error.message);
+      console.log("Continuando o processo de build...");
+    }
+  } else {
+    console.log("Sincronização de dados desabilitada. Pulando esta etapa.");
+  }
+  
   // Criar diretório dist se não existir
   const distPath = path.join(currentDir, 'dist');
   if (!fs.existsSync(distPath)) {

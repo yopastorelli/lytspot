@@ -20,6 +20,7 @@ model Servico {
   entregaveis            String
   possiveis_adicionais   String?
   valor_deslocamento     String?
+  ativo                  Boolean @default(true)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }

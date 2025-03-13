@@ -4,7 +4,7 @@ import ServicoForm from './ServicoForm';
 
 /**
  * Componente para gerenciamento de serviços no painel administrativo
- * @version 2.1.2 - 2025-03-12 - Corrigido problema de exibição do preço base
+ * @version 2.2.0 - 2025-03-13 - Adicionada funcionalidade de atualização em massa
  */
 const ServicosManager = ({ token }) => {
   // Estados para controle dos serviços
@@ -16,6 +16,15 @@ const ServicosManager = ({ token }) => {
   const [modalAberto, setModalAberto] = useState(false);
   const [servicoEmEdicao, setServicoEmEdicao] = useState(null);
   const [mensagemSucesso, setMensagemSucesso] = useState(null);
+  
+  // Estados para atualização em massa
+  const [servicosSelecionados, setServicosSelecionados] = useState([]);
+  const [modoAtualizacaoEmMassa, setModoAtualizacaoEmMassa] = useState(false);
+  const [campoAtualizacaoEmMassa, setCampoAtualizacaoEmMassa] = useState('preco_base');
+  const [valorAtualizacaoEmMassa, setValorAtualizacaoEmMassa] = useState('');
+  const [percentualAtualizacao, setPercentualAtualizacao] = useState('');
+  const [modoPercentual, setModoPercentual] = useState(false);
+  const [atualizandoEmMassa, setAtualizandoEmMassa] = useState(false);
   
   // Carrega a lista de serviços
   const carregarServicos = useCallback(async () => {
@@ -109,17 +118,246 @@ const ServicosManager = ({ token }) => {
     }
   };
   
+  // Alterna a seleção de um serviço para atualização em massa
+  const toggleSelecaoServico = (id) => {
+    setServicosSelecionados(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(servicoId => servicoId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+  
+  // Seleciona ou desmarca todos os serviços
+  const toggleSelecionarTodos = () => {
+    if (servicosSelecionados.length === servicos.length) {
+      setServicosSelecionados([]);
+    } else {
+      setServicosSelecionados(servicos.map(servico => servico.id));
+    }
+  };
+  
+  // Ativa o modo de atualização em massa
+  const ativarModoAtualizacaoEmMassa = () => {
+    if (servicosSelecionados.length === 0) {
+      setErro('Selecione pelo menos um serviço para atualização em massa.');
+      return;
+    }
+    setModoAtualizacaoEmMassa(true);
+  };
+  
+  // Cancela o modo de atualização em massa
+  const cancelarAtualizacaoEmMassa = () => {
+    setModoAtualizacaoEmMassa(false);
+    setValorAtualizacaoEmMassa('');
+    setPercentualAtualizacao('');
+    setModoPercentual(false);
+  };
+  
+  // Executa a atualização em massa
+  const executarAtualizacaoEmMassa = async () => {
+    if (servicosSelecionados.length === 0) {
+      setErro('Selecione pelo menos um serviço para atualização em massa.');
+      return;
+    }
+    
+    if (!campoAtualizacaoEmMassa) {
+      setErro('Selecione um campo para atualizar.');
+      return;
+    }
+    
+    if (modoPercentual && (isNaN(percentualAtualizacao) || percentualAtualizacao === '')) {
+      setErro('Informe um percentual válido para a atualização.');
+      return;
+    }
+    
+    if (!modoPercentual && valorAtualizacaoEmMassa === '') {
+      setErro('Informe um valor para a atualização.');
+      return;
+    }
+    
+    try {
+      setAtualizandoEmMassa(true);
+      setErro(null);
+      
+      // Preparar os serviços para atualização
+      const servicosParaAtualizar = servicos
+        .filter(servico => servicosSelecionados.includes(servico.id))
+        .map(servico => {
+          const servicoAtualizado = { ...servico };
+          
+          if (modoPercentual) {
+            // Atualizar com base em percentual
+            const percentual = parseFloat(percentualAtualizacao) / 100;
+            
+            if (campoAtualizacaoEmMassa === 'preco_base' && !isNaN(servico.preco_base)) {
+              const valorAtual = parseFloat(servico.preco_base);
+              const aumento = valorAtual * percentual;
+              servicoAtualizado.preco_base = valorAtual + aumento;
+            }
+          } else {
+            // Atualizar com valor fixo
+            if (campoAtualizacaoEmMassa === 'preco_base') {
+              servicoAtualizado.preco_base = parseFloat(valorAtualizacaoEmMassa);
+            } else if (typeof valorAtualizacaoEmMassa === 'string') {
+              servicoAtualizado[campoAtualizacaoEmMassa] = valorAtualizacaoEmMassa;
+            }
+          }
+          
+          return servicoAtualizado;
+        });
+      
+      // Enviar para a API
+      const response = await servicosAPI.atualizarEmMassa(servicosParaAtualizar);
+      
+      // Atualizar a lista de serviços
+      await carregarServicos();
+      
+      // Exibir mensagem de sucesso
+      setMensagemSucesso(`${response.data.resultados.length} serviços atualizados com sucesso!`);
+      
+      // Limpar seleção e sair do modo de atualização em massa
+      setServicosSelecionados([]);
+      setModoAtualizacaoEmMassa(false);
+      setValorAtualizacaoEmMassa('');
+      setPercentualAtualizacao('');
+      
+    } catch (error) {
+      console.error('Erro ao atualizar serviços em massa:', error);
+      setErro('Não foi possível atualizar os serviços. Verifique os dados e tente novamente.');
+    } finally {
+      setAtualizandoEmMassa(false);
+    }
+  };
+  
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Gerenciamento de Serviços</h2>
-        <button
-          onClick={adicionarServico}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-        >
-          Adicionar Serviço
-        </button>
+        <div className="flex space-x-2">
+          {servicosSelecionados.length > 0 && !modoAtualizacaoEmMassa && (
+            <button
+              onClick={ativarModoAtualizacaoEmMassa}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded"
+            >
+              Atualizar Selecionados ({servicosSelecionados.length})
+            </button>
+          )}
+          <button
+            onClick={adicionarServico}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+          >
+            Adicionar Serviço
+          </button>
+        </div>
       </div>
+      
+      {modoAtualizacaoEmMassa && (
+        <div className="bg-gray-100 p-4 rounded-lg mb-6">
+          <h3 className="text-lg font-semibold mb-3">Atualização em Massa</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Campo a atualizar
+              </label>
+              <select
+                value={campoAtualizacaoEmMassa}
+                onChange={(e) => setCampoAtualizacaoEmMassa(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded"
+              >
+                <option value="preco_base">Preço Base</option>
+                <option value="descricao">Descrição</option>
+                <option value="duracao_media_captura">Duração Média (Captura)</option>
+                <option value="duracao_media_tratamento">Duração Média (Tratamento)</option>
+                <option value="entregaveis">Entregáveis</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Modo de atualização
+              </label>
+              <div className="flex items-center space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    checked={!modoPercentual}
+                    onChange={() => setModoPercentual(false)}
+                    className="form-radio h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2">Valor Fixo</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    checked={modoPercentual}
+                    onChange={() => setModoPercentual(true)}
+                    className="form-radio h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2">Percentual</span>
+                </label>
+              </div>
+            </div>
+            
+            {modoPercentual ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Percentual de ajuste (%)
+                </label>
+                <input
+                  type="number"
+                  value={percentualAtualizacao}
+                  onChange={(e) => setPercentualAtualizacao(e.target.value)}
+                  placeholder="Ex: 10 para +10%, -5 para -5%"
+                  className="w-full p-2 border border-gray-300 rounded"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Novo valor
+                </label>
+                <input
+                  type={campoAtualizacaoEmMassa === 'preco_base' ? 'number' : 'text'}
+                  value={valorAtualizacaoEmMassa}
+                  onChange={(e) => setValorAtualizacaoEmMassa(e.target.value)}
+                  placeholder={campoAtualizacaoEmMassa === 'preco_base' ? "Ex: 299.90" : "Novo valor"}
+                  className="w-full p-2 border border-gray-300 rounded"
+                  step={campoAtualizacaoEmMassa === 'preco_base' ? "0.01" : undefined}
+                />
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={cancelarAtualizacaoEmMassa}
+              className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
+              disabled={atualizandoEmMassa}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={executarAtualizacaoEmMassa}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+              disabled={atualizandoEmMassa}
+            >
+              {atualizandoEmMassa ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Atualizando...
+                </span>
+              ) : (
+                'Atualizar Serviços'
+              )}
+            </button>
+          </div>
+        </div>
+      )}
       
       {mensagemSucesso && (
         <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
@@ -150,6 +388,14 @@ const ServicosManager = ({ token }) => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={servicosSelecionados.length === servicos.length && servicos.length > 0}
+                      onChange={toggleSelecionarTodos}
+                      className="form-checkbox h-4 w-4 text-blue-600"
+                    />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Nome
                   </th>
@@ -166,7 +412,15 @@ const ServicosManager = ({ token }) => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {servicos.map((servico) => (
-                  <tr key={servico.id}>
+                  <tr key={servico.id} className={servicosSelecionados.includes(servico.id) ? "bg-blue-50" : ""}>
+                    <td className="px-3 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={servicosSelecionados.includes(servico.id)}
+                        onChange={() => toggleSelecaoServico(servico.id)}
+                        className="form-checkbox h-4 w-4 text-blue-600"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{servico.nome}</div>
                     </td>
@@ -200,32 +454,19 @@ const ServicosManager = ({ token }) => {
               </tbody>
             </table>
           ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500">Nenhum serviço cadastrado.</p>
-              <button
-                onClick={adicionarServico}
-                className="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-              >
-                Adicionar Primeiro Serviço
-              </button>
+            <div className="text-center py-8">
+              <p className="text-gray-500">Nenhum serviço encontrado.</p>
             </div>
           )}
         </div>
       )}
       
       {modalAberto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-screen overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">
-              {servicoEmEdicao ? 'Editar Serviço' : 'Adicionar Serviço'}
-            </h3>
-            <ServicoForm
-              servico={servicoEmEdicao}
-              onSave={salvarServico}
-              onCancel={fecharModal}
-            />
-          </div>
-        </div>
+        <ServicoForm
+          servico={servicoEmEdicao}
+          onSave={salvarServico}
+          onClose={fecharModal}
+        />
       )}
     </div>
   );
