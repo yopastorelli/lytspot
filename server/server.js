@@ -7,6 +7,7 @@ import contactRoutes from './routes/contact.js';
 import pricingRoutes from './routes/pricing.js';
 import authRoutes from './routes/auth.js';
 import syncRoutes from './routes/sync.js';
+import setupRoutes from './routes/setup.js';
 import cors from 'cors';
 import fs from 'fs';
 
@@ -204,6 +205,11 @@ try {
   app.use('/api/sync', syncRoutes);
   logger.info('Rotas de sincronização registradas.');
   console.log('Rotas de sincronização registradas.');
+  
+  // Rotas de configuração (temporárias)
+  app.use('/api/setup', setupRoutes);
+  logger.info('Rotas de configuração registradas.');
+  console.log('Rotas de configuração registradas.');
 
   // Servir arquivos estáticos do diretório dist
   const distPath = path.join(__dirname, '..', 'dist');
