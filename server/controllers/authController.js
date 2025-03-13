@@ -9,7 +9,7 @@ dotenv.config();
  * Controlador para autenticação
  * Responsável por gerenciar login e registro de usuários
  * 
- * @version 1.4.0 - 2025-03-14 - Corrigido mapeamento de parâmetros entre frontend e backend
+ * @version 1.2.0 - 2025-03-14 - Corrigido parâmetro de senha na autenticação
  */
 export const authController = {
   /**
@@ -51,49 +51,29 @@ export const authController = {
    */
   login: async (req, res) => {
     try {
-      console.log('[authController] Iniciando processo de login');
-      
-      // Verificar se os dados necessários foram fornecidos
       const { email, password } = req.body;
       
-      if (!email || !password) {
-        console.log(`[authController] Dados incompletos: email=${!!email}, password=${!!password}`);
-        return res.status(400).json({ message: 'Email e senha são obrigatórios' });
-      }
-      
-      console.log(`[authController] Tentando autenticar usuário: ${email}`);
-      
       // Autenticar o usuário usando o repositório
-      try {
-        // O userRepository.authenticate agora aceita tanto uma string quanto um objeto com propriedade senha
-        const usuario = await userRepository.authenticate(email, password);
-        
-        if (!usuario) {
-          console.log(`[authController] Autenticação falhou para: ${email}`);
-          return res.status(401).json({ message: 'Credenciais inválidas' });
-        }
-        
-        console.log(`[authController] Usuário autenticado com sucesso: ${email}`);
-        
-        // Gerar o token JWT
-        const token = jwt.sign(
-          { id: usuario.id, email: usuario.email, nome: usuario.nome },
-          process.env.JWT_SECRET || 'f23e126b7f99a3e4553c65b3f558cb6a', // Fallback para desenvolvimento
-          { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
-        );
-        
-        console.log(`[authController] Token JWT gerado para: ${email}`);
-        
-        return res.status(200).json({
-          user: usuario,
-          token
-        });
-      } catch (authError) {
-        console.error(`[authController] Erro durante autenticação: ${authError.message}`, authError);
-        throw authError; // Propagar o erro para ser tratado no catch externo
+      // Corrigido: passando 'password' como 'senha' para o método authenticate
+      const usuario = await userRepository.authenticate(email, password);
+      
+      if (!usuario) {
+        return res.status(401).json({ message: 'Credenciais inválidas' });
       }
+      
+      // Gerar o token JWT
+      const token = jwt.sign(
+        { id: usuario.id, email: usuario.email, nome: usuario.nome },
+        process.env.JWT_SECRET || 'f23e126b7f99a3e4553c65b3f558cb6a', // Fallback para desenvolvimento
+        { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+      );
+      
+      return res.status(200).json({
+        user: usuario,
+        token
+      });
     } catch (error) {
-      console.error('[authController] Erro ao fazer login:', error);
+      console.error('Erro ao fazer login:', error);
       return res.status(500).json({ 
         message: 'Erro ao fazer login',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
