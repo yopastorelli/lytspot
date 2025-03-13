@@ -9,7 +9,7 @@ dotenv.config();
  * Controlador para autenticação
  * Responsável por gerenciar login e registro de usuários
  * 
- * @version 1.2.0 - 2025-03-14 - Corrigido parâmetro de senha na autenticação
+ * @version 1.1.0 - 2025-03-14 - Refatorado para usar userRepository
  */
 export const authController = {
   /**
@@ -54,7 +54,6 @@ export const authController = {
       const { email, password } = req.body;
       
       // Autenticar o usuário usando o repositório
-      // Corrigido: passando 'password' como 'senha' para o método authenticate
       const usuario = await userRepository.authenticate(email, password);
       
       if (!usuario) {
@@ -82,15 +81,24 @@ export const authController = {
   },
 
   /**
-   * Verificar token JWT
+   * Verificar o token JWT
    */
   verifyToken: async (req, res) => {
     try {
-      // O token já foi verificado pelo middleware de autenticação
-      // Retornar os dados do usuário
-      return res.status(200).json({
-        user: req.user
-      });
+      // O middleware de autenticação já verificou o token
+      // e adicionou o usuário decodificado à requisição
+      
+      // Buscar o usuário atualizado pelo ID
+      const usuario = await userRepository.findById(req.user.id);
+      
+      if (!usuario) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+      
+      // Remover a senha do objeto de resposta
+      const { senha: _, ...usuarioSemSenha } = usuario;
+      
+      return res.status(200).json(usuarioSemSenha);
     } catch (error) {
       console.error('Erro ao verificar token:', error);
       return res.status(500).json({ 
