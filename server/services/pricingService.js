@@ -467,6 +467,21 @@ class PricingService {
       throw error;
     }
   }
+
+  /**
+   * Conta o número total de serviços com base em filtros opcionais
+   * @param {Object} where Filtros para a contagem
+   * @returns {Promise<number>} Número total de serviços
+   */
+  async countServices(where = {}) {
+    try {
+      log(`Contando serviços com filtros: ${JSON.stringify(where)}`);
+      return await serviceRepository.count(where);
+    } catch (error) {
+      log(`Erro ao contar serviços: ${error.message}`, 'error');
+      return 0;
+    }
+  }
 }
 
 // Exportar uma instância única do serviço

@@ -33,7 +33,7 @@ const PriceSimulator = () => {
     const controller = new AbortController();
     
     try {
-      console.log(`Carregando serviços da API: ${env.baseUrl}/api/pricing`);
+      console.log(`Carregando serviços da API: ${env.baseUrl}/pricing`);
       
       // Usa o serviço de API centralizado com o método específico
       const response = await servicosAPI.listar();
@@ -44,7 +44,38 @@ const PriceSimulator = () => {
         
         if (response.data.length > 0) {
           console.log(`[PriceSimulator] Serviços carregados com sucesso: ${response.data.length} itens`);
-          setServicos(response.data);
+          
+          // Definir a ordem específica dos serviços
+          const ordemServicos = [
+            "VLOG - Aventuras em Família",
+            "VLOG - Amigos e Comunidade",
+            "Cobertura Fotográfica de Evento Social",
+            "Filmagem de Evento Social",
+            "Ensaio Fotográfico de Família",
+            "Filmagem Aérea com Drone",
+            "Fotografia Aérea com Drone"
+          ];
+          
+          // Ordenar os serviços conforme a ordem específica
+          const servicosOrdenados = [...response.data].sort((a, b) => {
+            const indexA = ordemServicos.indexOf(a.nome);
+            const indexB = ordemServicos.indexOf(b.nome);
+            
+            // Se ambos os serviços estiverem na lista de ordem, usar a ordem definida
+            if (indexA >= 0 && indexB >= 0) {
+              return indexA - indexB;
+            }
+            
+            // Se apenas um estiver na lista, priorizá-lo
+            if (indexA >= 0) return -1;
+            if (indexB >= 0) return 1;
+            
+            // Se nenhum estiver na lista, manter a ordem original
+            return 0;
+          });
+          
+          console.log(`[PriceSimulator] Serviços ordenados: ${servicosOrdenados.map(s => s.nome).join(', ')}`);
+          setServicos(servicosOrdenados);
           setUsandoDadosDemonstracao(false);
           tentativasRef.current = 0; // Reseta contador de tentativas
         } else {

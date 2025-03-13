@@ -56,23 +56,53 @@ export const pricingController = {
         }
       }
       
-      try {
-        // Tentar buscar serviços do banco de dados
-        const servicos = await pricingService.getAllServices(options);
-        return res.status(200).json(servicos);
-      } catch (dbError) {
-        console.error('Erro ao buscar serviços do banco de dados:', dbError);
+      // Buscar serviços do banco de dados
+      const services = await pricingService.getAllServices(options);
+      
+      // Definir a ordem específica dos serviços
+      const ordemServicos = [
+        "VLOG - Aventuras em Família",
+        "VLOG - Amigos e Comunidade",
+        "Cobertura Fotográfica de Evento Social",
+        "Filmagem de Evento Social",
+        "Ensaio Fotográfico de Família",
+        "Filmagem Aérea com Drone",
+        "Fotografia Aérea com Drone"
+      ];
+      
+      // Ordenar os serviços conforme a ordem específica
+      const servicosOrdenados = services.sort((a, b) => {
+        const indexA = ordemServicos.indexOf(a.nome);
+        const indexB = ordemServicos.indexOf(b.nome);
         
-        // Fallback para dados de demonstração
-        console.log('Usando dados de demonstração como fallback...');
-        const demoServices = pricingService.getDemonstrationData();
-        
-        if (demoServices && demoServices.length > 0) {
-          return res.status(200).json(demoServices);
-        } else {
-          throw new Error('Não foi possível obter dados de demonstração');
+        // Se ambos os serviços estiverem na lista de ordem, usar a ordem definida
+        if (indexA >= 0 && indexB >= 0) {
+          return indexA - indexB;
         }
-      }
+        
+        // Se apenas um estiver na lista, priorizá-lo
+        if (indexA >= 0) return -1;
+        if (indexB >= 0) return 1;
+        
+        // Se nenhum estiver na lista, manter a ordem original
+        return 0;
+      });
+      
+      // Contar total de serviços para paginação
+      const total = await pricingService.countServices(options.where);
+      
+      // Preparar resposta com metadados de paginação
+      const response = {
+        data: servicosOrdenados,
+        meta: {
+          total,
+          page: queryParams.page,
+          limit: queryParams.limit,
+          pages: Math.ceil(total / queryParams.limit)
+        }
+      };
+      
+      return res.status(200).json(servicosOrdenados);
     } catch (error) {
       console.error('Erro ao buscar serviços:', error);
       return res.status(500).json({ 
