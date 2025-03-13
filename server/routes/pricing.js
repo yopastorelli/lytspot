@@ -1,6 +1,6 @@
 import express from 'express';
-import { body, param, query } from 'express-validator';
-import { pricingController, bulkUpdateController } from '../controllers/pricingController.js';
+import { body, param } from 'express-validator';
+import { pricingController } from '../controllers/pricingController.js';
 import { authenticateJWT } from '../middleware/auth.js';
 import { validate } from '../middleware/validator.js';
 import { cacheMiddleware } from '../middleware/cache.js';
@@ -49,22 +49,6 @@ const idValidation = [
     .isInt({ min: 1 }).withMessage('O ID deve ser um número inteiro positivo')
 ];
 
-// Validações para atualização em massa de serviços
-const bulkUpdateValidations = [
-  body().isArray().withMessage('O corpo da requisição deve ser um array'),
-  body('*.id').exists().withMessage('Cada serviço deve ter um ID')
-    .isInt().withMessage('O ID do serviço deve ser um número inteiro'),
-  body('*.nome').optional().isString().withMessage('O nome deve ser uma string')
-    .isLength({ min: 3, max: 100 }).withMessage('O nome deve ter entre 3 e 100 caracteres'),
-  body('*.descricao').optional().isString().withMessage('A descrição deve ser uma string'),
-  body('*.preco_base').optional().isFloat({ min: 0 }).withMessage('O preço base deve ser um número positivo'),
-  body('*.duracao_media_captura').optional().isString().withMessage('A duração média deve ser uma string'),
-  body('*.duracao_media_tratamento').optional().isString().withMessage('A duração média de tratamento deve ser uma string'),
-  body('*.entregaveis').optional().isString().withMessage('Os entregáveis devem ser uma string'),
-  body('*.possiveis_adicionais').optional().isString().withMessage('Os possíveis adicionais devem ser uma string'),
-  body('*.valor_deslocamento').optional().isString().withMessage('O valor de deslocamento deve ser uma string')
-];
-
 // Rotas públicas
 router.get('/', cacheMiddleware(300), pricingController.getAllServices);
 router.get('/:id', cacheMiddleware(300), idValidation, validate, pricingController.getServiceById);
@@ -73,6 +57,5 @@ router.get('/:id', cacheMiddleware(300), idValidation, validate, pricingControll
 router.post('/', authenticateJWT, servicoValidations, validate, pricingController.createService);
 router.put('/:id', authenticateJWT, [...idValidation, ...servicoValidations], validate, pricingController.updateService);
 router.delete('/:id', authenticateJWT, idValidation, validate, pricingController.deleteService);
-router.post('/bulk', authenticateJWT, bulkUpdateValidations, validate, bulkUpdateController.updateServicesInBulk);
 
 export default router;

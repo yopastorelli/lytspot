@@ -77,7 +77,6 @@ const servicosAPI = {
   obter: (id) => api.get(`/pricing/${id}`),
   criar: (dados) => api.post('/pricing', dados),
   atualizar: (id, dados) => api.put(`/pricing/${id}`, dados),
-  atualizarEmMassa: (servicos) => api.post('/pricing/bulk', servicos),
   excluir: (id) => api.delete(`/pricing/${id}`)
 };
 

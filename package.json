@@ -13,12 +13,7 @@
     "postinstall": "npx prisma generate --schema=server/prisma/schema.prisma && node render-setup.js && npm run build",
     "verificar-persistencia": "node server/scripts/verificarPersistencia.js",
     "inicializar-sistema": "node server/scripts/inicializarSistema.js",
-    "monitor-db": "node server/scripts/monitorBancoDados.js",
-    "update-services": "node server/scripts/atualizarServicosEmMassa.js",
-    "sync-demo-data": "node server/scripts/atualizarDadosDemonstracao.js",
-    "manage-services": "node server/scripts/gerenciarServicos.js",
-    "update-prod-services": "node server/scripts/atualizarServicosProd.js",
-    "build:services": "node server/scripts/render-build-services.js"
+    "monitor-db": "node server/scripts/monitorBancoDados.js"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",
