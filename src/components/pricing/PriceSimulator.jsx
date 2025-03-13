@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api, { servicosAPI } from '../../services/api';
-import { getEnvironment, fetchWithFallback } from '../../utils/environment';
+import { getEnvironment } from '../../utils/environment';
 import ServiceCard from './ServiceCard';
 import PricingCalculator from './PricingCalculator';
 import { dadosDemonstracao } from './dadosDemonstracao';
 
 /**
  * Componente de simulação de preços
- * @version 3.0.1 - 2025-03-14 - Adicionado sistema de fallback para URLs alternativas
+ * @version 3.0.0 - 2025-03-12 - Adicionado suporte para seleção múltipla de serviços
  */
 const PriceSimulator = () => {
   const [servicos, setServicos] = useState([]);
@@ -33,23 +33,14 @@ const PriceSimulator = () => {
     const controller = new AbortController();
     
     try {
-      console.log(`[PriceSimulator] Carregando serviços da API: ${env.baseUrl}/pricing`);
+      console.log(`Carregando serviços da API: ${env.baseUrl}/pricing`);
       
-      // Tenta carregar os serviços usando o método normal primeiro
-      let response;
-      try {
-        // Usa o serviço de API centralizado com o método específico
-        response = await servicosAPI.listar();
-      } catch (axiosError) {
-        // Se falhar, tenta com fetchWithFallback
-        console.warn('[PriceSimulator] Erro ao carregar com axios, tentando método alternativo...');
-        const fetchResponse = await fetchWithFallback('pricing');
-        response = { data: await fetchResponse.json() };
-      }
+      // Usa o serviço de API centralizado com o método específico
+      const response = await servicosAPI.listar();
       
       // Verifica se a resposta contém dados válidos
       if (response && response.data && Array.isArray(response.data)) {
-        console.log(`[PriceSimulator] Serviços recebidos: ${response.data.length} itens`);
+        console.log(`[PriceSimulator] Serviços carregados: ${JSON.stringify(response.data)}`);
         
         if (response.data.length > 0) {
           console.log(`[PriceSimulator] Serviços carregados com sucesso: ${response.data.length} itens`);
@@ -89,26 +80,7 @@ const PriceSimulator = () => {
           tentativasRef.current = 0; // Reseta contador de tentativas
         } else {
           console.warn('[PriceSimulator] API retornou array vazio. Usando dados de demonstração.');
-          
-          // Ordenar os dados de demonstração conforme a ordem específica
-          const demoOrdenados = [...dadosDemonstracao].sort((a, b) => {
-            const indexA = ordemServicos.indexOf(a.nome);
-            const indexB = ordemServicos.indexOf(b.nome);
-            
-            // Se ambos os serviços estiverem na lista de ordem, usar a ordem definida
-            if (indexA >= 0 && indexB >= 0) {
-              return indexA - indexB;
-            }
-            
-            // Se apenas um estiver na lista, priorizá-lo
-            if (indexA >= 0) return -1;
-            if (indexB >= 0) return 1;
-            
-            // Se nenhum estiver na lista, manter a ordem original
-            return 0;
-          });
-          
-          setServicos(demoOrdenados);
+          setServicos(dadosDemonstracao);
           setUsandoDadosDemonstracao(true);
           setErro('Nenhum serviço encontrado no servidor. Exibindo dados de demonstração.');
         }
@@ -123,7 +95,7 @@ const PriceSimulator = () => {
         return;
       }
       
-      console.error('[PriceSimulator] Erro ao carregar serviços:', error.message);
+      console.error('[erro] Erro ao carregar serviços:', error.message);
       
       // Incrementa contador de tentativas
       tentativasRef.current += 1;
@@ -131,37 +103,7 @@ const PriceSimulator = () => {
       // Se excedeu o número máximo de tentativas, usa dados de demonstração
       if (tentativasRef.current >= maxTentativas) {
         console.warn(`[PriceSimulator] Máximo de tentativas (${maxTentativas}) excedido. Usando dados de demonstração.`);
-        
-        // Definir a ordem específica dos serviços
-        const ordemServicos = [
-          "VLOG - Aventuras em Família",
-          "VLOG - Amigos e Comunidade",
-          "Cobertura Fotográfica de Evento Social",
-          "Filmagem de Evento Social",
-          "Ensaio Fotográfico de Família",
-          "Filmagem Aérea com Drone",
-          "Fotografia Aérea com Drone"
-        ];
-        
-        // Ordenar os dados de demonstração conforme a ordem específica
-        const demoOrdenados = [...dadosDemonstracao].sort((a, b) => {
-          const indexA = ordemServicos.indexOf(a.nome);
-          const indexB = ordemServicos.indexOf(b.nome);
-          
-          // Se ambos os serviços estiverem na lista de ordem, usar a ordem definida
-          if (indexA >= 0 && indexB >= 0) {
-            return indexA - indexB;
-          }
-          
-          // Se apenas um estiver na lista, priorizá-lo
-          if (indexA >= 0) return -1;
-          if (indexB >= 0) return 1;
-          
-          // Se nenhum estiver na lista, manter a ordem original
-          return 0;
-        });
-        
-        setServicos(demoOrdenados);
+        setServicos(dadosDemonstracao);
         setUsandoDadosDemonstracao(true);
         setErro(`Não foi possível carregar os dados do servidor após ${maxTentativas} tentativas. Exibindo dados de demonstração.`);
       } else {

@@ -20,7 +20,6 @@ model Servico {
   entregaveis            String
   possiveis_adicionais   String?
   valor_deslocamento     String?
-  ordem                  Int     @default(999) // Campo para controlar a ordem de exibição dos serviços
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }

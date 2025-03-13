@@ -1,330 +1,272 @@
 /**
- * Script de sincronização de dados entre ambientes
+ * Script de sincronização de banco de dados
  * 
- * Este script gerencia a sincronização de dados entre o arquivo de demonstração
- * e o banco de dados, em ambas as direções.
+ * Este script permite sincronizar dados entre ambientes (desenvolvimento e produção)
+ * Útil para manter consistência entre ambientes e realizar migrações de dados
  * 
- * @version 1.0.4 - 2025-03-14 - Melhorada a sincronização para garantir a ordem correta dos serviços
+ * @version 1.0.0 - 2025-03-13
+ * @author Lytspot Team
  */
 
-import { fileURLToPath } from 'url';
+import { PrismaClient } from '@prisma/client';
+import { getServiceDefinitionsForFrontend } from '../models/seeds/serviceDefinitions.js';
+import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
-import fs from 'fs/promises';
+import { fileURLToPath } from 'url';
 
 // Configuração para ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
+const logDir = path.resolve(rootDir, 'logs');
 
-// Ordem específica dos serviços conforme solicitado
-const ORDEM_SERVICOS = [
-  'VLOG - Aventuras em Família',
-  'VLOG - Amigos e Comunidade',
-  'Cobertura Fotográfica de Evento Social',
-  'Filmagem de Evento Social',
-  'Ensaio Fotográfico de Família',
-  'Filmagem Aérea com Drone',
-  'Fotografia Aérea com Drone'
-];
+// Garantir que o diretório de logs exista
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+
+// Arquivo de log
+const logFile = path.resolve(logDir, 'sync-database.log');
 
 /**
- * Sincroniza dados do arquivo de demonstração para o banco de dados
- * @param {PrismaClient} prisma - Cliente Prisma para operações no banco
- * @param {boolean} forceUpdate - Se true, atualiza serviços existentes
- * @param {boolean} deleteExisting - Se true, exclui todos os serviços antes de sincronizar
- * @returns {Object} Resultado da sincronização
+ * Registra uma mensagem no log
+ * @param {string} message Mensagem a ser registrada
+ * @param {string} level Nível do log (info, warn, error)
  */
-export async function syncServicesToDatabase(prisma, forceUpdate = false, deleteExisting = false) {
+function log(message, level = 'info') {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`;
+  
+  // Escrever no console
+  if (level === 'error') {
+    console.error(`❌ ${message}`);
+  } else if (level === 'warn') {
+    console.warn(`⚠️ ${message}`);
+  } else {
+    console.log(`ℹ️ ${message}`);
+  }
+  
+  // Escrever no arquivo de log
   try {
-    console.log(`Iniciando sincronização de serviços para o banco de dados (forceUpdate=${forceUpdate}, deleteExisting=${deleteExisting})`);
+    fs.appendFileSync(logFile, logMessage);
+  } catch (logError) {
+    console.error('Erro ao registrar log:', logError);
+  }
+}
+
+// Inicializar o cliente Prisma
+const prisma = new PrismaClient();
+
+/**
+ * Sincroniza os serviços de demonstração com o banco de dados
+ * @param {boolean} forceUpdate Se true, atualiza serviços existentes
+ * @param {boolean} deleteExisting Se true, exclui todos os serviços existentes antes de sincronizar
+ * @returns {Promise<Object>} Resultado da sincronização
+ */
+export async function syncServicesToDatabase(forceUpdate = false, deleteExisting = false) {
+  try {
+    log('Iniciando sincronização de serviços com o banco de dados...');
     
-    // Estatísticas da operação
-    const stats = {
-      created: 0,
-      updated: 0,
-      skipped: 0,
-      deleted: 0,
-      errors: []
-    };
-    
-    // Importar dados de demonstração
-    const dadosDemoModule = await import('../../src/components/pricing/dadosDemonstracao.js');
-    const servicosDemo = dadosDemoModule.servicos || [];
-    
-    if (!servicosDemo || !Array.isArray(servicosDemo) || servicosDemo.length === 0) {
-      return {
-        success: false,
-        error: 'Dados de demonstração inválidos ou vazios',
-        stats
-      };
-    }
-    
-    console.log(`Encontrados ${servicosDemo.length} serviços nos dados de demonstração`);
+    // Obter serviços de demonstração
+    const demoServices = getServiceDefinitionsForFrontend();
+    log(`Obtidos ${demoServices.length} serviços de demonstração para sincronizar`);
     
     // Se solicitado, excluir todos os serviços existentes
     if (deleteExisting) {
-      console.log('Excluindo todos os serviços existentes...');
-      const deletedCount = await prisma.servico.deleteMany({});
-      stats.deleted = deletedCount.count;
-      console.log(`${stats.deleted} serviços excluídos`);
+      log('Excluindo todos os serviços existentes...', 'warn');
+      await prisma.servico.deleteMany({});
+      log('Todos os serviços foram excluídos do banco de dados');
     }
     
-    // Processar cada serviço na ordem específica
-    for (let i = 0; i < ORDEM_SERVICOS.length; i++) {
-      const nomeServico = ORDEM_SERVICOS[i];
-      const servicoDemo = servicosDemo.find(s => s.nome === nomeServico);
-      
-      if (!servicoDemo) {
-        console.log(`Serviço "${nomeServico}" não encontrado nos dados de demonstração, pulando...`);
-        continue;
-      }
-      
+    // Estatísticas para o relatório
+    const stats = {
+      total: demoServices.length,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      errors: 0
+    };
+    
+    // Processar cada serviço
+    for (const demoService of demoServices) {
       try {
-        // Verificar se o serviço já existe no banco
-        const servicoExistente = await prisma.servico.findFirst({
-          where: {
-            nome: servicoDemo.nome
-          }
+        // Verificar se já existe um serviço com o mesmo nome
+        const existingService = await prisma.servico.findFirst({
+          where: { nome: demoService.nome }
         });
         
-        if (servicoExistente) {
-          // Se o serviço existe e forceUpdate é true, atualizar
+        if (existingService) {
           if (forceUpdate) {
-            console.log(`Atualizando serviço existente: ${servicoDemo.nome}`);
+            // Atualizar serviço existente
+            log(`Atualizando serviço "${demoService.nome}" (ID: ${existingService.id})...`);
+            
+            // Extrair campos específicos para o modelo Servico
+            const { id, duracao_media, detalhes, ...serviceData } = demoService;
+            
+            // Mapear campos específicos do frontend para o modelo do banco
+            const dbServiceData = {
+              ...serviceData,
+              duracao_media_captura: detalhes?.captura || existingService.duracao_media_captura,
+              duracao_media_tratamento: detalhes?.tratamento || existingService.duracao_media_tratamento,
+              entregaveis: detalhes?.entregaveis || existingService.entregaveis,
+              possiveis_adicionais: detalhes?.adicionais || existingService.possiveis_adicionais,
+              valor_deslocamento: detalhes?.deslocamento || existingService.valor_deslocamento
+            };
             
             await prisma.servico.update({
-              where: { id: servicoExistente.id },
-              data: {
-                nome: servicoDemo.nome,
-                descricao: servicoDemo.descricao,
-                preco_base: servicoDemo.preco_base,
-                duracao_media_captura: servicoDemo.detalhes?.captura || null,
-                duracao_media_tratamento: servicoDemo.detalhes?.tratamento || null,
-                entregaveis: servicoDemo.detalhes?.entregaveis || null,
-                possiveis_adicionais: servicoDemo.detalhes?.adicionais || null,
-                valor_deslocamento: servicoDemo.detalhes?.deslocamento || null,
-                ordem: i + 1, // Definir a ordem conforme a posição na lista ORDEM_SERVICOS
-                updatedAt: new Date()
-              }
+              where: { id: existingService.id },
+              data: dbServiceData
             });
             
+            log(`Serviço "${demoService.nome}" atualizado com sucesso`);
             stats.updated++;
           } else {
-            // Mesmo sem atualizar outros campos, atualizar a ordem
-            console.log(`Atualizando apenas a ordem do serviço: ${servicoDemo.nome}`);
-            
-            await prisma.servico.update({
-              where: { id: servicoExistente.id },
-              data: {
-                ordem: i + 1, // Definir a ordem conforme a posição na lista ORDEM_SERVICOS
-                updatedAt: new Date()
-              }
-            });
-            
+            // Pular serviço existente
+            log(`Serviço "${demoService.nome}" já existe, pulando (use forceUpdate=true para atualizar)`, 'warn');
             stats.skipped++;
           }
         } else {
-          // Se o serviço não existe, criar
-          console.log(`Criando novo serviço: ${servicoDemo.nome}`);
+          // Criar novo serviço
+          log(`Criando novo serviço "${demoService.nome}"...`);
+          
+          // Extrair campos específicos para o modelo Servico
+          const { id, duracao_media, detalhes, ...serviceData } = demoService;
+          
+          // Mapear campos específicos do frontend para o modelo do banco
+          const dbServiceData = {
+            ...serviceData,
+            duracao_media_captura: detalhes?.captura || '',
+            duracao_media_tratamento: detalhes?.tratamento || '',
+            entregaveis: detalhes?.entregaveis || '',
+            possiveis_adicionais: detalhes?.adicionais || '',
+            valor_deslocamento: detalhes?.deslocamento || ''
+          };
           
           await prisma.servico.create({
-            data: {
-              nome: servicoDemo.nome,
-              descricao: servicoDemo.descricao,
-              preco_base: servicoDemo.preco_base,
-              duracao_media_captura: servicoDemo.detalhes?.captura || '',
-              duracao_media_tratamento: servicoDemo.detalhes?.tratamento || '',
-              entregaveis: servicoDemo.detalhes?.entregaveis || '',
-              possiveis_adicionais: servicoDemo.detalhes?.adicionais || '',
-              valor_deslocamento: servicoDemo.detalhes?.deslocamento || '',
-              ordem: i + 1 // Definir a ordem conforme a posição na lista ORDEM_SERVICOS
-            }
+            data: dbServiceData
           });
           
+          log(`Serviço "${demoService.nome}" criado com sucesso`);
           stats.created++;
         }
-      } catch (error) {
-        console.error(`Erro ao processar serviço "${servicoDemo.nome}":`, error);
-        stats.errors.push({
-          servico: servicoDemo.nome,
-          erro: error.message
-        });
+      } catch (serviceError) {
+        log(`Erro ao processar serviço "${demoService.nome}": ${serviceError.message}`, 'error');
+        stats.errors++;
       }
     }
     
-    // Processar serviços que não estão na ordem específica
-    const servicosForaOrdem = servicosDemo.filter(s => !ORDEM_SERVICOS.includes(s.nome));
-    
-    if (servicosForaOrdem.length > 0) {
-      console.log(`Processando ${servicosForaOrdem.length} serviços que não estão na ordem específica...`);
-      
-      // Continuar a partir do último índice da ordem específica
-      let ordemAtual = ORDEM_SERVICOS.length;
-      
-      for (const servicoDemo of servicosForaOrdem) {
-        try {
-          // Verificar se o serviço já existe no banco
-          const servicoExistente = await prisma.servico.findFirst({
-            where: {
-              nome: servicoDemo.nome
-            }
-          });
-          
-          if (servicoExistente) {
-            // Se o serviço existe e forceUpdate é true, atualizar
-            if (forceUpdate) {
-              console.log(`Atualizando serviço existente (fora da ordem específica): ${servicoDemo.nome}`);
-              
-              await prisma.servico.update({
-                where: { id: servicoExistente.id },
-                data: {
-                  nome: servicoDemo.nome,
-                  descricao: servicoDemo.descricao,
-                  preco_base: servicoDemo.preco_base,
-                  duracao_media_captura: servicoDemo.detalhes?.captura || null,
-                  duracao_media_tratamento: servicoDemo.detalhes?.tratamento || null,
-                  entregaveis: servicoDemo.detalhes?.entregaveis || null,
-                  possiveis_adicionais: servicoDemo.detalhes?.adicionais || null,
-                  valor_deslocamento: servicoDemo.detalhes?.deslocamento || null,
-                  ordem: ordemAtual + 1, // Definir a ordem após os serviços da ordem específica
-                  updatedAt: new Date()
-                }
-              });
-              
-              stats.updated++;
-            } else {
-              // Mesmo sem atualizar outros campos, atualizar a ordem
-              console.log(`Atualizando apenas a ordem do serviço (fora da ordem específica): ${servicoDemo.nome}`);
-              
-              await prisma.servico.update({
-                where: { id: servicoExistente.id },
-                data: {
-                  ordem: ordemAtual + 1, // Definir a ordem após os serviços da ordem específica
-                  updatedAt: new Date()
-                }
-              });
-              
-              stats.skipped++;
-            }
-          } else {
-            // Se o serviço não existe, criar
-            console.log(`Criando novo serviço (fora da ordem específica): ${servicoDemo.nome}`);
-            
-            await prisma.servico.create({
-              data: {
-                nome: servicoDemo.nome,
-                descricao: servicoDemo.descricao,
-                preco_base: servicoDemo.preco_base,
-                duracao_media_captura: servicoDemo.detalhes?.captura || '',
-                duracao_media_tratamento: servicoDemo.detalhes?.tratamento || '',
-                entregaveis: servicoDemo.detalhes?.entregaveis || '',
-                possiveis_adicionais: servicoDemo.detalhes?.adicionais || '',
-                valor_deslocamento: servicoDemo.detalhes?.deslocamento || '',
-                ordem: ordemAtual + 1 // Definir a ordem após os serviços da ordem específica
-              }
-            });
-            
-            stats.created++;
-          }
-          
-          ordemAtual++;
-        } catch (error) {
-          console.error(`Erro ao processar serviço "${servicoDemo.nome}":`, error);
-          stats.errors.push({
-            servico: servicoDemo.nome,
-            erro: error.message
-          });
-        }
-      }
-    }
-    
-    console.log('Sincronização para o banco de dados concluída');
-    console.log(`Estatísticas: ${stats.created} criados, ${stats.updated} atualizados, ${stats.skipped} ignorados, ${stats.deleted} excluídos, ${stats.errors.length} erros`);
-    
-    return {
-      success: stats.errors.length === 0,
+    // Gerar relatório
+    const report = {
+      timestamp: new Date().toISOString(),
+      success: true,
+      message: `Sincronização concluída: ${stats.created} criados, ${stats.updated} atualizados, ${stats.skipped} ignorados, ${stats.errors} erros`,
       stats
     };
+    
+    log(report.message);
+    return report;
   } catch (error) {
-    console.error('Erro durante a sincronização:', error);
+    log(`Erro ao sincronizar serviços: ${error.message}`, 'error');
     return {
+      timestamp: new Date().toISOString(),
       success: false,
+      message: `Erro ao sincronizar serviços: ${error.message}`,
       error: error.message
     };
+  } finally {
+    // Garantir que a conexão com o banco seja fechada
+    await prisma.$disconnect();
   }
 }
 
 /**
- * Sincroniza dados do banco de dados para o arquivo de demonstração
- * @param {PrismaClient} prisma - Cliente Prisma para operações no banco
- * @returns {Object} Resultado da sincronização
+ * Sincroniza os serviços do banco de dados com o arquivo de dados de demonstração
+ * @returns {Promise<Object>} Resultado da sincronização
  */
-export async function syncDatabaseToDemo(prisma) {
+export async function syncDatabaseToDemo() {
   try {
-    console.log('Iniciando sincronização do banco de dados para o arquivo de demonstração');
+    log('Iniciando sincronização do banco de dados para arquivo de demonstração...');
     
-    // Buscar todos os serviços ativos do banco de dados
-    const servicos = await prisma.servico.findMany({
+    // Buscar todos os serviços do banco de dados
+    const services = await prisma.servico.findMany({
       orderBy: {
-        ordem: 'asc' // Ordenar pela ordem definida
+        nome: 'asc'
       }
     });
     
-    if (!servicos || servicos.length === 0) {
+    if (services.length === 0) {
+      log('Nenhum serviço encontrado no banco de dados.', 'warn');
       return {
+        timestamp: new Date().toISOString(),
         success: false,
-        error: 'Nenhum serviço encontrado no banco de dados'
+        message: 'Nenhum serviço encontrado no banco de dados.'
       };
     }
     
-    console.log(`Encontrados ${servicos.length} serviços no banco de dados`);
+    log(`Encontrados ${services.length} serviços no banco de dados`);
     
-    // Transformar os serviços para o formato do arquivo de demonstração
-    const servicosTransformados = servicos.map(servico => {
-      // Calcular a duração média aproximada baseada nos campos individuais
-      const duracaoCaptura = parseInt(servico.duracao_media_captura?.split(' ')[0] || 0);
-      const duracaoTratamento = parseInt(servico.duracao_media_tratamento?.split(' ')[0] || 0);
-      const duracaoMedia = Math.max(1.5, (duracaoCaptura + duracaoTratamento) / 2) || 3; // Mínimo de 1.5 horas
+    // Transformar os serviços para o formato do frontend
+    const transformedServices = services.map((service, index) => {
+      // Calcula a duração média aproximada baseada nos campos individuais
+      const duracaoCaptura = parseInt(service.duracao_media_captura?.split(' ')[0] || 0);
+      const duracaoTratamento = parseInt(service.duracao_media_tratamento?.split(' ')[0] || 0);
+      const duracaoMedia = Math.ceil((duracaoCaptura + duracaoTratamento) / 2) || 3; // Fallback para 3 dias
       
       return {
-        id: servico.id,
-        nome: servico.nome,
-        descricao: servico.descricao,
-        preco_base: servico.preco_base,
+        id: index + 1, // Gerar IDs sequenciais para o frontend
+        nome: service.nome,
+        descricao: service.descricao,
+        preco_base: service.preco_base,
         duracao_media: duracaoMedia,
         detalhes: {
-          captura: servico.duracao_media_captura || '',
-          tratamento: servico.duracao_media_tratamento || '',
-          entregaveis: servico.entregaveis || '',
-          adicionais: servico.possiveis_adicionais || '',
-          deslocamento: servico.valor_deslocamento || ''
+          captura: service.duracao_media_captura || '',
+          tratamento: service.duracao_media_tratamento || '',
+          entregaveis: service.entregaveis || '',
+          adicionais: service.possiveis_adicionais || '',
+          deslocamento: service.valor_deslocamento || ''
         }
       };
     });
     
+    // Ordenar serviços conforme a ordem específica solicitada
+    const orderPreference = [
+      'VLOG - Aventuras em Família',
+      'VLOG - Amigos e Comunidade',
+      'Cobertura Fotográfica de Evento Social',
+      'Filmagem de Evento Social',
+      'Ensaio Fotográfico de Família',
+      'Filmagem Aérea com Drone',
+      'Fotografia Aérea com Drone'
+    ];
+    
+    // Função para determinar a posição na ordem de preferência
+    const getOrderPosition = (serviceName) => {
+      const index = orderPreference.findIndex(name => 
+        serviceName.toLowerCase().includes(name.toLowerCase())
+      );
+      return index >= 0 ? index : orderPreference.length;
+    };
+    
+    // Ordenar os serviços conforme a preferência
+    transformedServices.sort((a, b) => {
+      const posA = getOrderPosition(a.nome);
+      const posB = getOrderPosition(b.nome);
+      return posA - posB;
+    });
+    
     // Caminho para o arquivo de dados de demonstração
-    const caminhoArquivo = path.resolve(__dirname, '../../src/components/pricing/dadosDemonstracao.js');
-    
-    // Fazer backup do arquivo existente
-    const dataHoraAtual = new Date().toISOString().replace(/[:.]/g, '-');
-    const caminhoBackup = path.resolve(__dirname, `../../src/components/pricing/backup_dadosDemonstracao_${dataHoraAtual}.js`);
-    
-    try {
-      const conteudoAtual = await fs.readFile(caminhoArquivo, 'utf8');
-      await fs.writeFile(caminhoBackup, conteudoAtual, 'utf8');
-      console.log(`Backup do arquivo de demonstração criado em: ${caminhoBackup}`);
-    } catch (backupError) {
-      console.warn('Aviso: Não foi possível criar backup do arquivo de demonstração:', backupError);
-    }
+    const demoFilePath = path.resolve(rootDir, '../src/components/pricing/dadosDemonstracao.js');
     
     // Criar o conteúdo do arquivo
-    const dataAtual = new Date().toISOString();
-    const conteudoArquivo = `/**
+    const currentDate = new Date().toISOString();
+    const fileContent = `/**
  * Dados de demonstração para o simulador de preços
- * Gerado automaticamente em ${dataAtual}
+ * Gerado automaticamente em ${currentDate}
  * NÃO EDITE ESTE ARQUIVO MANUALMENTE
  */
 
-export const dadosDemonstracao = ${JSON.stringify(servicosTransformados, null, 2)};
+export const dadosDemonstracao = ${JSON.stringify(transformedServices, null, 2)};
 
 export const servicos = dadosDemonstracao;
 
@@ -332,21 +274,32 @@ export default dadosDemonstracao;
 `;
     
     // Escrever o arquivo
-    await fs.writeFile(caminhoArquivo, conteudoArquivo, 'utf8');
+    fs.writeFileSync(demoFilePath, fileContent, 'utf8');
     
-    console.log(`Arquivo de demonstração atualizado com ${servicosTransformados.length} serviços`);
+    log(`Arquivo de dados de demonstração atualizado com sucesso: ${demoFilePath}`);
     
     return {
+      timestamp: new Date().toISOString(),
       success: true,
-      message: `Sincronização concluída com sucesso (${servicosTransformados.length} serviços)`,
-      count: servicosTransformados.length,
-      backupPath: caminhoBackup
+      message: `Sincronização concluída: ${transformedServices.length} serviços exportados para o arquivo de demonstração`,
+      count: transformedServices.length
     };
   } catch (error) {
-    console.error('Erro na sincronização do banco para arquivo de demonstração:', error);
+    log(`Erro ao sincronizar banco de dados para arquivo de demonstração: ${error.message}`, 'error');
     return {
+      timestamp: new Date().toISOString(),
       success: false,
+      message: `Erro ao sincronizar: ${error.message}`,
       error: error.message
     };
+  } finally {
+    // Garantir que a conexão com o banco seja fechada
+    await prisma.$disconnect();
   }
 }
+
+// Exportar funções para uso em outros módulos
+export default {
+  syncServicesToDatabase,
+  syncDatabaseToDemo
+};
