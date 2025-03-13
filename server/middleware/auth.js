@@ -29,7 +29,7 @@ export const authenticateJWT = (req, res, next) => {
   }
 
   // Verificar o token
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, process.env.JWT_SECRET || 'f23e126b7f99a3e4553c65b3f558cb6a', (err, decoded) => {
     if (err) {
       return res.status(401).json({ message: 'Token inválido ou expirado' });
     }

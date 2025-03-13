@@ -82,7 +82,7 @@ export const authController = {
       // Gerar o token JWT
       const token = jwt.sign(
         { id: usuario.id, email: usuario.email, nome: usuario.nome },
-        process.env.JWT_SECRET,
+        process.env.JWT_SECRET || 'f23e126b7f99a3e4553c65b3f558cb6a', // Fallback para desenvolvimento
         { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
       );
       

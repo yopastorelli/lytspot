@@ -106,7 +106,23 @@ try {
     'ACCOUNT_ID',
     'SENDER_EMAIL',
     'RECIPIENT_EMAIL',
+    // Não vamos exigir as variáveis SMTP para permitir o modo de fallback
+    // 'SMTP_HOST',
+    // 'SMTP_USER',
+    // 'SMTP_PASS',
   ];
+
+  // Verificar JWT_SECRET separadamente e configurar um valor padrão se não existir
+  if (!process.env.JWT_SECRET) {
+    const defaultSecret = 'f23e126b7f99a3e4553c65b3f558cb6a'; // Mesmo valor usado no fallback
+    logger.warn(`Variável de ambiente JWT_SECRET não encontrada. Usando valor padrão para desenvolvimento.`);
+    console.warn(`Variável de ambiente JWT_SECRET não encontrada. Usando valor padrão para desenvolvimento.`);
+    process.env.JWT_SECRET = defaultSecret;
+  } else {
+    logger.info('JWT_SECRET configurado corretamente.');
+    console.log('JWT_SECRET configurado corretamente.');
+  }
+
   requiredEnvVars.forEach((key) => {
     if (!process.env[key]) {
       logger.error(`Variável de ambiente ${key} não está configurada.`);
