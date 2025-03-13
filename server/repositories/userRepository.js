@@ -4,7 +4,7 @@
  * Responsável por encapsular o acesso ao banco de dados para operações relacionadas a usuários,
  * incluindo autenticação, criação, atualização e consultas.
  * 
- * @version 1.2.0 - 2025-03-14 - Corrigido import do bcrypt para bcryptjs
+ * @version 1.4.0 - 2025-03-14 - Melhorada compatibilidade com parâmetros do frontend
  * @module repositories/userRepository
  */
 
@@ -142,30 +142,50 @@ class UserRepository {
   /**
    * Verifica se as credenciais do usuário são válidas
    * @param {string} email Email do usuário
-   * @param {string} senha Senha do usuário
+   * @param {string} senha Senha do usuário (ou objeto com propriedade senha)
    * @returns {Promise<Object|null>} Usuário autenticado ou null
    */
   async authenticate(email, senha) {
     try {
+      console.log(`[userRepository] Tentativa de autenticação para email: ${email}`);
+      
+      // Verificar se o parâmetro senha é um objeto com propriedade senha
+      let senhaParaVerificar = senha;
+      if (typeof senha === 'object' && senha !== null && 'senha' in senha) {
+        senhaParaVerificar = senha.senha;
+        console.log(`[userRepository] Senha recebida como objeto, extraindo propriedade 'senha'`);
+      }
+      
       // Buscar usuário pelo email
       const usuario = await this.findByEmail(email);
       
       if (!usuario) {
+        console.log(`[userRepository] Usuário não encontrado para email: ${email}`);
         return null;
       }
+      
+      console.log(`[userRepository] Usuário encontrado, verificando senha`);
       
       // Verificar senha
-      const senhaValida = await bcrypt.compare(senha, usuario.senha);
-      
-      if (!senhaValida) {
-        return null;
+      try {
+        const senhaValida = await bcrypt.compare(senhaParaVerificar, usuario.senha);
+        
+        if (!senhaValida) {
+          console.log(`[userRepository] Senha inválida para usuário: ${email}`);
+          return null;
+        }
+        
+        console.log(`[userRepository] Autenticação bem-sucedida para: ${email}`);
+        
+        // Retornar usuário sem a senha
+        const { senha: _, ...usuarioSemSenha } = usuario;
+        return usuarioSemSenha;
+      } catch (bcryptError) {
+        console.error(`[userRepository] Erro no bcrypt ao comparar senhas: ${bcryptError.message}`, bcryptError);
+        throw new Error(`Erro ao verificar senha: ${bcryptError.message}`);
       }
-      
-      // Retornar usuário sem a senha
-      const { senha: _, ...usuarioSemSenha } = usuario;
-      return usuarioSemSenha;
     } catch (error) {
-      console.error('Erro na autenticação:', error);
+      console.error(`[userRepository] Erro na autenticação para ${email}:`, error);
       throw new Error(`Erro na autenticação: ${error.message}`);
     }
   }
