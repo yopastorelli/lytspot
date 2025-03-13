@@ -121,28 +121,53 @@ export const pricingController = {
 
   /**
    * Criar um novo serviço
+   * 
+   * @version 1.2.0 - 2025-03-13 - Melhorada a validação e tratamento de erros
+   * @param {Object} req - Objeto de requisição Express
+   * @param {Object} res - Objeto de resposta Express
+   * @returns {Object} Resposta com o serviço criado ou mensagem de erro
    */
   createService: async (req, res) => {
     try {
+      console.log('=== DEBUG createService ===');
+      console.log('Dados recebidos:', req.body);
+      
       // Validar dados do serviço
       const validationResult = serviceValidator.validate(req.body);
       
       if (!validationResult.isValid) {
+        console.log('Validação falhou:', validationResult.errors);
         return res.status(400).json({ 
           message: 'Dados de serviço inválidos',
           errors: validationResult.errors
         });
       }
       
+      // Sanitizar dados antes de criar o serviço
+      const dadosSanitizados = {
+        ...req.body,
+        // Garantir que o ID não seja enviado na criação
+        id: undefined
+      };
+      
       // Criar serviço através do serviço
-      const novoServico = await pricingService.createService(req.body);
+      const novoServico = await pricingService.createService(dadosSanitizados);
       
       // Limpar o cache quando um novo serviço é criado
       clearCache('/api/pricing');
       
+      console.log('Serviço criado com sucesso:', novoServico);
       return res.status(201).json(novoServico);
     } catch (error) {
       console.error('Erro ao criar serviço:', error);
+      
+      // Verificar se é um erro de duplicação
+      if (error.message && error.message.includes('Já existe um serviço')) {
+        return res.status(409).json({ 
+          message: error.message
+        });
+      }
+      
       return res.status(500).json({ 
         message: 'Erro ao criar serviço',
         error: environment.IS_DEVELOPMENT ? error.message : undefined
@@ -153,7 +178,7 @@ export const pricingController = {
   /**
    * Atualizar um serviço existente
    * 
-   * @version 1.2.0 - 2025-03-12 - Melhorada a validação e tratamento de erros
+   * @version 1.3.0 - 2025-03-13 - Melhorada a validação e tratamento de erros
    * @param {Object} req - Objeto de requisição Express
    * @param {Object} res - Objeto de resposta Express
    * @returns {Object} Resposta com o serviço atualizado ou mensagem de erro
@@ -191,8 +216,14 @@ export const pricingController = {
           return res.status(404).json({ message: 'Serviço não encontrado' });
         }
         
+        // Garantir que o ID seja mantido no objeto de dados
+        const dadosAtualizados = {
+          ...req.body,
+          id: parseInt(id)
+        };
+        
         // Atualizar serviço através do serviço
-        const servicoAtualizado = await pricingService.updateService(parseInt(id), req.body);
+        const servicoAtualizado = await pricingService.updateService(parseInt(id), dadosAtualizados);
         
         // Limpar o cache quando um serviço é atualizado
         clearCache('/api/pricing');

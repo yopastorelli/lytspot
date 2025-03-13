@@ -211,7 +211,7 @@ export const getServiceDefinitionsForFrontend = () => {
  * Este módulo contém as definições padrão de serviços utilizadas como dados de demonstração
  * e para inicialização do banco de dados.
  * 
- * @version 1.3.0 - 2025-03-12 - Melhorada a função de atualização de serviços de demonstração
+ * @version 1.4.0 - 2025-03-13 - Melhorada a função de atualização de serviços para maior compatibilidade
  * @module models/seeds/serviceDefinitions
  */
 
@@ -221,14 +221,28 @@ export const getServiceDefinitionsForFrontend = () => {
  * Esta função permite atualizar um serviço nos dados de demonstração, mantendo
  * a consistência entre os dados de demonstração e os dados originais.
  * 
- * @version 1.2.0 - 2025-03-12 - Melhorada a sanitização de dados e persistência das alterações
- * @param {number|string} id ID do serviço
- * @param {Object} data Novos dados do serviço
+ * @version 1.3.0 - 2025-03-13 - Suporte para receber um objeto de serviço completo
+ * @param {number|string|Object} idOrService ID do serviço ou objeto de serviço completo
+ * @param {Object} [data] Novos dados do serviço (opcional se o primeiro parâmetro for um objeto)
  * @returns {Object|null} Serviço atualizado ou null se não encontrado
  */
-export const updateDemonstrationService = (id, data) => {
-  console.log('updateDemonstrationService - Iniciando atualização do serviço de demonstração:', id);
-  console.log('updateDemonstrationService - Dados recebidos:', data);
+export const updateDemonstrationService = (idOrService, data = null) => {
+  // Determinar se o primeiro parâmetro é um ID ou um objeto de serviço completo
+  let id;
+  let updateData;
+  
+  if (typeof idOrService === 'object' && idOrService !== null) {
+    // Primeiro parâmetro é um objeto de serviço completo
+    id = idOrService.id;
+    updateData = idOrService;
+    console.log('updateDemonstrationService - Recebido objeto de serviço completo com ID:', id);
+  } else {
+    // Primeiro parâmetro é um ID, segundo parâmetro são os dados
+    id = idOrService;
+    updateData = data;
+    console.log('updateDemonstrationService - Iniciando atualização do serviço de demonstração:', id);
+    console.log('updateDemonstrationService - Dados recebidos:', updateData);
+  }
   
   // Garantir que os dados de demonstração estão inicializados
   if (!demonstrationData) {
@@ -254,7 +268,7 @@ export const updateDemonstrationService = (id, data) => {
   const originalService = JSON.parse(JSON.stringify(demonstrationData[index]));
   
   // Sanitizar os dados para garantir consistência
-  const sanitizedData = { ...data };
+  const sanitizedData = { ...updateData };
   if (sanitizedData.preco_base !== undefined) {
     sanitizedData.preco_base = typeof sanitizedData.preco_base === 'string' 
       ? parseFloat(sanitizedData.preco_base) 

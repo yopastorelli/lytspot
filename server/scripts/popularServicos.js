@@ -1,0 +1,166 @@
+/**
+ * Script para popular o banco de dados com serviços de demonstração
+ * 
+ * Este script utiliza as definições de serviços do módulo serviceDefinitions.js
+ * para popular o banco de dados com serviços de demonstração.
+ * 
+ * @version 1.0.0 - 2025-03-13
+ */
+
+import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { getServiceDefinitionsForFrontend } from '../models/seeds/serviceDefinitions.js';
+
+// Carregar variáveis de ambiente
+dotenv.config();
+
+// Configuração para obter o diretório atual
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..', '..');
+
+// Diretório de logs
+const logsDir = path.resolve(rootDir, 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// Arquivo de log
+const logFile = path.resolve(logsDir, 'popular-servicos.log');
+
+/**
+ * Escreve uma mensagem no arquivo de log
+ * @param {string} message Mensagem a ser registrada
+ */
+function log(message) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}\n`;
+  
+  // Escrever no console
+  console.log(message);
+  
+  // Escrever no arquivo de log
+  fs.appendFileSync(logFile, logMessage);
+}
+
+// Cliente Prisma para acesso ao banco de dados
+const prisma = new PrismaClient({
+  log: ['query', 'error', 'warn'],
+});
+
+/**
+ * Sanitiza os dados de um serviço para salvar no banco de dados
+ * @param {Object} service Dados do serviço
+ * @returns {Object} Dados sanitizados
+ */
+function sanitizeServiceData(service) {
+  // Remover campos que não existem no modelo Prisma
+  const { id, ...sanitizedData } = service;
+  
+  // Converter preço para número
+  if (sanitizedData.preco_base !== undefined) {
+    sanitizedData.preco_base = typeof sanitizedData.preco_base === 'string' 
+      ? parseFloat(sanitizedData.preco_base) 
+      : sanitizedData.preco_base;
+  }
+  
+  return sanitizedData;
+}
+
+/**
+ * Popula o banco de dados com serviços de demonstração
+ */
+async function popularServicos() {
+  log('=== POPULANDO BANCO DE DADOS COM SERVIÇOS ===');
+  log(`Data e hora: ${new Date().toISOString()}`);
+  log(`Ambiente: ${process.env.NODE_ENV || 'não definido'}`);
+  
+  try {
+    // Conectar ao banco de dados
+    await prisma.$connect();
+    log('Conexão estabelecida com sucesso');
+    
+    // Obter serviços de demonstração
+    const servicosDemo = getServiceDefinitionsForFrontend();
+    log(`Obtidos ${servicosDemo.length} serviços de demonstração`);
+    
+    // Verificar se já existem serviços no banco de dados
+    const countServicos = await prisma.servico.count();
+    log(`Encontrados ${countServicos} serviços no banco de dados`);
+    
+    if (countServicos > 0) {
+      log('Banco de dados já possui serviços, verificando consistência...');
+      
+      // Verificar cada serviço de demonstração
+      for (const servicoDemo of servicosDemo) {
+        // Verificar se o serviço existe no banco de dados
+        const servicoExistente = await prisma.servico.findFirst({
+          where: {
+            nome: servicoDemo.nome
+          }
+        });
+        
+        if (servicoExistente) {
+          log(`Serviço "${servicoDemo.nome}" já existe no banco de dados (ID: ${servicoExistente.id})`);
+        } else {
+          // Criar serviço
+          log(`Criando serviço "${servicoDemo.nome}"...`);
+          const sanitizedData = sanitizeServiceData(servicoDemo);
+          
+          try {
+            const novoServico = await prisma.servico.create({
+              data: sanitizedData
+            });
+            
+            log(`Serviço criado com sucesso (ID: ${novoServico.id})`);
+          } catch (error) {
+            log(`Erro ao criar serviço "${servicoDemo.nome}": ${error.message}`);
+          }
+        }
+      }
+    } else {
+      log('Banco de dados vazio, populando com todos os serviços de demonstração...');
+      
+      // Criar todos os serviços
+      for (const servicoDemo of servicosDemo) {
+        log(`Criando serviço "${servicoDemo.nome}"...`);
+        const sanitizedData = sanitizeServiceData(servicoDemo);
+        
+        try {
+          const novoServico = await prisma.servico.create({
+            data: sanitizedData
+          });
+          
+          log(`Serviço criado com sucesso (ID: ${novoServico.id})`);
+        } catch (error) {
+          log(`Erro ao criar serviço "${servicoDemo.nome}": ${error.message}`);
+        }
+      }
+    }
+    
+    // Verificar resultado final
+    const countFinal = await prisma.servico.count();
+    log(`Total de serviços após população: ${countFinal}`);
+    
+    log('População de serviços concluída com sucesso');
+  } catch (error) {
+    log(`Erro durante a população de serviços: ${error.message}`);
+    console.error('Detalhes do erro:', error);
+  } finally {
+    // Desconectar do banco de dados
+    await prisma.$disconnect();
+    log('Desconectado do banco de dados');
+  }
+  
+  log('=== POPULAÇÃO CONCLUÍDA ===');
+}
+
+// Executar população de serviços
+popularServicos()
+  .catch(error => {
+    console.error('Erro fatal durante a população de serviços:', error);
+    process.exit(1);
+  });

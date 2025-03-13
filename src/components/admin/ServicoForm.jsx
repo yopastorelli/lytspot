@@ -22,7 +22,7 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
   });
   
   // Estado para armazenar erros de validação
-  const [errosValidacao, setErrosValidacao] = useState({});
+  const [erros, setErros] = useState({});
   
   // Estado para armazenar o status de carregamento interno
   const [loadingInterno, setLoadingInterno] = useState(false);
@@ -73,51 +73,74 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
     }));
     
     // Limpar erro de validação ao editar o campo
-    if (errosValidacao[name]) {
-      setErrosValidacao(prev => ({
+    if (erros[name]) {
+      setErros(prev => ({
         ...prev,
         [name]: null
       }));
     }
   };
   
-  // Função para validar o formulário
+  // Validar o formulário antes de enviar
   const validarFormulario = () => {
     const erros = {};
+    let formValido = true;
     
-    // Validar campos obrigatórios
-    if (!formData.nome.trim()) {
+    // Validar nome
+    if (!formData.nome || formData.nome.trim() === '') {
       erros.nome = 'O nome do serviço é obrigatório';
+      formValido = false;
+    } else if (formData.nome.trim().length < 3) {
+      erros.nome = 'O nome deve ter pelo menos 3 caracteres';
+      formValido = false;
     }
     
-    if (!formData.descricao.trim()) {
+    // Validar descrição
+    if (!formData.descricao || formData.descricao.trim() === '') {
       erros.descricao = 'A descrição do serviço é obrigatória';
+      formValido = false;
+    } else if (formData.descricao.trim().length < 10) {
+      erros.descricao = 'A descrição deve ter pelo menos 10 caracteres';
+      formValido = false;
     }
     
-    if (!formData.preco_base.trim()) {
+    // Validar preço base
+    if (!formData.preco_base) {
       erros.preco_base = 'O preço base é obrigatório';
-    } else if (isNaN(parseFloat(formData.preco_base))) {
-      erros.preco_base = 'O preço base deve ser um número válido';
+      formValido = false;
+    } else {
+      const preco = parseFloat(formData.preco_base.toString().replace(',', '.'));
+      if (isNaN(preco) || preco <= 0) {
+        erros.preco_base = 'O preço base deve ser um número positivo';
+        formValido = false;
+      }
     }
     
-    // Validar campos obrigatórios para o banco de dados
-    if (!formData.duracao_media_captura.trim()) {
+    // Validar duração média de captura
+    if (!formData.duracao_media_captura || formData.duracao_media_captura.trim() === '') {
       erros.duracao_media_captura = 'A duração média de captura é obrigatória';
+      formValido = false;
     }
     
-    if (!formData.duracao_media_tratamento.trim()) {
+    // Validar duração média de tratamento
+    if (!formData.duracao_media_tratamento || formData.duracao_media_tratamento.trim() === '') {
       erros.duracao_media_tratamento = 'A duração média de tratamento é obrigatória';
+      formValido = false;
     }
     
-    if (!formData.entregaveis.trim()) {
+    // Validar entregáveis
+    if (!formData.entregaveis || formData.entregaveis.trim() === '') {
       erros.entregaveis = 'Os entregáveis são obrigatórios';
+      formValido = false;
     }
     
-    // Atualizar estado de erros
-    setErrosValidacao(erros);
+    setErros(erros);
     
-    // Retornar true se não houver erros
-    return Object.keys(erros).length === 0;
+    if (!formValido) {
+      console.log('Erros de validação:', erros);
+    }
+    
+    return formValido;
   };
   
   // Função para enviar o formulário
@@ -135,15 +158,17 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
       // Formatar os dados para envio no formato esperado pelo backend
       const dadosFormatados = {
         id: formData.id, // Manter o ID para edição
-        nome: formData.nome,
-        descricao: formData.descricao,
-        preco_base: parseFloat(formData.preco_base),
-        duracao_media_captura: formData.duracao_media_captura || '',
-        duracao_media_tratamento: formData.duracao_media_tratamento || '',
-        entregaveis: formData.entregaveis || '',
-        possiveis_adicionais: formData.possiveis_adicionais || '',
-        valor_deslocamento: formData.valor_deslocamento || ''
+        nome: formData.nome.trim(),
+        descricao: formData.descricao.trim(),
+        preco_base: parseFloat(formData.preco_base) || 0,
+        duracao_media_captura: formData.duracao_media_captura.trim() || '',
+        duracao_media_tratamento: formData.duracao_media_tratamento.trim() || '',
+        entregaveis: formData.entregaveis.trim() || '',
+        possiveis_adicionais: formData.possiveis_adicionais.trim() || '',
+        valor_deslocamento: formData.valor_deslocamento ? formData.valor_deslocamento.trim() : ''
       };
+      
+      console.log('Enviando dados formatados para o backend:', dadosFormatados);
       
       // Chamar a função de callback com os dados do formulário
       await onSave(dadosFormatados);
@@ -170,13 +195,13 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
             value={formData.nome}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errosValidacao.nome ? 'border-red-500' : 'border-gray-300'
+              erros.nome ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Ex: Ensaio Fotográfico"
             disabled={isLoading}
           />
-          {errosValidacao.nome && (
-            <p className="mt-1 text-sm text-red-600">{errosValidacao.nome}</p>
+          {erros.nome && (
+            <p className="mt-1 text-sm text-red-600">{erros.nome}</p>
           )}
         </div>
         
@@ -192,13 +217,13 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
             value={formData.preco_base}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errosValidacao.preco_base ? 'border-red-500' : 'border-gray-300'
+              erros.preco_base ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Ex: 1200.00"
             disabled={isLoading}
           />
-          {errosValidacao.preco_base && (
-            <p className="mt-1 text-sm text-red-600">{errosValidacao.preco_base}</p>
+          {erros.preco_base && (
+            <p className="mt-1 text-sm text-red-600">{erros.preco_base}</p>
           )}
         </div>
       </div>
@@ -215,13 +240,13 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
           onChange={handleChange}
           rows={4}
           className={`w-full px-4 py-2 border rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-            errosValidacao.descricao ? 'border-red-500' : 'border-gray-300'
+            erros.descricao ? 'border-red-500' : 'border-gray-300'
           }`}
           placeholder="Descreva o serviço em detalhes..."
           disabled={isLoading}
         />
-        {errosValidacao.descricao && (
-          <p className="mt-1 text-sm text-red-600">{errosValidacao.descricao}</p>
+        {erros.descricao && (
+          <p className="mt-1 text-sm text-red-600">{erros.descricao}</p>
         )}
       </div>
       
@@ -238,13 +263,13 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
             value={formData.duracao_media_captura}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errosValidacao.duracao_media_captura ? 'border-red-500' : 'border-gray-300'
+              erros.duracao_media_captura ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Ex: 2 horas"
             disabled={isLoading}
           />
-          {errosValidacao.duracao_media_captura && (
-            <p className="mt-1 text-sm text-red-600">{errosValidacao.duracao_media_captura}</p>
+          {erros.duracao_media_captura && (
+            <p className="mt-1 text-sm text-red-600">{erros.duracao_media_captura}</p>
           )}
         </div>
         
@@ -260,13 +285,13 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
             value={formData.duracao_media_tratamento}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errosValidacao.duracao_media_tratamento ? 'border-red-500' : 'border-gray-300'
+              erros.duracao_media_tratamento ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Ex: 3 dias"
             disabled={isLoading}
           />
-          {errosValidacao.duracao_media_tratamento && (
-            <p className="mt-1 text-sm text-red-600">{errosValidacao.duracao_media_tratamento}</p>
+          {erros.duracao_media_tratamento && (
+            <p className="mt-1 text-sm text-red-600">{erros.duracao_media_tratamento}</p>
           )}
         </div>
       </div>
@@ -283,13 +308,13 @@ const ServicoForm = ({ servico, onSave, onCancel, loading }) => {
           onChange={handleChange}
           rows={3}
           className={`w-full px-4 py-2 border rounded-md text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-            errosValidacao.entregaveis ? 'border-red-500' : 'border-gray-300'
+            erros.entregaveis ? 'border-red-500' : 'border-gray-300'
           }`}
           placeholder="Ex: 20 fotos editadas em alta resolução, álbum digital..."
           disabled={isLoading}
         />
-        {errosValidacao.entregaveis && (
-          <p className="mt-1 text-sm text-red-600">{errosValidacao.entregaveis}</p>
+        {erros.entregaveis && (
+          <p className="mt-1 text-sm text-red-600">{erros.entregaveis}</p>
         )}
       </div>
       

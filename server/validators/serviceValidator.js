@@ -10,22 +10,38 @@
 class ServiceValidator {
   /**
    * Valida os dados de um serviço para criação ou atualização
+   * 
+   * @version 1.2.0 - 2025-03-13 - Melhorada a validação para aceitar diferentes tipos de dados
    * @param {Object} serviceData Dados do serviço a serem validados
    * @returns {Object} Resultado da validação { isValid, errors }
    */
   validate(serviceData) {
     const errors = [];
     
+    console.log('Validando dados do serviço:', JSON.stringify(serviceData, null, 2));
+    
+    // Verificar se os dados do serviço existem
+    if (!serviceData || typeof serviceData !== 'object') {
+      return {
+        isValid: false,
+        errors: ['Dados do serviço inválidos ou ausentes']
+      };
+    }
+    
     // Validar campos obrigatórios
     if (!serviceData.nome) {
       errors.push('O nome do serviço é obrigatório');
-    } else if (serviceData.nome.length < 3 || serviceData.nome.length > 100) {
+    } else if (typeof serviceData.nome !== 'string') {
+      errors.push('O nome do serviço deve ser uma string');
+    } else if (serviceData.nome.trim().length < 3 || serviceData.nome.trim().length > 100) {
       errors.push('O nome do serviço deve ter entre 3 e 100 caracteres');
     }
     
     if (!serviceData.descricao) {
       errors.push('A descrição do serviço é obrigatória');
-    } else if (serviceData.descricao.length < 10 || serviceData.descricao.length > 500) {
+    } else if (typeof serviceData.descricao !== 'string') {
+      errors.push('A descrição do serviço deve ser uma string');
+    } else if (serviceData.descricao.trim().length < 10 || serviceData.descricao.trim().length > 500) {
       errors.push('A descrição do serviço deve ter entre 10 e 500 caracteres');
     }
     
@@ -33,7 +49,15 @@ class ServiceValidator {
     if (serviceData.preco_base === undefined || serviceData.preco_base === null || serviceData.preco_base === '') {
       errors.push('O preço base do serviço é obrigatório');
     } else {
-      const precoBase = parseFloat(serviceData.preco_base);
+      let precoBase;
+      
+      if (typeof serviceData.preco_base === 'string') {
+        // Substituir vírgula por ponto para conversão correta
+        precoBase = parseFloat(serviceData.preco_base.replace(',', '.'));
+      } else {
+        precoBase = parseFloat(serviceData.preco_base);
+      }
+      
       if (isNaN(precoBase) || precoBase < 0) {
         errors.push('O preço base deve ser um número positivo');
       }
@@ -59,12 +83,20 @@ class ServiceValidator {
     }
     
     // Validar campos opcionais se estiverem presentes
-    if (serviceData.possiveis_adicionais && typeof serviceData.possiveis_adicionais !== 'string') {
+    if (serviceData.possiveis_adicionais !== undefined && 
+        serviceData.possiveis_adicionais !== null && 
+        typeof serviceData.possiveis_adicionais !== 'string') {
       errors.push('Os possíveis adicionais devem ser uma string');
     }
     
-    if (serviceData.valor_deslocamento && typeof serviceData.valor_deslocamento !== 'string') {
+    if (serviceData.valor_deslocamento !== undefined && 
+        serviceData.valor_deslocamento !== null && 
+        typeof serviceData.valor_deslocamento !== 'string') {
       errors.push('O valor de deslocamento deve ser uma string');
+    }
+    
+    if (errors.length > 0) {
+      console.log('Erros de validação encontrados:', errors);
     }
     
     return {
