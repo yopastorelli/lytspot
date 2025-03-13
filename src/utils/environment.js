@@ -33,12 +33,12 @@ export const getEnvironment = () => {
   let baseUrl;
   
   if (isLocalhost) {
-    // Em desenvolvimento, use localhost:3000 sem duplicar o prefixo /api
-    baseUrl = 'http://localhost:3000';
+    // Em desenvolvimento, use localhost:3000 com prefixo /api
+    baseUrl = 'http://localhost:3000/api';
     console.log('[Environment] Ambiente de desenvolvimento detectado. Usando API local:', baseUrl);
   } else {
-    // Em produção, use a URL do Render sem duplicar o prefixo /api
-    baseUrl = 'https://lytspot.onrender.com';
+    // Em produção, use a URL do Render com prefixo /api
+    baseUrl = prodApiUrls[0];
     console.log('[Environment] Ambiente de produção detectado. Usando API remota:', baseUrl);
   }
   

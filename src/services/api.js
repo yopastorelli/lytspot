@@ -73,18 +73,18 @@ const api = createApiInstance();
 
 // Métodos específicos para diferentes recursos
 const servicosAPI = {
-  listar: () => api.get('/api/pricing'),
-  obter: (id) => api.get(`/api/pricing/${id}`),
-  criar: (dados) => api.post('/api/pricing', dados),
-  atualizar: (id, dados) => api.put(`/api/pricing/${id}`, dados),
-  atualizarEmMassa: (servicos) => api.post('/api/pricing/bulk', servicos),
-  excluir: (id) => api.delete(`/api/pricing/${id}`)
+  listar: () => api.get('/pricing'),
+  obter: (id) => api.get(`/pricing/${id}`),
+  criar: (dados) => api.post('/pricing', dados),
+  atualizar: (id, dados) => api.put(`/pricing/${id}`, dados),
+  atualizarEmMassa: (servicos) => api.post('/pricing/bulk', servicos),
+  excluir: (id) => api.delete(`/pricing/${id}`)
 };
 
 const authAPI = {
-  login: (credenciais) => api.post('/api/auth/login', credenciais),
-  registro: (dados) => api.post('/api/auth/register', dados),
-  verificarToken: () => api.get('/api/auth/verify')
+  login: (credenciais) => api.post('/auth/login', credenciais),
+  registro: (dados) => api.post('/auth/register', dados),
+  verificarToken: () => api.get('/auth/verify')
 };
 
 // Exportar tanto a instância padrão quanto métodos específicos
