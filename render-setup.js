@@ -255,24 +255,13 @@ try {
     process.env.FORCE_UPDATE = "true";
     log('INFO', "Forçando atualização completa de serviços (FORCE_UPDATE=true)");
     
-    // Executar script de atualização
-    log('INFO', "Executando script de atualização de serviços...");
-    
-    // Verificar se o arquivo existe
-    const updateScriptPath = path.join(currentDir, 'server', 'scripts', 'render-update-services.js');
-    if (!fs.existsSync(updateScriptPath)) {
-      throw new Error(`Script de atualização não encontrado em: ${updateScriptPath}`);
-    }
-    
-    // Executar o script como um módulo ES
-    log('INFO', `Executando: node ${updateScriptPath}`);
-    
     // Definir caminhos absolutos para os scripts e arquivos
     const updateScriptPath = path.join(currentDir, 'server', 'scripts', 'render-update-services.js');
     log('INFO', "Verificando se o script de atualização existe em: " + updateScriptPath);
     
     let scriptToExecute = updateScriptPath;
     
+    // Verificar se o arquivo existe
     if (!fs.existsSync(updateScriptPath)) {
       log('WARN', `Script de atualização não encontrado em: ${updateScriptPath}`);
       log('INFO', "Verificando conteúdo do diretório de scripts...");
