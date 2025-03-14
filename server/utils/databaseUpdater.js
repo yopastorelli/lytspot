@@ -66,25 +66,63 @@ export function sanitizeServiceData(servicoData) {
     // Criar cópia para não modificar o objeto original
     const sanitizedData = { ...servicoData };
     
+    // Registrar estado inicial dos campos relevantes
+    log('DEBUG', `Estado inicial - duracao_media_captura: ${sanitizedData.duracao_media_captura || 'não definido'}`);
+    log('DEBUG', `Estado inicial - duracao_media_tratamento: ${sanitizedData.duracao_media_tratamento || 'não definido'}`);
+    log('DEBUG', `Estado inicial - detalhes: ${typeof sanitizedData.detalhes === 'object' 
+      ? JSON.stringify(sanitizedData.detalhes).substring(0, 100) + '...' 
+      : (sanitizedData.detalhes || 'não definido')}`);
+    
     // Garantir que o campo detalhes seja um objeto JSON válido
+    let detalhesObj = {};
+    
     if (sanitizedData.detalhes) {
       if (typeof sanitizedData.detalhes === 'string') {
         try {
-          sanitizedData.detalhes = JSON.parse(sanitizedData.detalhes);
+          detalhesObj = JSON.parse(sanitizedData.detalhes);
+          log('DEBUG', `Parse do campo detalhes como string: ${JSON.stringify(detalhesObj).substring(0, 100)}...`);
         } catch (e) {
           log('WARN', `Erro ao fazer parse do campo detalhes como JSON: ${e.message}`);
-          // Manter como string se não for possível fazer o parse
+          // Criar um objeto vazio se não for possível fazer o parse
+          detalhesObj = {};
         }
       } else if (typeof sanitizedData.detalhes === 'object') {
-        // Já é um objeto, não precisa fazer nada
+        detalhesObj = { ...sanitizedData.detalhes };
+        log('DEBUG', `Campo detalhes já é um objeto: ${JSON.stringify(detalhesObj).substring(0, 100)}...`);
       } else {
         log('WARN', `Campo detalhes com formato inesperado: ${typeof sanitizedData.detalhes}`);
-        sanitizedData.detalhes = {};
+        detalhesObj = {};
       }
-    } else {
-      // Criar objeto detalhes se não existir
-      sanitizedData.detalhes = {};
     }
+    
+    // Garantir que os campos captura e tratamento estejam presentes no objeto detalhes
+    if (!detalhesObj.captura && sanitizedData.duracao_media_captura) {
+      detalhesObj.captura = sanitizedData.duracao_media_captura;
+      log('DEBUG', `Adicionando campo captura ao objeto detalhes: ${sanitizedData.duracao_media_captura}`);
+    }
+    
+    if (!detalhesObj.tratamento && sanitizedData.duracao_media_tratamento) {
+      detalhesObj.tratamento = sanitizedData.duracao_media_tratamento;
+      log('DEBUG', `Adicionando campo tratamento ao objeto detalhes: ${sanitizedData.duracao_media_tratamento}`);
+    }
+    
+    // Garantir que os campos entregaveis, adicionais e deslocamento estejam presentes
+    if (!detalhesObj.entregaveis && sanitizedData.entregaveis) {
+      detalhesObj.entregaveis = sanitizedData.entregaveis;
+    }
+    
+    if (!detalhesObj.adicionais && sanitizedData.possiveis_adicionais) {
+      detalhesObj.adicionais = sanitizedData.possiveis_adicionais;
+    }
+    
+    if (!detalhesObj.deslocamento && sanitizedData.valor_deslocamento) {
+      detalhesObj.deslocamento = sanitizedData.valor_deslocamento;
+    }
+    
+    // Atualizar o campo detalhes com o objeto completo
+    sanitizedData.detalhes = detalhesObj;
+    
+    log('DEBUG', `Detalhes sanitizados: ${JSON.stringify(sanitizedData.detalhes).substring(0, 100)}...`);
     
     // Garantir que o preço seja um número
     if (sanitizedData.preco_base) {
@@ -199,15 +237,19 @@ export async function updateServices(options = {}) {
           
           if (needsUpdate) {
             try {
+              // Preparar dados para atualização
+              const updateData = { ...sanitizedData };
+              
+              // Garantir que o campo detalhes seja uma string JSON válida
+              if (typeof updateData.detalhes === 'object') {
+                updateData.detalhes = JSON.stringify(updateData.detalhes);
+                log('DEBUG', `Campo detalhes convertido para string JSON: ${updateData.detalhes.substring(0, 100)}...`);
+              }
+              
               // Atualizar serviço existente
               await db.servico.update({
                 where: { id: existingService.id },
-                data: {
-                  ...sanitizedData,
-                  detalhes: typeof sanitizedData.detalhes === 'object' 
-                    ? JSON.stringify(sanitizedData.detalhes) 
-                    : sanitizedData.detalhes
-                }
+                data: updateData
               });
               
               log('INFO', `Serviço atualizado: ${sanitizedData.nome}`);
@@ -219,12 +261,59 @@ export async function updateServices(options = {}) {
               });
             } catch (updateError) {
               log('ERROR', `Erro ao atualizar serviço ${sanitizedData.nome}: ${updateError.message}`);
-              result.errors++;
-              result.details.push({
-                nome: sanitizedData.nome,
-                action: 'error',
-                error: `Erro ao atualizar: ${updateError.message}`
-              });
+              log('ERROR', `Stack: ${updateError.stack}`);
+              
+              // Tentar novamente com uma abordagem alternativa se o erro for relacionado ao campo detalhes
+              if (updateError.message.includes('Unknown argument') || updateError.message.includes('detalhes')) {
+                try {
+                  log('WARN', `Tentando atualização alternativa para o serviço ${sanitizedData.nome}`);
+                  
+                  // Criar um objeto de atualização sem o campo detalhes
+                  const basicData = { ...sanitizedData };
+                  delete basicData.detalhes;
+                  
+                  // Atualizar primeiro os campos básicos
+                  await db.servico.update({
+                    where: { id: existingService.id },
+                    data: basicData
+                  });
+                  
+                  // Depois atualizar apenas o campo detalhes
+                  if (sanitizedData.detalhes) {
+                    const detalhesStr = typeof sanitizedData.detalhes === 'object' 
+                      ? JSON.stringify(sanitizedData.detalhes)
+                      : sanitizedData.detalhes;
+                      
+                    await db.servico.update({
+                      where: { id: existingService.id },
+                      data: { detalhes: detalhesStr }
+                    });
+                  }
+                  
+                  log('INFO', `Serviço atualizado com abordagem alternativa: ${sanitizedData.nome}`);
+                  result.updated++;
+                  result.details.push({
+                    nome: sanitizedData.nome,
+                    action: 'updated_alternative',
+                    id: existingService.id
+                  });
+                } catch (altError) {
+                  log('ERROR', `Erro na atualização alternativa do serviço ${sanitizedData.nome}: ${altError.message}`);
+                  result.errors++;
+                  result.details.push({
+                    nome: sanitizedData.nome,
+                    action: 'error',
+                    error: `Erro ao atualizar (alternativa): ${altError.message}`
+                  });
+                }
+              } else {
+                result.errors++;
+                result.details.push({
+                  nome: sanitizedData.nome,
+                  action: 'error',
+                  error: `Erro ao atualizar: ${updateError.message}`
+                });
+              }
             }
           } else {
             // Serviço não precisa ser atualizado
@@ -238,14 +327,18 @@ export async function updateServices(options = {}) {
           }
         } else {
           try {
+            // Preparar dados para criação
+            const createData = { ...sanitizedData };
+            
+            // Garantir que o campo detalhes seja uma string JSON válida
+            if (typeof createData.detalhes === 'object') {
+              createData.detalhes = JSON.stringify(createData.detalhes);
+              log('DEBUG', `Campo detalhes convertido para string JSON: ${createData.detalhes.substring(0, 100)}...`);
+            }
+            
             // Criar novo serviço
             const newService = await db.servico.create({
-              data: {
-                ...sanitizedData,
-                detalhes: typeof sanitizedData.detalhes === 'object' 
-                  ? JSON.stringify(sanitizedData.detalhes) 
-                  : sanitizedData.detalhes
-              }
+              data: createData
             });
             
             log('INFO', `Novo serviço criado: ${sanitizedData.nome} (ID: ${newService.id})`);

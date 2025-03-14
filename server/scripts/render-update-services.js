@@ -63,6 +63,83 @@ function log(level, message) {
 }
 
 /**
+ * Carrega as definições de serviços do arquivo especificado
+ * @param {string} filePath Caminho do arquivo de definições
+ * @param {Function} logFunction Função para registrar logs
+ * @returns {Promise<Array>} Array com as definições de serviços
+ */
+async function loadServiceDefinitions(filePath, logFunction) {
+  try {
+    logFunction('INFO', `Tentando carregar definições de: ${filePath}`);
+    
+    // Importar definições de serviços
+    const servicosModule = await import(filePath);
+    const servicos = servicosModule.default || servicosModule;
+    
+    if (!Array.isArray(servicos)) {
+      logFunction('ERROR', `Formato inválido de definições de serviços: ${typeof servicos}`);
+      return [];
+    }
+    
+    // Registrar detalhes de cada serviço para diagnóstico
+    servicos.forEach((servico, index) => {
+      logFunction('DEBUG', `Serviço #${index + 1}: ${servico.nome}`);
+      logFunction('DEBUG', `  - Detalhes: ${typeof servico.detalhes === 'object' ? 
+        JSON.stringify(servico.detalhes).substring(0, 100) + '...' : 
+        (servico.detalhes || 'não definido')}`);
+      logFunction('DEBUG', `  - Campos individuais: captura=${servico.duracao_media_captura || 'não definido'}, tratamento=${servico.duracao_media_tratamento || 'não definido'}`);
+    });
+    
+    return servicos;
+  } catch (error) {
+    logFunction('ERROR', `Erro ao carregar definições de serviços: ${error.message}`);
+    logFunction('ERROR', `Stack: ${error.stack}`);
+    return [];
+  }
+}
+
+/**
+ * Inicializa o cliente Prisma
+ * @param {Object} options Opções de inicialização
+ * @returns {Object} Cliente Prisma inicializado
+ */
+function initializePrisma({ prismaOptions = {}, logFunction = console.log }) {
+  try {
+    // Importar PrismaClient
+    const { PrismaClient } = require('@prisma/client');
+    
+    // Criar instância do cliente
+    const prisma = new PrismaClient(prismaOptions);
+    
+    // Adicionar middleware para logging de queries
+    prisma.$use(async (params, next) => {
+      const start = Date.now();
+      const result = await next(params);
+      const end = Date.now();
+      
+      logFunction('DEBUG', `Prisma Query: ${params.model}.${params.action} - ${end - start}ms`);
+      
+      // Para operações de update, registrar os dados enviados
+      if (params.action === 'update' && params.args.data) {
+        logFunction('DEBUG', `Update data para ${params.model}: ${JSON.stringify(params.args.data).substring(0, 200)}...`);
+        
+        // Verificar especificamente o campo detalhes
+        if (params.args.data.detalhes) {
+          logFunction('DEBUG', `Campo detalhes: ${typeof params.args.data.detalhes} - ${params.args.data.detalhes.substring(0, 100)}...`);
+        }
+      }
+      
+      return result;
+    });
+    
+    return prisma;
+  } catch (error) {
+    logFunction('ERROR', `Erro ao inicializar Prisma: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
  * Função principal para atualizar serviços
  */
 async function atualizarServicos() {
@@ -94,6 +171,35 @@ async function atualizarServicos() {
     
     log('INFO', `${servicosDefinicoes.length} definições de serviços carregadas com sucesso`);
     
+    // Verificar estrutura dos serviços antes da atualização
+    log('INFO', 'Verificando estrutura dos serviços antes da atualização...');
+    const servicosAtuais = await prisma.servico.findMany();
+    
+    log('INFO', `${servicosAtuais.length} serviços encontrados no banco de dados`);
+    
+    // Registrar detalhes de alguns serviços para diagnóstico
+    if (servicosAtuais.length > 0) {
+      const amostra = servicosAtuais.slice(0, 2); // Analisar apenas os 2 primeiros para não sobrecarregar os logs
+      
+      amostra.forEach(servico => {
+        log('DEBUG', `Serviço atual ID ${servico.id}: ${servico.nome}`);
+        log('DEBUG', `  - Detalhes: ${typeof servico.detalhes === 'string' ? 
+          servico.detalhes.substring(0, 100) + '...' : 
+          JSON.stringify(servico.detalhes).substring(0, 100) + '...'}`);
+        log('DEBUG', `  - Campos individuais: captura=${servico.duracao_media_captura || 'não definido'}, tratamento=${servico.duracao_media_tratamento || 'não definido'}`);
+        
+        // Tentar fazer parse do campo detalhes se for string
+        if (typeof servico.detalhes === 'string') {
+          try {
+            const detalhesObj = JSON.parse(servico.detalhes);
+            log('DEBUG', `  - Detalhes parseados: ${JSON.stringify(detalhesObj).substring(0, 100)}...`);
+          } catch (e) {
+            log('WARN', `  - Erro ao fazer parse do campo detalhes: ${e.message}`);
+          }
+        }
+      });
+    }
+    
     // Atualizar serviços no banco de dados
     log('INFO', 'Atualizando serviços no banco de dados...');
     const resultado = await updateServices({
@@ -105,6 +211,16 @@ async function atualizarServicos() {
     
     // Exibir resumo da atualização
     log('INFO', `Resumo da atualização: ${resultado.created} criados, ${resultado.updated} atualizados, ${resultado.unchanged} inalterados, ${resultado.errors} erros`);
+    
+    // Verificar detalhes dos erros, se houver
+    if (resultado.errors > 0) {
+      log('WARN', 'Detalhes dos erros:');
+      resultado.details
+        .filter(d => d.action === 'error')
+        .forEach(d => {
+          log('ERROR', `  - Serviço: ${d.nome}, Erro: ${d.error}`);
+        });
+    }
     
     // Limpar cache da API
     log('INFO', 'Limpando cache da API...');
