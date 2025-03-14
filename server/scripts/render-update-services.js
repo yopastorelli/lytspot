@@ -9,7 +9,6 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 // Importar módulos utilitários
-import { loadServiceDefinitions } from '../utils/serviceDefinitionLoader.js';
 import { clearApiCache, checkCacheStatus } from '../utils/cacheManager.js';
 import { initializePrisma, updateServices } from '../utils/databaseUpdater.js';
 
@@ -140,6 +139,60 @@ function initializePrisma({ prismaOptions = {}, logFunction = console.log }) {
 }
 
 /**
+ * Limpa o cache da API
+ * @param {Object} options Opções para limpeza do cache
+ * @returns {Promise<boolean>} true se o cache foi limpo com sucesso, false caso contrário
+ */
+async function clearApiCache(options) {
+  const { baseUrl, cacheSecret, logFunction = log } = options;
+  
+  try {
+    logFunction('INFO', `Tentando limpar cache da API em: ${baseUrl}/api/cache/clear`);
+    
+    const response = await axios.post(`${baseUrl}/api/cache/clear`, {
+      secret: cacheSecret
+    });
+    
+    if (response.status === 200 && response.data.success) {
+      logFunction('INFO', 'Cache da API limpo com sucesso');
+      return true;
+    } else {
+      logFunction('WARN', `Resposta inesperada ao limpar cache: ${JSON.stringify(response.data)}`);
+      return false;
+    }
+  } catch (error) {
+    logFunction('ERROR', `Erro ao limpar cache da API: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Verifica o status do cache da API
+ * @param {Object} options Opções para verificação do cache
+ * @returns {Promise<Object>} Status do cache
+ */
+async function checkCacheStatus(options) {
+  const { baseUrl, logFunction = log } = options;
+  
+  try {
+    logFunction('INFO', `Verificando status do cache em: ${baseUrl}/api/cache/status`);
+    
+    const response = await axios.get(`${baseUrl}/api/cache/status`);
+    
+    if (response.status === 200) {
+      logFunction('INFO', `Status do cache: ${JSON.stringify(response.data)}`);
+      return response.data;
+    } else {
+      logFunction('WARN', `Resposta inesperada ao verificar cache: ${response.status}`);
+      return null;
+    }
+  } catch (error) {
+    logFunction('ERROR', `Erro ao verificar status do cache: ${error.message}`);
+    return null;
+  }
+}
+
+/**
  * Função principal para atualizar serviços
  */
 async function atualizarServicos() {
@@ -236,7 +289,6 @@ async function atualizarServicos() {
       // Verificar status do cache após limpeza
       const cacheStatus = await checkCacheStatus({
         baseUrl: process.env.BASE_URL || 'https://lytspot.onrender.com',
-        cacheSecret: process.env.CACHE_SECRET,
         logFunction: log
       });
       
