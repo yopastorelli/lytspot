@@ -5,40 +5,77 @@ import crypto from 'crypto';
 
 /**
  * Script de configuração para ambiente Render
- * @version 1.6.0 - 2025-03-14 - Adicionada execução do script de atualização de serviços e limpeza de cache
+ * @version 1.7.0 - 2025-03-15 - Melhorado tratamento de erros e verificações de ambiente
  */
+
+// Configurar logger para facilitar diagnóstico
+function log(level, message) {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [${level}] ${message}`);
+  
+  // Registrar em arquivo se possível
+  try {
+    const logDir = path.join(process.cwd(), 'server', 'logs');
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+    
+    const logFile = path.join(logDir, 'render-setup.log');
+    fs.appendFileSync(logFile, `[${timestamp}] [${level}] ${message}\n`);
+  } catch (error) {
+    console.error(`Erro ao registrar log: ${error.message}`);
+  }
+}
+
+// Verificar versão do Node.js
+const nodeVersion = process.version;
+log('INFO', `Versão do Node.js: ${nodeVersion}`);
+
+// Extrair a versão principal do Node.js (por exemplo, v18.x.x -> 18)
+const majorVersion = parseInt(nodeVersion.match(/^v(\d+)\./)?.[1] || '0');
+if (majorVersion < 18) {
+  log('WARN', `Esta versão do Node.js (${nodeVersion}) pode não ser totalmente compatível com este script. Recomendado: v18+`);
+}
 
 // Forçar NODE_ENV para production no ambiente Render
 if (process.env.RENDER) {
   process.env.NODE_ENV = 'production';
-  console.log("Ambiente Render detectado, NODE_ENV definido como:", process.env.NODE_ENV);
+  log('INFO', "Ambiente Render detectado, NODE_ENV definido como: " + process.env.NODE_ENV);
+} else {
+  log('INFO', "Ambiente local detectado, NODE_ENV: " + (process.env.NODE_ENV || 'não definido'));
 }
 
 // Configurar variáveis de ambiente essenciais se não existirem
 if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = "file:../database.sqlite";
-  console.log("DATABASE_URL não encontrada, definindo valor padrão:", process.env.DATABASE_URL);
+  log('INFO', "DATABASE_URL não encontrada, definindo valor padrão: " + process.env.DATABASE_URL);
 }
 
 // Configurar JWT_SECRET com o valor específico fornecido
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = "125n128zf09a3e455c6b3d1556cbda";
-  console.log("JWT_SECRET não encontrada, usando valor específico configurado");
+  log('INFO', "JWT_SECRET não encontrada, usando valor específico configurado");
 }
 
 // Configurar JWT_EXPIRES_IN se não existir
 if (!process.env.JWT_EXPIRES_IN) {
   process.env.JWT_EXPIRES_IN = "1d";
-  console.log("JWT_EXPIRES_IN não encontrada, definindo valor padrão:", process.env.JWT_EXPIRES_IN);
+  log('INFO', "JWT_EXPIRES_IN não encontrada, definindo valor padrão: " + process.env.JWT_EXPIRES_IN);
 }
 
 // Configurar NODE_ENV se não existir
 if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = "production";
-  console.log("NODE_ENV não encontrada, definindo como:", process.env.NODE_ENV);
+  log('INFO', "NODE_ENV não encontrada, definindo como: " + process.env.NODE_ENV);
 }
 
-console.log("Iniciando configuração do ambiente Render...");
+// Configurar CACHE_SECRET para autenticação da API de cache
+if (!process.env.CACHE_SECRET) {
+  process.env.CACHE_SECRET = "cache-secret-key";
+  log('INFO', "CACHE_SECRET não encontrada, definindo valor padrão");
+}
+
+log('INFO', "Iniciando configuração do ambiente Render...");
 
 // Criar arquivo .env se estiver no ambiente Render
 if (process.env.RENDER) {
@@ -55,30 +92,31 @@ CLIENT_SECRET=${process.env.CLIENT_SECRET || ''}
 ACCOUNT_ID=${process.env.ACCOUNT_ID || ''}
 SENDER_EMAIL=${process.env.SENDER_EMAIL || ''}
 RECIPIENT_EMAIL=${process.env.RECIPIENT_EMAIL || ''}
+CACHE_SECRET=${process.env.CACHE_SECRET || 'cache-secret-key'}
 `;
     
     fs.writeFileSync('.env', envContent);
-    console.log("Arquivo .env criado com sucesso!");
+    log('INFO', "Arquivo .env criado com sucesso!");
   } catch (error) {
-    console.error("Erro ao criar arquivo .env:", error);
+    log('ERROR', "Erro ao criar arquivo .env: " + error.message);
   }
 }
 
 // Verificar estrutura de diretórios
 const currentDir = process.cwd();
-console.log("Estrutura de diretórios:");
-console.log("Diretório atual:", currentDir);
+log('INFO', "Estrutura de diretórios:");
+log('INFO', "Diretório atual: " + currentDir);
 
 try {
   const dirContents = fs.readdirSync(currentDir);
-  console.log("Conteúdo do diretório atual:", dirContents);
+  log('INFO', "Conteúdo do diretório atual: " + dirContents.join(', '));
   
   // Localizar o schema do Prisma
   const prismaSchemaPath = path.join(currentDir, 'server', 'prisma', 'schema.prisma');
   const dbPath = path.join(currentDir, 'database.sqlite');
   
-  console.log("Schema do Prisma encontrado em:", prismaSchemaPath);
-  console.log("Caminho do banco de dados:", dbPath);
+  log('INFO', "Schema do Prisma encontrado em: " + prismaSchemaPath);
+  log('INFO', "Caminho do banco de dados: " + dbPath);
   
   // Verificar se o arquivo schema.prisma existe
   if (!fs.existsSync(prismaSchemaPath)) {
@@ -86,23 +124,23 @@ try {
   }
   
   // Executar comandos do Prisma
-  console.log("Executando prisma generate...");
+  log('INFO', "Executando prisma generate...");
   execSync(`npx prisma generate --schema="${prismaSchemaPath}"`, { stdio: 'inherit' });
-  console.log("prisma generate executado com sucesso!");
+  log('INFO', "prisma generate executado com sucesso!");
   
   // Verificar se o banco de dados já existe
   const dbExists = fs.existsSync(dbPath);
   
   if (!dbExists) {
-    console.log("Executando prisma db push...");
+    log('INFO', "Executando prisma db push...");
     execSync(`npx prisma db push --schema="${prismaSchemaPath}" --accept-data-loss`, { stdio: 'inherit' });
-    console.log("prisma db push executado com sucesso!");
+    log('INFO', "prisma db push executado com sucesso!");
   } else {
-    console.log("Banco de dados já existe, pulando prisma db push");
+    log('INFO', "Banco de dados já existe, pulando prisma db push");
   }
   
   // Importante: Recarregar o módulo @prisma/client após a geração
-  console.log("Recarregando o módulo @prisma/client...");
+  log('INFO', "Recarregando o módulo @prisma/client...");
   try {
     // Limpar o cache do módulo para garantir que a versão mais recente seja carregada
     Object.keys(require.cache).forEach(key => {
@@ -110,13 +148,13 @@ try {
         delete require.cache[key];
       }
     });
-    console.log("Cache do módulo @prisma/client limpo com sucesso!");
+    log('INFO', "Cache do módulo @prisma/client limpo com sucesso!");
   } catch (error) {
-    console.warn("Aviso: Não foi possível limpar o cache do módulo @prisma/client:", error);
+    log('WARN', "Aviso: Não foi possível limpar o cache do módulo @prisma/client: " + error.message);
   }
   
   // Inicializar o banco de dados com dados de serviços
-  console.log("Verificando se existem serviços no banco de dados...");
+  log('INFO', "Verificando se existem serviços no banco de dados...");
   
   // Função para inicializar o banco de dados com serviços básicos
   async function inicializarServicos() {
@@ -128,7 +166,7 @@ try {
       const servicosExistentes = await prisma.servico.count();
       
       if (servicosExistentes === 0) {
-        console.log("Nenhum serviço encontrado. Inicializando banco de dados com serviços básicos...");
+        log('INFO', "Nenhum serviço encontrado. Inicializando banco de dados com serviços básicos...");
         
         // Dados básicos para o simulador de preços
         const servicos = [
@@ -192,12 +230,12 @@ try {
           });
         }
         
-        console.log(`${servicos.length} serviços básicos adicionados ao banco de dados com sucesso!`);
+        log('INFO', `${servicos.length} serviços básicos adicionados ao banco de dados com sucesso!`);
       } else {
-        console.log(`Banco de dados já possui ${servicosExistentes} serviços. Pulando inicialização.`);
+        log('INFO', `Banco de dados já possui ${servicosExistentes} serviços. Pulando inicialização.`);
       }
     } catch (error) {
-      console.error("Erro ao inicializar serviços:", error);
+      log('ERROR', "Erro ao inicializar serviços: " + error.message);
     } finally {
       await prisma.$disconnect();
     }
@@ -208,145 +246,183 @@ try {
   
   // Executar script de atualização de serviços para garantir dados atualizados
   try {
-    console.log("=== INICIANDO ATUALIZAÇÃO DE SERVIÇOS ===");
-    console.log("Data e hora:", new Date().toISOString());
-    console.log("Ambiente:", process.env.NODE_ENV);
-    console.log("Diretório atual:", process.cwd());
-    console.log("Diretório do script:", currentDir);
+    log('INFO', "=== INICIANDO ATUALIZAÇÃO DE SERVIÇOS ===");
+    log('INFO', "Data e hora: " + new Date().toISOString());
+    log('INFO', "Ambiente: " + process.env.NODE_ENV);
+    log('INFO', "Diretório atual: " + process.cwd());
+    log('INFO', "Diretório do script: " + currentDir);
     
     // Definir caminhos absolutos para os scripts e arquivos
     const updateScriptPath = path.join(currentDir, 'server', 'scripts', 'render-update-services.js');
-    console.log("Verificando se o script de atualização existe em:", updateScriptPath);
+    log('INFO', "Verificando se o script de atualização existe em: " + updateScriptPath);
+    
+    let scriptToExecute = updateScriptPath;
     
     if (!fs.existsSync(updateScriptPath)) {
-      console.error(`Erro: Script de atualização não encontrado em: ${updateScriptPath}`);
-      console.log("Verificando conteúdo do diretório de scripts...");
+      log('WARN', `Script de atualização não encontrado em: ${updateScriptPath}`);
+      log('INFO', "Verificando conteúdo do diretório de scripts...");
       
       const scriptsDir = path.join(currentDir, 'server', 'scripts');
       if (fs.existsSync(scriptsDir)) {
         const files = fs.readdirSync(scriptsDir);
-        console.log(`Arquivos encontrados no diretório scripts: ${files.join(', ')}`);
+        log('INFO', `Arquivos encontrados no diretório scripts: ${files.join(', ')}`);
         
         // Tentar encontrar qualquer script de atualização
         let alternativeScript = null;
         for (const file of files) {
           if (file.includes('update-service') || file.includes('updateService')) {
-            console.log(`Encontrado possível script alternativo: ${file}`);
+            log('INFO', `Encontrado possível script alternativo: ${file}`);
             alternativeScript = path.join(scriptsDir, file);
             break;
           }
         }
         
         if (alternativeScript) {
-          console.log(`Usando script alternativo: ${alternativeScript}`);
-          // Continuar com o script alternativo
+          log('INFO', `Usando script alternativo: ${alternativeScript}`);
+          scriptToExecute = alternativeScript;
         } else {
           throw new Error("Nenhum script de atualização de serviços encontrado");
         }
       } else {
-        console.error(`Diretório de scripts não encontrado: ${scriptsDir}`);
+        log('ERROR', `Diretório de scripts não encontrado: ${scriptsDir}`);
         throw new Error("Diretório de scripts não encontrado");
       }
     } else {
-      console.log(`Script de atualização encontrado: ${updateScriptPath}`);
+      log('INFO', `Script de atualização encontrado: ${updateScriptPath}`);
     }
     
-    console.log("Verificando arquivo de definições de serviços...");
+    log('INFO', "Verificando arquivo de definições de serviços...");
     
     const serviceDefinitionsPath = path.join(currentDir, 'server', 'models', 'seeds', 'updatedServiceDefinitions.js');
     if (!fs.existsSync(serviceDefinitionsPath)) {
-      console.error(`Erro: Arquivo de definições não encontrado em: ${serviceDefinitionsPath}`);
-      console.log("Verificando conteúdo do diretório seeds...");
+      log('WARN', `Arquivo de definições não encontrado em: ${serviceDefinitionsPath}`);
+      log('INFO', "Verificando conteúdo do diretório seeds...");
       
       const seedsDir = path.join(currentDir, 'server', 'models', 'seeds');
       if (fs.existsSync(seedsDir)) {
         const files = fs.readdirSync(seedsDir);
-        console.log(`Arquivos encontrados no diretório seeds: ${files.join(', ')}`);
+        log('INFO', `Arquivos encontrados no diretório seeds: ${files.join(', ')}`);
         
         // Tentar encontrar qualquer arquivo de definições
         let alternativeDefinitions = null;
         for (const file of files) {
           if (file.includes('ServiceDefinition') || file.includes('serviceDefinition')) {
-            console.log(`Encontrado possível arquivo de definições alternativo: ${file}`);
+            log('INFO', `Encontrado possível arquivo de definições alternativo: ${file}`);
             alternativeDefinitions = path.join(seedsDir, file);
             break;
           }
         }
         
         if (alternativeDefinitions) {
-          console.log(`Arquivo de definições alternativo encontrado: ${alternativeDefinitions}`);
+          log('INFO', `Arquivo de definições alternativo encontrado: ${alternativeDefinitions}`);
           // Continuar com o arquivo alternativo
           process.env.SERVICE_DEFINITIONS_PATH = alternativeDefinitions;
         } else {
-          console.warn("Nenhum arquivo de definições alternativo encontrado. O script usará definições básicas.");
+          log('WARN', "Nenhum arquivo de definições alternativo encontrado. O script usará definições básicas.");
         }
       } else {
-        console.error(`Diretório seeds não encontrado: ${seedsDir}`);
-        console.warn("Diretório seeds não encontrado. O script usará definições básicas.");
+        log('ERROR', `Diretório seeds não encontrado: ${seedsDir}`);
+        log('WARN', "Diretório seeds não encontrado. O script usará definições básicas.");
       }
     } else {
-      console.log(`Arquivo de definições encontrado: ${serviceDefinitionsPath}`);
+      log('INFO', `Arquivo de definições encontrado: ${serviceDefinitionsPath}`);
       process.env.SERVICE_DEFINITIONS_PATH = serviceDefinitionsPath;
     }
     
     // Criar diretório de logs se não existir
     const logDir = path.join(currentDir, 'server', 'logs');
     if (!fs.existsSync(logDir)) {
-      console.log(`Criando diretório de logs: ${logDir}`);
+      log('INFO', `Criando diretório de logs: ${logDir}`);
       fs.mkdirSync(logDir, { recursive: true });
     }
     
-    console.log("Executando script de atualização de serviços...");
+    log('INFO', "Executando script de atualização de serviços...");
     
     // Executar o script com Node.js
-    execSync('node server/scripts/render-update-services.js', { 
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        RENDER: 'true',
-        FORCE_UPDATE: 'true', // Forçar atualização completa
-        NODE_ENV: 'production'
+    try {
+      execSync(`node ${scriptToExecute}`, { 
+        stdio: 'inherit',
+        env: {
+          ...process.env,
+          RENDER: 'true',
+          FORCE_UPDATE: 'true', // Forçar atualização completa
+          NODE_ENV: 'production'
+        },
+        timeout: 120000 // 2 minutos de timeout
+      });
+      
+      log('INFO', "Script de atualização de serviços executado com sucesso!");
+    } catch (execError) {
+      log('ERROR', `Erro ao executar script de atualização: ${execError.message}`);
+      
+      // Verificar se é um erro de timeout
+      if (execError.signal === 'SIGTERM' || execError.message.includes('timeout')) {
+        log('WARN', "Timeout ao executar o script. Ele pode estar demorando mais do que o esperado.");
       }
-    });
-    
-    console.log("Script de atualização de serviços executado com sucesso!");
+      
+      // Verificar se é um erro de permissão
+      if (execError.code === 'EACCES') {
+        log('ERROR', "Erro de permissão ao executar o script. Verificando permissões...");
+        try {
+          fs.chmodSync(scriptToExecute, 0o755); // Adicionar permissão de execução
+          log('INFO', "Permissões do script atualizadas. Tentando novamente...");
+          
+          execSync(`node ${scriptToExecute}`, { 
+            stdio: 'inherit',
+            env: {
+              ...process.env,
+              RENDER: 'true',
+              FORCE_UPDATE: 'true',
+              NODE_ENV: 'production'
+            }
+          });
+          
+          log('INFO', "Script executado com sucesso após ajuste de permissões!");
+        } catch (retryError) {
+          log('ERROR', `Falha ao executar script mesmo após ajuste de permissões: ${retryError.message}`);
+          throw retryError;
+        }
+      }
+      
+      log('WARN', "Continuando com a inicialização mesmo após erro no script de atualização...");
+    }
     
     // Verificar logs para garantir que a execução foi bem-sucedida
     const logFilePath = path.join(logDir, 'render-update-services.log');
     if (fs.existsSync(logFilePath)) {
-      console.log("Verificando logs da atualização...");
+      log('INFO', "Verificando logs da atualização...");
       const logContent = fs.readFileSync(logFilePath, 'utf8');
       const lastLines = logContent.split('\n').slice(-20).join('\n');
-      console.log("Últimas linhas do log:");
+      log('INFO', "Últimas linhas do log:");
       console.log(lastLines);
       
       if (logContent.includes('=== ATUALIZAÇÃO CONCLUÍDA COM SUCESSO ===')) {
-        console.log("✅ Atualização de serviços concluída com sucesso!");
+        log('INFO', "✅ Atualização de serviços concluída com sucesso!");
       } else if (logContent.includes('ERROR')) {
-        console.warn("⚠️ Possíveis erros detectados nos logs. Verifique o arquivo de log completo.");
+        log('WARN', "⚠️ Possíveis erros detectados nos logs. Verifique o arquivo de log completo.");
       }
     } else {
-      console.warn("Arquivo de log não encontrado. Não foi possível verificar o resultado da atualização.");
+      log('WARN', "Arquivo de log não encontrado. Não foi possível verificar o resultado da atualização.");
     }
     
-    console.log("=== ATUALIZAÇÃO DE SERVIÇOS CONCLUÍDA ===");
+    log('INFO', "=== ATUALIZAÇÃO DE SERVIÇOS CONCLUÍDA ===");
   } catch (error) {
-    console.error("Erro ao executar script de atualização de serviços:", error);
-    console.log("Detalhes do erro:", error.stack);
-    console.log("Continuando com a inicialização...");
+    log('ERROR', "Erro ao executar script de atualização de serviços: " + error.message);
+    log('ERROR', "Detalhes do erro: " + error.stack);
+    log('WARN', "Continuando com a inicialização...");
   }
   
   // Criar diretório dist se não existir
   const distPath = path.join(currentDir, 'dist');
   if (!fs.existsSync(distPath)) {
-    console.log("Criando diretório dist...");
+    log('INFO', "Criando diretório dist...");
     fs.mkdirSync(distPath, { recursive: true });
-    console.log("Diretório dist criado com sucesso!");
+    log('INFO', "Diretório dist criado com sucesso!");
     
     // Criar um arquivo index.html básico para evitar erros
     const indexHtmlPath = path.join(distPath, 'index.html');
     if (!fs.existsSync(indexHtmlPath)) {
-      console.log("Criando arquivo index.html básico...");
+      log('INFO', "Criando arquivo index.html básico...");
       fs.writeFileSync(indexHtmlPath, `
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -361,22 +437,22 @@ try {
 </body>
 </html>
       `);
-      console.log("Arquivo index.html básico criado com sucesso!");
+      log('INFO', "Arquivo index.html básico criado com sucesso!");
     }
   }
   
   // Executar o build no ambiente Render
   if (process.env.RENDER) {
     try {
-      console.log("Executando script de build específico para o Render...");
+      log('INFO', "Executando script de build específico para o Render...");
       // Usar o script render-build.js para um processo de build mais robusto
       execSync('node render-build.js', { stdio: 'inherit' });
-      console.log("Build executado com sucesso!");
+      log('INFO', "Build executado com sucesso!");
     } catch (error) {
-      console.error("Erro ao executar o build:", error);
+      log('ERROR', "Erro ao executar o build: " + error.message);
       // Criar um arquivo de fallback em caso de erro no build
       if (!fs.existsSync(path.join(distPath, 'index.html'))) {
-        console.log("Criando arquivo index.html de fallback...");
+        log('INFO', "Criando arquivo index.html de fallback...");
         fs.writeFileSync(path.join(distPath, 'index.html'), `
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -404,11 +480,28 @@ try {
 </body>
 </html>
         `);
-        console.log("Arquivo index.html de fallback criado com sucesso!");
+        log('INFO', "Arquivo index.html de fallback criado com sucesso!");
       }
     }
   }
 } catch (error) {
-  console.error("Erro durante a configuração do ambiente Render:", error);
+  log('ERROR', "Erro durante a configuração do ambiente Render: " + error.message);
+  log('ERROR', "Stack trace: " + error.stack);
+  
+  // Registrar informações do ambiente para diagnóstico
+  log('INFO', "=== INFORMAÇÕES DO AMBIENTE ===");
+  log('INFO', `Node.js: ${process.version}`);
+  log('INFO', `OS: ${process.platform} ${process.arch}`);
+  log('INFO', `Memória: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB / ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)} MB`);
+  
+  // Listar variáveis de ambiente (exceto as sensíveis)
+  const safeEnvVars = Object.keys(process.env)
+    .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD') && !key.includes('TOKEN'))
+    .reduce((obj, key) => {
+      obj[key] = process.env[key];
+      return obj;
+    }, {});
+  log('INFO', `Variáveis de ambiente: ${JSON.stringify(safeEnvVars, null, 2)}`);
+  
   process.exit(1);
 }

@@ -1,6 +1,6 @@
 /**
  * Script de atualização de serviços específico para ambiente Render
- * @version 1.3.0 - 2025-03-14 - Corrigido problema de importação e adicionados logs detalhados
+ * @version 1.5.0 - 2025-03-15 - Melhorado tratamento de erros e compatibilidade com Node.js 23+
  */
 
 import fs from 'fs';
@@ -19,9 +19,11 @@ const __dirname = path.dirname(__filename);
 const projectRoot = process.env.RENDER ? '/opt/render/project/src' : path.resolve(__dirname, '..', '..');
 
 // Caminho para o arquivo de definições de serviços (usando caminho absoluto no Render)
-const serviceDefinitionsPath = process.env.RENDER 
-  ? path.join(projectRoot, 'server', 'models', 'seeds', 'updatedServiceDefinitions.js')
-  : path.join(__dirname, '..', 'models', 'seeds', 'updatedServiceDefinitions.js');
+const serviceDefinitionsPath = process.env.SERVICE_DEFINITIONS_PATH || (
+  process.env.RENDER 
+    ? path.join(projectRoot, 'server', 'models', 'seeds', 'updatedServiceDefinitions.js')
+    : path.join(__dirname, '..', 'models', 'seeds', 'updatedServiceDefinitions.js')
+);
 
 // Configurar logger
 const logDir = path.join(process.env.RENDER ? projectRoot : __dirname, '..', 'logs');
@@ -48,7 +50,24 @@ function log(level, message) {
     fs.appendFileSync(logFilePath, logMessage);
   } catch (error) {
     console.error(`Erro ao escrever no arquivo de log: ${error.message}`);
+    // Tentar criar o diretório de logs se não existir
+    try {
+      fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
+      fs.appendFileSync(logFilePath, logMessage);
+    } catch (mkdirError) {
+      console.error(`Erro ao criar diretório de logs: ${mkdirError.message}`);
+    }
   }
+}
+
+// Verificar versão do Node.js
+const nodeVersion = process.version;
+log('INFO', `Versão do Node.js: ${nodeVersion}`);
+
+// Extrair a versão principal do Node.js (por exemplo, v18.x.x -> 18)
+const majorVersion = parseInt(nodeVersion.match(/^v(\d+)\./)?.[1] || '0');
+if (majorVersion < 18) {
+  log('WARN', `Esta versão do Node.js (${nodeVersion}) pode não ser totalmente compatível com este script. Recomendado: v18+`);
 }
 
 /**
@@ -204,27 +223,88 @@ function extrairDefinicoesDoConteudo(content) {
       const arrayName = arrayMatch[1];
       log('INFO', `Encontrado array '${arrayName}' no conteúdo`);
       
-      // Tentar avaliar o array (não seguro, mas é um fallback)
+      // Tentar extrair os serviços diretamente do conteúdo
       try {
-        // Criar um ambiente seguro para avaliar o código
-        const tempFilePath = path.join(logDir, 'temp-definitions.js');
-        fs.writeFileSync(tempFilePath, `export const ${arrayName} = ${arrayMatch[2]}];`);
+        // Extrair o conteúdo do array
+        const arrayContent = arrayMatch[2];
         
+        // Criar um arquivo JavaScript temporário com o array
+        const tempFilePath = path.join(logDir, 'temp-definitions.js');
+        const tempFileContent = `
+          export const servicos = [${arrayContent}];
+        `;
+        
+        fs.writeFileSync(tempFilePath, tempFileContent);
         log('INFO', `Arquivo temporário criado: ${tempFilePath}`);
         
-        // Importar o arquivo temporário
-        const tempModule = await import(`file://${tempFilePath}`);
-        const result = tempModule[arrayName];
+        // Usar uma abordagem mais simples para avaliar o conteúdo
+        // Ler o conteúdo do arquivo e procurar por objetos de serviço
+        const servicosExtraidos = [];
+        const regex = /{[^{}]*nome:\s*['"]([^'"]+)['"][^{}]*}/g;
+        let match;
+        
+        while ((match = regex.exec(arrayContent)) !== null) {
+          const servicoStr = match[0];
+          log('INFO', `Encontrado serviço: ${match[1]}`);
+          
+          // Extrair propriedades do serviço
+          const nome = extrairPropriedade(servicoStr, 'nome');
+          const descricao = extrairPropriedade(servicoStr, 'descricao');
+          const preco_base = parseFloat(extrairPropriedade(servicoStr, 'preco_base')) || 0;
+          const duracao_media_captura = extrairPropriedade(servicoStr, 'duracao_media_captura');
+          const duracao_media_tratamento = extrairPropriedade(servicoStr, 'duracao_media_tratamento');
+          const entregaveis = extrairPropriedade(servicoStr, 'entregaveis');
+          const possiveis_adicionais = extrairPropriedade(servicoStr, 'possiveis_adicionais');
+          const valor_deslocamento = extrairPropriedade(servicoStr, 'valor_deslocamento');
+          
+          // Extrair detalhes
+          const detalhesStr = extrairPropriedadeObjeto(servicoStr, 'detalhes');
+          let detalhes = {};
+          
+          if (detalhesStr) {
+            try {
+              // Tentar converter para objeto
+              detalhes = {
+                captura: extrairPropriedade(detalhesStr, 'captura'),
+                tratamento: extrairPropriedade(detalhesStr, 'tratamento'),
+                entregaveis: extrairPropriedade(detalhesStr, 'entregaveis'),
+                adicionais: extrairPropriedade(detalhesStr, 'adicionais'),
+                deslocamento: extrairPropriedade(detalhesStr, 'deslocamento')
+              };
+            } catch (e) {
+              log('WARN', `Erro ao extrair detalhes para serviço ${nome}: ${e.message}`);
+            }
+          }
+          
+          // Criar objeto de serviço
+          const servico = {
+            nome,
+            descricao,
+            preco_base,
+            duracao_media_captura,
+            duracao_media_tratamento,
+            entregaveis,
+            possiveis_adicionais,
+            valor_deslocamento,
+            detalhes
+          };
+          
+          servicosExtraidos.push(servico);
+        }
+        
+        if (servicosExtraidos.length > 0) {
+          log('INFO', `Extraídos ${servicosExtraidos.length} serviços do conteúdo`);
+          return servicosExtraidos;
+        }
         
         // Limpar arquivo temporário
-        fs.unlinkSync(tempFilePath);
-        
-        if (Array.isArray(result) && result.length > 0) {
-          log('INFO', `Extraídas ${result.length} definições do conteúdo`);
-          return result;
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (e) {
+          log('WARN', `Erro ao remover arquivo temporário: ${e.message}`);
         }
       } catch (evalError) {
-        log('ERROR', `Erro ao avaliar array: ${evalError.message}`);
+        log('ERROR', `Erro ao extrair serviços: ${evalError.message}`);
       }
     }
     
@@ -234,6 +314,52 @@ function extrairDefinicoesDoConteudo(content) {
     log('ERROR', `Erro ao extrair definições: ${error.message}`);
     return getBasicServices();
   }
+}
+
+/**
+ * Extrai o valor de uma propriedade de uma string de objeto
+ * @param {string} str - String do objeto
+ * @param {string} prop - Nome da propriedade
+ * @returns {string} Valor da propriedade
+ */
+function extrairPropriedade(str, prop) {
+  const regex = new RegExp(`${prop}\\s*:\\s*['"]([^'"]*)['\"]|${prop}\\s*:\\s*([0-9.]+)`, 'i');
+  const match = str.match(regex);
+  return match ? (match[1] || match[2] || '') : '';
+}
+
+/**
+ * Extrai um objeto de uma string
+ * @param {string} str - String do objeto principal
+ * @param {string} prop - Nome da propriedade que contém o objeto
+ * @returns {string} String do objeto
+ */
+function extrairPropriedadeObjeto(str, prop) {
+  const inicio = str.indexOf(`${prop}:`);
+  if (inicio === -1) return '';
+  
+  let contador = 0;
+  let inicioObj = -1;
+  let fimObj = -1;
+  
+  for (let i = inicio; i < str.length; i++) {
+    if (str[i] === '{') {
+      if (inicioObj === -1) inicioObj = i;
+      contador++;
+    } else if (str[i] === '}') {
+      contador--;
+      if (contador === 0) {
+        fimObj = i;
+        break;
+      }
+    }
+  }
+  
+  if (inicioObj !== -1 && fimObj !== -1) {
+    return str.substring(inicioObj, fimObj + 1);
+  }
+  
+  return '';
 }
 
 /**
@@ -300,33 +426,50 @@ function getBasicServices() {
 
 /**
  * Função para limpar o cache da API
+ * @returns {Promise<boolean>} Resultado da operação
  */
 async function limparCacheAPI() {
-  log('INFO', 'Limpando cache da API...');
-  
-  // Determinar a URL base da API
-  const baseUrl = process.env.RENDER ? 'http://localhost:3000' : (process.env.BASE_URL || 'http://localhost:3000');
-  log('INFO', `URL base para limpeza de cache: ${baseUrl}`);
+  log('INFO', 'Tentando limpar cache da API...');
   
   try {
-    // Limpar cache específico de pricing
-    log('INFO', 'Limpando cache de pricing...');
-    await axios.get(`${baseUrl}/api/cache/clear?key=/api/pricing`);
+    // Determinar a URL base
+    const baseUrl = process.env.BASE_URL || (process.env.RENDER ? 'http://localhost:10000' : 'http://localhost:4321');
+    const cacheUrl = `${baseUrl}/api/cache/clear`;
     
-    // Limpar cache completo para garantir
-    log('INFO', 'Limpando cache completo...');
-    await axios.get(`${baseUrl}/api/cache/clear`);
+    log('INFO', `URL para limpeza de cache: ${cacheUrl}`);
     
-    // Verificar status do cache
-    log('INFO', 'Verificando status do cache após limpeza...');
-    const response = await axios.get(`${baseUrl}/api/cache/status`);
-    log('INFO', `Status do cache: ${JSON.stringify(response.data)}`);
+    // Tentar limpar o cache
+    const response = await axios.post(cacheUrl, {}, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CACHE_SECRET || 'cache-secret-key'}`
+      },
+      timeout: 10000 // 10 segundos de timeout
+    });
     
-    log('INFO', 'Cache limpo com sucesso!');
+    if (response.status === 200) {
+      log('INFO', 'Cache limpo com sucesso!');
+      log('INFO', `Resposta: ${JSON.stringify(response.data)}`);
+      return true;
+    } else {
+      log('WARN', `Falha ao limpar cache. Status: ${response.status}`);
+      log('WARN', `Resposta: ${JSON.stringify(response.data)}`);
+      return false;
+    }
   } catch (error) {
     log('ERROR', `Erro ao limpar cache: ${error.message}`);
-    log('WARN', 'Falha ao limpar cache via API. Isso é esperado durante o deploy inicial.');
-    log('INFO', 'Continuando com a atualização de serviços...');
+    
+    // Verificar se é um erro de conexão recusada
+    if (error.code === 'ECONNREFUSED' || error.message.includes('connect ECONNREFUSED')) {
+      log('WARN', 'Servidor não está respondendo. Isso é normal se o servidor não estiver em execução durante o deploy.');
+    } 
+    // Verificar se é um erro de timeout
+    else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+      log('WARN', 'Timeout ao tentar limpar cache. O servidor pode estar sobrecarregado ou inacessível.');
+    }
+    
+    log('INFO', 'Continuando sem limpar o cache...');
+    return false;
   }
 }
 
@@ -336,35 +479,39 @@ async function limparCacheAPI() {
 async function atualizarServicos() {
   log('INFO', '=== ATUALIZANDO SERVIÇOS NO AMBIENTE RENDER ===');
   log('INFO', `Data e hora: ${new Date().toISOString()}`);
-  log('INFO', `Ambiente: ${process.env.NODE_ENV || 'development'}`);
-  log('INFO', `Render: ${process.env.RENDER ? 'Sim' : 'Não'}`);
-  log('INFO', `Forçar atualização: ${process.env.FORCE_UPDATE === 'true' ? 'Sim' : 'Não'}`);
+  log('INFO', `Ambiente: ${process.env.NODE_ENV}`);
+  log('INFO', `RENDER: ${process.env.RENDER ? 'Sim' : 'Não'}`);
+  log('INFO', `Diretório atual: ${process.cwd()}`);
+  log('INFO', `Caminho do script: ${__filename}`);
   
-  // Verificar o caminho do banco de dados
-  const databaseUrl = process.env.DATABASE_URL || 'file:../database.sqlite';
-  log('INFO', `DATABASE_URL: ${databaseUrl}`);
-  
-  // Inicializar Prisma Client
-  const prisma = new PrismaClient();
+  let prisma = null;
   
   try {
-    // Testar conexão com o banco de dados
-    log('INFO', 'Testando conexão com o banco de dados...');
-    await prisma.$connect();
-    log('INFO', 'Conexão estabelecida com sucesso');
-    
     // Obter definições de serviços
-    const servicosDemo = await obterDefinicaoServicos();
-    log('INFO', `Obtidos ${servicosDemo.length} serviços de demonstração`);
+    const servicosDefinicoes = await obterDefinicaoServicos();
+    log('INFO', `Obtidas ${servicosDefinicoes.length} definições de serviços`);
     
-    if (servicosDemo.length === 0) {
-      log('ERROR', 'Nenhum serviço encontrado para atualização. Abortando.');
-      return;
+    // Configurar conexão com o banco de dados
+    log('INFO', `Conectando ao banco de dados: ${process.env.DATABASE_URL}`);
+    prisma = new PrismaClient({
+      errorFormat: 'pretty',
+      log: ['warn', 'error']
+    });
+    
+    // Verificar conexão com o banco de dados
+    try {
+      log('INFO', 'Testando conexão com o banco de dados...');
+      await prisma.$queryRaw`SELECT 1`;
+      log('INFO', 'Conexão com o banco de dados estabelecida com sucesso!');
+    } catch (dbError) {
+      log('ERROR', `Erro ao conectar ao banco de dados: ${dbError.message}`);
+      log('ERROR', dbError.stack);
+      throw new Error(`Falha na conexão com o banco de dados: ${dbError.message}`);
     }
-    
+
     // Listar nomes dos serviços para verificação
     log('INFO', 'Lista de serviços a serem atualizados:');
-    servicosDemo.forEach((servico, index) => {
+    servicosDefinicoes.forEach((servico, index) => {
       log('INFO', `${index + 1}. ${servico.nome}`);
     });
     
@@ -388,7 +535,7 @@ async function atualizarServicos() {
     let criados = 0;
     let semMudancas = 0;
     
-    for (const servico of servicosDemo) {
+    for (const servico of servicosDefinicoes) {
       // Verificar se o serviço já existe
       const servicoExistente = await prisma.servico.findFirst({
         where: {
@@ -494,18 +641,41 @@ async function atualizarServicos() {
     
     log('INFO', '=== ATUALIZAÇÃO CONCLUÍDA COM SUCESSO ===');
   } catch (error) {
-    log('ERROR', `Erro durante a atualização: ${error.message}`);
+    log('ERROR', `Erro durante atualização de serviços: ${error.message}`);
     log('ERROR', error.stack);
+    
+    // Registrar informações do ambiente para diagnóstico
+    log('INFO', '=== INFORMAÇÕES DO AMBIENTE ===');
+    log('INFO', `Node.js: ${process.version}`);
+    log('INFO', `OS: ${process.platform} ${process.arch}`);
+    log('INFO', `Memória: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB / ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)} MB`);
+    
+    // Listar variáveis de ambiente (exceto as sensíveis)
+    const safeEnvVars = Object.keys(process.env)
+      .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD') && !key.includes('TOKEN'))
+      .reduce((obj, key) => {
+        obj[key] = process.env[key];
+        return obj;
+      }, {});
+    log('INFO', `Variáveis de ambiente: ${JSON.stringify(safeEnvVars, null, 2)}`);
+    
+    throw error; // Propagar erro
   } finally {
-    // Desconectar do banco de dados
-    await prisma.$disconnect();
-    log('INFO', 'Desconectado do banco de dados');
+    // Fechar conexão com o banco de dados
+    if (prisma) {
+      log('INFO', 'Fechando conexão com o banco de dados...');
+      await prisma.$disconnect();
+    }
   }
 }
 
 // Executar a função principal
-atualizarServicos().catch(error => {
+atualizarServicos().then(() => {
+  log('INFO', '=== ATUALIZAÇÃO CONCLUÍDA COM SUCESSO ===');
+  process.exit(0);
+}).catch(error => {
   log('ERROR', `Erro fatal: ${error.message}`);
   log('ERROR', error.stack);
+  log('ERROR', '=== ATUALIZAÇÃO FALHOU ===');
   process.exit(1);
 });
