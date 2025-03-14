@@ -1,7 +1,7 @@
 /**
  * Script para atualização de serviços no ambiente Render
  * @description Carrega definições de serviços e atualiza no banco de dados
- * @version 1.3.0 - 2025-03-14 - Removidas funções duplicadas e adicionados logs detalhados
+ * @version 1.5.0 - 2025-03-14 - Adicionado suporte explícito para o caminho do SQLite no Render
  */
 
 // Importações
@@ -9,7 +9,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadServiceDefinitions } from '../utils/serviceDefinitionLoader.js';
-import { initializePrisma, updateServices } from '../utils/databaseUpdater.js';
+import { PrismaClient } from '@prisma/client';
+import { updateServices } from '../utils/databaseUpdater.js';
 import axios from 'axios';
 
 // Configuração de ambiente
@@ -17,19 +18,34 @@ dotenv.config();
 const isRender = process.env.RENDER === 'true';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Caminho do banco de dados SQLite no Render
+const RENDER_DB_PATH = 'file:/opt/render/project/src/database.sqlite';
+
 // Função principal
 async function main() {
   console.log('='.repeat(80));
-  console.log(`[render-update-services] Iniciando atualização de serviços (v1.3.0) - ${new Date().toISOString()}`);
+  console.log(`[render-update-services] Iniciando atualização de serviços (v1.5.0) - ${new Date().toISOString()}`);
   console.log(`[render-update-services] Ambiente: ${isRender ? 'Render (Produção)' : 'Local (Desenvolvimento)'}`);
   console.log('='.repeat(80));
 
   try {
-    // Determinar caminho para o arquivo de definições de serviços
-    const definitionsPath = isRender
-      ? path.join(__dirname, '../data/serviceDefinitions.js')
-      : path.join(__dirname, '../data/serviceDefinitions.js');
+    // Determinar a URL do banco de dados a ser usada
+    let databaseUrl = process.env.DATABASE_URL;
     
+    // Se estiver no Render, usar o caminho específico do SQLite no Render
+    if (isRender) {
+      databaseUrl = RENDER_DB_PATH;
+      console.log(`[render-update-services] Ambiente Render detectado, usando caminho específico do SQLite: ${databaseUrl}`);
+    } else if (!databaseUrl) {
+      console.error('[render-update-services] ERRO: Variável DATABASE_URL não definida em ambiente local!');
+      console.error('[render-update-services] Por favor, defina a variável DATABASE_URL com a URL de conexão do banco de dados.');
+      process.exit(1);
+    }
+    
+    console.log(`[render-update-services] Usando conexão de banco de dados: ${databaseUrl}`);
+    
+    // Determinar caminho para o arquivo de definições de serviços
+    const definitionsPath = path.join(__dirname, '../models/seeds/serviceDefinitions.js');
     console.log(`[render-update-services] Carregando definições de serviços de: ${definitionsPath}`);
     
     // Carregar definições de serviços
@@ -67,14 +83,32 @@ async function main() {
       console.log('-'.repeat(40));
     });
     
-    // Inicializar cliente Prisma
-    console.log('[render-update-services] Inicializando cliente Prisma');
-    const prisma = initializePrisma({
-      logFunction: console.log,
-      prismaOptions: {
-        log: ['query', 'info', 'warn', 'error']
-      }
+    // Inicializar cliente Prisma com configuração explícita
+    console.log('[render-update-services] Inicializando cliente Prisma com configuração explícita');
+    const prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: databaseUrl
+        }
+      },
+      log: ['query', 'info', 'warn', 'error']
     });
+    
+    // Testar conexão com o banco de dados
+    console.log('[render-update-services] Testando conexão com o banco de dados...');
+    try {
+      await prisma.$queryRaw`SELECT 1 as test`;
+      console.log('[render-update-services] Conexão com o banco de dados estabelecida com sucesso!');
+    } catch (dbError) {
+      console.error(`[render-update-services] ERRO ao conectar ao banco de dados: ${dbError.message}`);
+      console.error('[render-update-services] Verifique se a URL de conexão está correta e se o banco de dados está acessível.');
+      process.exit(1);
+    }
+    
+    // Verificar serviços existentes no banco de dados
+    console.log('[render-update-services] Consultando serviços existentes no banco de dados...');
+    const servicosExistentes = await prisma.servico.findMany();
+    console.log(`[render-update-services] Encontrados ${servicosExistentes.length} serviços no banco de dados`);
     
     // Atualizar serviços no banco de dados
     console.log('[render-update-services] Iniciando atualização de serviços no banco de dados');
