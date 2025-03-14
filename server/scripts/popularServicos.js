@@ -71,6 +71,64 @@ function sanitizeServiceData(service) {
 }
 
 /**
+ * Cria um backup dos serviços existentes no banco de dados
+ * @param {Array} servicos Lista de serviços para backup
+ * @returns {string} Caminho do arquivo de backup
+ */
+async function criarBackupServicos(servicos) {
+  try {
+    // Verificar ambiente para determinar o diretório de backup
+    const isRenderEnvironment = process.env.RENDER === 'true';
+    let backupDir;
+    
+    if (isRenderEnvironment) {
+      // No Render, usar o diretório persistente
+      backupDir = path.resolve('/opt/render/project/data', 'backups', 'servicos');
+    } else {
+      // Em ambiente local, usar o diretório do projeto
+      backupDir = path.resolve(rootDir, 'backups', 'servicos');
+    }
+    
+    // Criar diretório de backup se não existir
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+      log(`Diretório de backup criado: ${backupDir}`);
+    }
+    
+    // Gerar nome do arquivo com timestamp e informações do ambiente
+    const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
+    const ambiente = process.env.NODE_ENV || 'desenvolvimento';
+    const backupFilename = `servicos_backup_${ambiente}_${timestamp}.json`;
+    const backupPath = path.resolve(backupDir, backupFilename);
+    
+    // Adicionar metadados ao backup
+    const backupData = {
+      metadata: {
+        timestamp: new Date().toISOString(),
+        ambiente: ambiente,
+        totalServicos: servicos.length,
+        versao: '1.0.0'
+      },
+      servicos: servicos
+    };
+    
+    // Salvar dados em formato JSON
+    fs.writeFileSync(
+      backupPath, 
+      JSON.stringify(backupData, null, 2), 
+      'utf8'
+    );
+    
+    log(`Backup criado com sucesso: ${backupPath}`);
+    return backupPath;
+  } catch (error) {
+    log(`Erro ao criar backup: ${error.message}`);
+    console.error('Detalhes do erro:', error);
+    return null;
+  }
+}
+
+/**
  * Popula o banco de dados com serviços de demonstração
  */
 async function popularServicos() {
@@ -177,6 +235,47 @@ async function atualizarServicosExistentes(forceUpdate = false) {
     const { getUpdatedServiceDefinitions } = await import('../models/seeds/updatedServiceDefinitions.js');
     const servicosAtualizados = getUpdatedServiceDefinitions();
     log(`Obtidos ${servicosAtualizados.length} serviços para atualização`);
+    
+    // Obter todos os serviços existentes
+    const servicosExistentes = await prisma.servico.findMany();
+    log(`Encontrados ${servicosExistentes.length} serviços existentes no banco de dados`);
+    
+    // Criar backup dos serviços existentes
+    const backupPath = await criarBackupServicos(servicosExistentes);
+    if (backupPath) {
+      log(`Backup dos serviços existentes criado em: ${backupPath}`);
+    } else {
+      log('Aviso: Não foi possível criar backup dos serviços existentes');
+    }
+    
+    // Lista de nomes de serviços atualizados para comparação
+    const nomesServicosAtualizados = servicosAtualizados.map(servico => servico.nome);
+    
+    // Identificar serviços para remover (existentes mas não presentes na lista atualizada)
+    const servicosParaRemover = servicosExistentes.filter(
+      servico => !nomesServicosAtualizados.includes(servico.nome)
+    );
+    
+    // Remover serviços que não estão mais na lista atualizada
+    if (servicosParaRemover.length > 0) {
+      log(`Removendo ${servicosParaRemover.length} serviços que não estão mais na lista atualizada:`);
+      
+      for (const servico of servicosParaRemover) {
+        log(`- Removendo serviço "${servico.nome}" (ID: ${servico.id})...`);
+        
+        try {
+          await prisma.servico.delete({
+            where: { id: servico.id }
+          });
+          
+          log(`  Serviço removido com sucesso`);
+        } catch (error) {
+          log(`  Erro ao remover serviço: ${error.message}`);
+        }
+      }
+    } else {
+      log('Não há serviços para remover');
+    }
     
     // Verificar e atualizar cada serviço
     for (const servicoAtualizado of servicosAtualizados) {
