@@ -279,28 +279,60 @@ async function atualizarServicosExistentes(forceUpdate = false) {
   log('=== ATUALIZANDO SERVIÇOS EXISTENTES ===');
   log(`Data e hora: ${new Date().toISOString()}`);
   log(`Ambiente: ${process.env.NODE_ENV || 'não definido'}`);
+  log(`Render: ${process.env.RENDER ? 'Sim' : 'Não'}`);
   log(`Modo: ${forceUpdate ? 'Forçado' : 'Normal'}`);
   
   try {
     // Conectar ao banco de dados
+    log('Conectando ao banco de dados...');
     await prisma.$connect();
     log('Conexão estabelecida com sucesso');
     
     // Importar definições atualizadas
+    log('Importando definições atualizadas de serviços...');
     const { getUpdatedServiceDefinitions } = await import('../models/seeds/updatedServiceDefinitions.js');
     const servicosAtualizados = getUpdatedServiceDefinitions();
     log(`Obtidos ${servicosAtualizados.length} serviços para atualização`);
     
     // Obter todos os serviços existentes
+    log('Buscando serviços existentes no banco de dados...');
     const servicosExistentes = await prisma.servico.findMany();
     log(`Encontrados ${servicosExistentes.length} serviços existentes no banco de dados`);
     
+    // Caso especial: banco de dados vazio
+    if (servicosExistentes.length === 0) {
+      log('Banco de dados vazio. Criando todos os serviços do catálogo atualizado...');
+      
+      // Criar todos os serviços do catálogo atualizado
+      for (const servicoAtualizado of servicosAtualizados) {
+        log(`Criando serviço "${servicoAtualizado.nome}"...`);
+        const sanitizedData = sanitizeServiceData(servicoAtualizado);
+        
+        try {
+          const novoServico = await prisma.servico.create({
+            data: sanitizedData
+          });
+          
+          log(`Serviço criado com sucesso (ID: ${novoServico.id})`);
+        } catch (error) {
+          log(`Erro ao criar serviço "${servicoAtualizado.nome}": ${error.message}`);
+          console.error('Detalhes do erro:', error);
+        }
+      }
+      
+      const countFinal = await prisma.servico.count();
+      log(`Total de serviços após criação inicial: ${countFinal}`);
+      log('Criação inicial de serviços concluída');
+      return;
+    }
+    
     // Criar backup dos serviços existentes
+    log('Criando backup dos serviços existentes...');
     const backupPath = await criarBackupServicos(servicosExistentes);
     if (backupPath) {
       log(`Backup dos serviços existentes criado em: ${backupPath}`);
     } else {
-      log('Aviso: Não foi possível criar backup dos serviços existentes');
+      log('Não foi possível criar backup dos serviços existentes');
     }
     
     // Lista de nomes de serviços atualizados para comparação
