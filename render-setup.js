@@ -250,7 +250,22 @@ try {
     log('INFO', "Data e hora: " + new Date().toISOString());
     log('INFO', "Ambiente: " + process.env.NODE_ENV);
     log('INFO', "Diretório atual: " + process.cwd());
-    log('INFO', "Diretório do script: " + currentDir);
+    
+    // Forçar atualização completa definindo variável de ambiente
+    process.env.FORCE_UPDATE = "true";
+    log('INFO', "Forçando atualização completa de serviços (FORCE_UPDATE=true)");
+    
+    // Executar script de atualização
+    log('INFO', "Executando script de atualização de serviços...");
+    
+    // Verificar se o arquivo existe
+    const updateScriptPath = path.join(currentDir, 'server', 'scripts', 'render-update-services.js');
+    if (!fs.existsSync(updateScriptPath)) {
+      throw new Error(`Script de atualização não encontrado em: ${updateScriptPath}`);
+    }
+    
+    // Executar o script como um módulo ES
+    log('INFO', `Executando: node ${updateScriptPath}`);
     
     // Definir caminhos absolutos para os scripts e arquivos
     const updateScriptPath = path.join(currentDir, 'server', 'scripts', 'render-update-services.js');

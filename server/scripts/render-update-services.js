@@ -571,26 +571,39 @@ async function atualizarServicos() {
         const mudancas = {};
         let temMudancas = false;
         
-        for (const campo in servico) {
-          if (campo === 'detalhes') {
-            // Comparar objetos de detalhes
-            const detalhesAtuais = typeof servicoExistente.detalhes === 'string' && servicoExistente.detalhes
-              ? JSON.parse(servicoExistente.detalhes) 
-              : servicoExistente.detalhes;
-              
-            const detalhesNovos = typeof servico.detalhes === 'object'
-              ? servico.detalhes
-              : (typeof servico.detalhes === 'string' && servico.detalhes ? JSON.parse(servico.detalhes) : null);
-              
-            if (JSON.stringify(detalhesAtuais) !== JSON.stringify(detalhesNovos)) {
-              mudancas.detalhes = typeof detalhesNovos === 'object' 
-                ? JSON.stringify(detalhesNovos) 
-                : detalhesNovos;
+        // Se FORCE_UPDATE estiver ativo, forçar atualização sem verificar mudanças
+        if (process.env.FORCE_UPDATE === 'true') {
+          log('INFO', `Forçando atualização do serviço "${servico.nome}" (FORCE_UPDATE=true)`);
+          temMudancas = true;
+          // Usar todos os campos do serviço para a atualização forçada
+          Object.keys(servicoParaSalvar).forEach(campo => {
+            if (campo !== 'id') { // Excluir o campo ID
+              mudancas[campo] = servicoParaSalvar[campo];
+            }
+          });
+        } else {
+          // Verificação normal de mudanças
+          for (const campo in servico) {
+            if (campo === 'detalhes') {
+              // Comparar objetos de detalhes
+              const detalhesAtuais = typeof servicoExistente.detalhes === 'string' && servicoExistente.detalhes
+                ? JSON.parse(servicoExistente.detalhes) 
+                : servicoExistente.detalhes;
+                
+              const detalhesNovos = typeof servico.detalhes === 'object'
+                ? servico.detalhes
+                : (typeof servico.detalhes === 'string' && servico.detalhes ? JSON.parse(servico.detalhes) : null);
+                
+              if (JSON.stringify(detalhesAtuais) !== JSON.stringify(detalhesNovos)) {
+                mudancas.detalhes = typeof detalhesNovos === 'object' 
+                  ? JSON.stringify(detalhesNovos) 
+                  : detalhesNovos;
+                temMudancas = true;
+              }
+            } else if (servicoExistente[campo] !== servico[campo]) {
+              mudancas[campo] = servico[campo];
               temMudancas = true;
             }
-          } else if (servicoExistente[campo] !== servico[campo]) {
-            mudancas[campo] = servico[campo];
-            temMudancas = true;
           }
         }
         
