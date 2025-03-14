@@ -1,6 +1,6 @@
 /**
  * Módulo centralizado para detecção e configuração de ambiente
- * @version 1.3.0 - 2025-03-12 - Adicionado prefixo /api na URL base
+ * @version 1.4.0 - 2025-03-14 - Corrigida a configuração da URL base para garantir consistência
  * @description Fornece informações consistentes sobre o ambiente atual e URLs da API
  */
 
@@ -14,7 +14,7 @@ export const getEnvironment = () => {
     return { 
       type: 'server', 
       isDev: true,
-      baseUrl: 'http://localhost:3000/api'
+      baseUrl: 'http://localhost:3000'  // Removido o prefixo /api para consistência
     };
   }
   

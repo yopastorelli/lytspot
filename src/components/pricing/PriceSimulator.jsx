@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import api, { servicosAPI } from '../../services/api';
+import { servicosAPI } from '../../services/api';
 import { getEnvironment } from '../../utils/environment';
 import ServiceCard from './ServiceCard';
 import PricingCalculator from './PricingCalculator';
@@ -33,7 +33,7 @@ const PriceSimulator = () => {
     const controller = new AbortController();
     
     try {
-      console.log(`Carregando serviços da API: ${env.baseUrl}/pricing`);
+      console.log(`Carregando serviços da API: ${env.baseUrl}/api/pricing`);
       
       // Usa o serviço de API centralizado com o método específico
       const response = await servicosAPI.listar();

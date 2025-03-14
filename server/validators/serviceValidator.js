@@ -194,9 +194,9 @@ class ServiceValidator {
     
     if (queryParams.limit) {
       const limit = parseInt(queryParams.limit);
-      validatedParams.limit = !isNaN(limit) && limit > 0 && limit <= 100 ? limit : 20;
+      validatedParams.limit = !isNaN(limit) && limit > 0 && limit <= 100 ? limit : 50;
     } else {
-      validatedParams.limit = 20;
+      validatedParams.limit = 50;
     }
     
     // Validar parâmetros de ordenação

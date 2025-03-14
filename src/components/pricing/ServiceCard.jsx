@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 /**
  * Componente de cartão de serviço para o simulador de preços
- * @version 1.1.0 - 2025-03-12 - Melhorado alinhamento dos elementos
+ * @version 1.2.0 - 2025-03-14 - Adicionados logs para depuração
  */
 const ServiceCard = ({ servico, selecionado, onClick }) => {
   // Formata valores monetários
@@ -13,6 +13,14 @@ const ServiceCard = ({ servico, selecionado, onClick }) => {
       currency: 'BRL'
     }).format(value);
   };
+
+  // Log para depuração - será removido após resolução do problema
+  useEffect(() => {
+    console.log(`[ServiceCard] Renderizando serviço: ${servico.id} - ${servico.nome}`);
+    console.log('[ServiceCard] Detalhes do serviço:', servico.detalhes);
+    console.log('[ServiceCard] Captura:', servico.detalhes?.captura);
+    console.log('[ServiceCard] Tratamento:', servico.detalhes?.tratamento);
+  }, [servico]);
 
   return (
     <div 

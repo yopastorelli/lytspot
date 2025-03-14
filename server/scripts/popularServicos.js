@@ -55,7 +55,7 @@ const prisma = new PrismaClient({
  * Sanitiza os dados de um serviço para o formato do banco de dados
  * @param {Object} servicoData Dados do serviço
  * @returns {Object} Dados sanitizados
- * @version 1.2.0 - 2025-03-14 - Melhorada para garantir a estrutura aninhada detalhes
+ * @version 1.3.1 - 2025-03-14 - Corrigido tratamento do campo detalhes para compatibilidade com Prisma
  */
 function sanitizeServiceData(servicoData) {
   // Criar cópia para não modificar o original
@@ -77,41 +77,40 @@ function sanitizeServiceData(servicoData) {
   // Garantir que o preço base seja um número
   data.preco_base = Number(data.preco_base);
   
-  // Criar estrutura detalhes se não existir
-  const detalhes = data.detalhes || {};
+  // Garantir que o campo detalhes seja sempre um objeto
+  let detalhesObj = {};
   
-  // Garantir que os campos de duração estejam presentes
-  if (!data.duracao_media_captura) {
-    data.duracao_media_captura = detalhes.captura || 'Sob consulta';
+  // Se detalhes já existir como objeto, usá-lo
+  if (data.detalhes && typeof data.detalhes === 'object') {
+    detalhesObj = { ...data.detalhes };
+  } 
+  // Se detalhes for uma string, tentar fazer parse
+  else if (data.detalhes && typeof data.detalhes === 'string') {
+    try {
+      detalhesObj = JSON.parse(data.detalhes);
+    } catch (error) {
+      console.error(`Erro ao fazer parse do campo detalhes: ${error.message}`);
+      detalhesObj = {};
+    }
   }
   
-  if (!data.duracao_media_tratamento) {
-    data.duracao_media_tratamento = detalhes.tratamento || 'Sob consulta';
-  }
+  // Garantir que os campos de duração estejam presentes no objeto detalhes
+  detalhesObj.captura = detalhesObj.captura || data.duracao_media_captura || 'Sob consulta';
+  detalhesObj.tratamento = detalhesObj.tratamento || data.duracao_media_tratamento || 'Sob consulta';
   
-  // Garantir que os campos de entregáveis e adicionais estejam presentes
-  if (!data.entregaveis) {
-    data.entregaveis = detalhes.entregaveis || 'Sob consulta';
-  }
+  // Garantir que os campos de entregáveis e adicionais estejam presentes no objeto detalhes
+  detalhesObj.entregaveis = detalhesObj.entregaveis || data.entregaveis || 'Sob consulta';
+  detalhesObj.adicionais = detalhesObj.adicionais || data.possiveis_adicionais || '';
+  detalhesObj.deslocamento = detalhesObj.deslocamento || data.valor_deslocamento || '';
   
-  if (!data.possiveis_adicionais) {
-    data.possiveis_adicionais = detalhes.adicionais || '';
-  }
+  // Atualizar os campos diretos também para compatibilidade
+  data.duracao_media_captura = detalhesObj.captura;
+  data.duracao_media_tratamento = detalhesObj.tratamento;
+  data.entregaveis = detalhesObj.entregaveis;
+  data.possiveis_adicionais = detalhesObj.adicionais;
+  data.valor_deslocamento = detalhesObj.deslocamento;
   
-  if (!data.valor_deslocamento) {
-    data.valor_deslocamento = detalhes.deslocamento || 'Sob consulta';
-  }
-  
-  // Criar estrutura aninhada detalhes como JSON string
-  const detalhesObj = {
-    captura: data.duracao_media_captura,
-    tratamento: data.duracao_media_tratamento,
-    entregaveis: data.entregaveis,
-    adicionais: data.possiveis_adicionais,
-    deslocamento: data.valor_deslocamento
-  };
-  
-  // Converter para JSON string
+  // Converter o objeto detalhes para string JSON para o Prisma
   data.detalhes = JSON.stringify(detalhesObj);
   
   return data;
@@ -354,14 +353,15 @@ async function popularServicos() {
 /**
  * Atualiza serviços existentes no banco de dados
  * @param {boolean} forceUpdate Se true, força a atualização mesmo se os dados forem iguais
- * @version 1.2.0 - 2025-03-14 - Melhorada para preservar campo detalhes e garantir compatibilidade com frontend
+ * @version 1.4.0 - 2025-03-14 - Adicionados logs detalhados para diagnóstico
  */
-async function atualizarServicosExistentes(forceUpdate = false) {
+async function atualizarServicosExistentes(forceUpdate = true) {
   log('=== ATUALIZANDO SERVIÇOS EXISTENTES ===');
   log(`Data e hora: ${new Date().toISOString()}`);
   log(`Ambiente: ${process.env.NODE_ENV || 'não definido'}`);
   log(`Render: ${process.env.RENDER ? 'Sim' : 'Não'}`);
   log(`Modo: ${forceUpdate ? 'Forçado' : 'Normal'}`);
+  log(`Nível de debug: ${process.env.DEBUG_LEVEL || 'padrão'}`);
   
   try {
     // Conectar ao banco de dados
@@ -375,6 +375,14 @@ async function atualizarServicosExistentes(forceUpdate = false) {
     const servicosAtualizados = getUpdatedServiceDefinitions();
     log(`Obtidos ${servicosAtualizados.length} serviços atualizados`);
     
+    // Listar nomes dos serviços para verificação
+    if (process.env.DEBUG_LEVEL === 'verbose') {
+      log('Lista de serviços a serem criados:');
+      servicosAtualizados.forEach((servico, index) => {
+        log(`${index + 1}. ${servico.nome}`);
+      });
+    }
+    
     // Verificar se existem serviços no banco de dados
     log('Verificando serviços existentes no banco de dados...');
     const servicosExistentes = await prisma.servico.findMany();
@@ -386,118 +394,51 @@ async function atualizarServicosExistentes(forceUpdate = false) {
       await criarBackupServicos(servicosExistentes);
     }
     
-    // Se não existirem serviços no banco de dados, criar todos
-    if (servicosExistentes.length === 0) {
-      log('Banco de dados vazio, criando todos os serviços atualizados...');
-      for (const servicoAtualizado of servicosAtualizados) {
-        log(`Criando serviço "${servicoAtualizado.nome}"...`);
-        
-        // Sanitizar dados para o formato do banco de dados
-        const dadosSanitizados = sanitizeServiceData(servicoAtualizado);
-        
-        try {
-          const novoServico = await prisma.servico.create({
-            data: dadosSanitizados
-          });
-          
-          log(`Serviço "${servicoAtualizado.nome}" criado com sucesso (ID: ${novoServico.id})`);
-        } catch (error) {
-          log(`Erro ao criar serviço "${servicoAtualizado.nome}": ${error.message}`);
-        }
+    // Estratégia de limpar e recriar: remover todos os serviços existentes
+    if (servicosExistentes.length > 0) {
+      log('Removendo todos os serviços existentes para garantir consistência...');
+      try {
+        await prisma.servico.deleteMany({});
+        log('Todos os serviços existentes foram removidos com sucesso');
+      } catch (error) {
+        log(`Erro ao remover serviços existentes: ${error.message}`, 'error');
+        throw error; // Propagar erro para interromper a execução
       }
-    } else {
-      // Atualizar serviços existentes
-      log('Atualizando serviços existentes...');
+    }
+    
+    // Criar todos os serviços a partir das definições atualizadas
+    log('Criando todos os serviços a partir das definições atualizadas...');
+    const servicosCriados = [];
+    
+    for (const servicoAtualizado of servicosAtualizados) {
+      log(`Criando serviço "${servicoAtualizado.nome}"...`);
       
-      // Verificar serviços que não existem mais nas definições atualizadas
-      const nomesServicosAtualizados = servicosAtualizados.map(s => s.nome);
-      const servicosObsoletos = servicosExistentes.filter(s => !nomesServicosAtualizados.includes(s.nome));
+      // Sanitizar dados para o formato do banco de dados
+      const dadosSanitizados = sanitizeServiceData(servicoAtualizado);
       
-      if (servicosObsoletos.length > 0) {
-        log(`Encontrados ${servicosObsoletos.length} serviços obsoletos que serão removidos:`);
-        for (const servicoObsoleto of servicosObsoletos) {
-          log(`- ${servicoObsoleto.nome} (ID: ${servicoObsoleto.id})`);
-          
-          try {
-            await prisma.servico.delete({
-              where: { id: servicoObsoleto.id }
-            });
-            
-            log(`Serviço obsoleto "${servicoObsoleto.nome}" removido com sucesso`);
-          } catch (error) {
-            log(`Erro ao remover serviço obsoleto "${servicoObsoleto.nome}": ${error.message}`);
-          }
-        }
-      } else {
-        log('Não foram encontrados serviços obsoletos para remover');
+      // Log detalhado dos dados sanitizados
+      if (process.env.DEBUG_LEVEL === 'verbose') {
+        log(`Dados sanitizados para "${servicoAtualizado.nome}":`);
+        log(JSON.stringify(dadosSanitizados, null, 2));
       }
       
-      // Atualizar serviços existentes ou criar novos
-      for (const servicoAtualizado of servicosAtualizados) {
-        // Verificar se o serviço já existe
-        const servicoExistente = servicosExistentes.find(s => s.nome === servicoAtualizado.nome);
+      try {
+        const novoServico = await prisma.servico.create({
+          data: dadosSanitizados
+        });
         
-        if (servicoExistente) {
-          // Verificar se é necessário atualizar
-          const dadosSanitizados = sanitizeServiceData({
-            ...servicoAtualizado,
-            // Preservar o campo detalhes se já existir no serviço existente
-            detalhes: servicoExistente.detalhes || servicoAtualizado.detalhes
-          });
-          
-          // Se forceUpdate for true, atualizar mesmo se os dados forem iguais
-          if (forceUpdate) {
-            log(`Atualizando serviço "${servicoAtualizado.nome}" (modo forçado)...`);
-            
-            try {
-              const servicoAtualizado = await prisma.servico.update({
-                where: { id: servicoExistente.id },
-                data: dadosSanitizados
-              });
-              
-              log(`Serviço "${servicoAtualizado.nome}" atualizado com sucesso (ID: ${servicoAtualizado.id})`);
-            } catch (error) {
-              log(`Erro ao atualizar serviço "${servicoAtualizado.nome}": ${error.message}`);
-            }
-          } else {
-            // Verificar se há diferenças significativas
-            const diferencas = compararServicos(servicoExistente, dadosSanitizados);
-            
-            if (diferencas.length > 0) {
-              log(`Atualizando serviço "${servicoAtualizado.nome}" (${diferencas.length} diferenças encontradas)...`);
-              log(`Diferenças: ${diferencas.join(', ')}`);
-              
-              try {
-                const servicoAtualizado = await prisma.servico.update({
-                  where: { id: servicoExistente.id },
-                  data: dadosSanitizados
-                });
-                
-                log(`Serviço "${servicoAtualizado.nome}" atualizado com sucesso (ID: ${servicoAtualizado.id})`);
-              } catch (error) {
-                log(`Erro ao atualizar serviço "${servicoAtualizado.nome}": ${error.message}`);
-              }
-            } else {
-              log(`Serviço "${servicoAtualizado.nome}" já está atualizado, nenhuma alteração necessária`);
-            }
-          }
-        } else {
-          // Criar novo serviço
-          log(`Criando novo serviço "${servicoAtualizado.nome}"...`);
-          
-          // Sanitizar dados para o formato do banco de dados
-          const dadosSanitizados = sanitizeServiceData(servicoAtualizado);
-          
-          try {
-            const novoServico = await prisma.servico.create({
-              data: dadosSanitizados
-            });
-            
-            log(`Serviço "${servicoAtualizado.nome}" criado com sucesso (ID: ${novoServico.id})`);
-          } catch (error) {
-            log(`Erro ao criar serviço "${servicoAtualizado.nome}": ${error.message}`);
-          }
+        servicosCriados.push(novoServico);
+        log(`Serviço "${servicoAtualizado.nome}" criado com sucesso (ID: ${novoServico.id})`);
+      } catch (error) {
+        log(`Erro ao criar serviço "${servicoAtualizado.nome}": ${error.message}`, 'error');
+        log(`Stack trace: ${error.stack}`, 'error');
+        
+        // Verificar se o erro está relacionado a um campo específico
+        if (error.meta && error.meta.field_name) {
+          log(`Campo com problema: ${error.meta.field_name}`, 'error');
         }
+        
+        // Não interromper a execução, tentar criar os próximos serviços
       }
     }
     
@@ -505,9 +446,30 @@ async function atualizarServicosExistentes(forceUpdate = false) {
     const servicosFinais = await prisma.servico.findMany();
     log(`Total de serviços após atualização: ${servicosFinais.length}`);
     
+    if (servicosFinais.length !== servicosAtualizados.length) {
+      log(`AVISO: Nem todos os serviços foram criados. Esperado: ${servicosAtualizados.length}, Atual: ${servicosFinais.length}`, 'warn');
+      
+      // Listar serviços que foram criados com sucesso
+      log('Serviços criados com sucesso:');
+      servicosFinais.forEach((servico, index) => {
+        log(`${index + 1}. ${servico.nome}`);
+      });
+      
+      // Identificar serviços que não foram criados
+      const servicosCriadosNomes = servicosFinais.map(s => s.nome);
+      const servicosNaoCriados = servicosAtualizados.filter(s => !servicosCriadosNomes.includes(s.nome));
+      
+      log('Serviços que NÃO foram criados:');
+      servicosNaoCriados.forEach((servico, index) => {
+        log(`${index + 1}. ${servico.nome}`, 'warn');
+      });
+    } else {
+      log('Todos os serviços foram criados com sucesso!');
+    }
+    
     log('Atualização de serviços concluída com sucesso');
   } catch (error) {
-    log(`Erro durante a atualização de serviços: ${error.message}`);
+    log(`Erro durante a atualização de serviços: ${error.message}`, 'error');
     console.error('Detalhes do erro:', error);
   } finally {
     // Desconectar do banco de dados

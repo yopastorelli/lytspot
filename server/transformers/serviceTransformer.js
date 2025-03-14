@@ -1,7 +1,7 @@
 /**
  * Transformador de Serviços
  * @description Converte dados de serviços entre diferentes formatos
- * @version 1.2.0 - 2025-03-14 - Melhorada a transformação para garantir estrutura de dados consistente
+ * @version 1.3.0 - 2025-03-14 - Corrigida a transformação para garantir estrutura de dados consistente entre backend e frontend
  */
 
 /**
@@ -42,19 +42,29 @@ class ServiceTransformer {
     const duracaoMedia = servico.duracao_media || 
       Math.ceil((duracaoCaptura + duracaoTratamento) / 2) || 3; // Fallback para 3 dias
     
+    // Cria um objeto detalhes completo e consistente
+    const detalhesCompletos = {
+      captura: capturaValue,
+      tratamento: tratamentoValue,
+      entregaveis: detalhesObj.entregaveis || servico.entregaveis || '',
+      adicionais: detalhesObj.adicionais || servico.possiveis_adicionais || '',
+      deslocamento: detalhesObj.deslocamento || servico.valor_deslocamento || ''
+    };
+    
+    // Registra log para depuração se necessário
+    if (process.env.DEBUG) {
+      console.log(`[serviceTransformer] Transformando serviço ${servico.id} - ${servico.nome}`);
+      console.log(`[serviceTransformer] Detalhes originais:`, typeof servico.detalhes === 'string' ? servico.detalhes.substring(0, 100) + '...' : servico.detalhes);
+      console.log(`[serviceTransformer] Detalhes transformados:`, detalhesCompletos);
+    }
+    
     return {
       id: servico.id,
       nome: servico.nome,
       descricao: servico.descricao,
       preco_base: servico.preco_base,
       duracao_media: duracaoMedia,
-      detalhes: {
-        captura: capturaValue,
-        tratamento: tratamentoValue,
-        entregaveis: detalhesObj.entregaveis || servico.entregaveis || '',
-        adicionais: detalhesObj.adicionais || servico.possiveis_adicionais || '',
-        deslocamento: detalhesObj.deslocamento || servico.valor_deslocamento || ''
-      }
+      detalhes: detalhesCompletos
     };
   }
 

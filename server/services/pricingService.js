@@ -10,6 +10,7 @@
 
 import serviceRepository from '../repositories/serviceRepository.js';
 import { getServiceDefinitionsForFrontend, updateDemonstrationService } from '../models/seeds/serviceDefinitions.js';
+import { getUpdatedServiceDefinitions } from '../models/seeds/updatedServiceDefinitions.js';
 import environment from '../config/environment.js';
 import fs from 'fs';
 import path from 'path';
@@ -422,12 +423,30 @@ class PricingService {
   }
 
   /**
-   * Obtém dados de demonstração quando o banco de dados não está disponível
-   * @returns {Array} Dados de demonstração para o simulador
+   * Obtém dados de demonstração para uso quando o banco de dados não está disponível
+   * @returns {Array} Lista de serviços de demonstração
+   * @version 1.0.1 - 2025-03-14 - Atualizado para usar definições de serviços atualizadas
    */
   getDemonstrationData() {
-    log('Obtendo dados de demonstração');
-    return getServiceDefinitionsForFrontend();
+    try {
+      log('Obtendo dados de demonstração atualizados');
+      
+      // Usar as definições atualizadas de serviços em vez das originais
+      const updatedServices = getUpdatedServiceDefinitions();
+      
+      if (updatedServices && updatedServices.length > 0) {
+        log(`Obtidos ${updatedServices.length} serviços de demonstração atualizados`);
+        return updatedServices;
+      } else {
+        // Fallback para as definições originais se as atualizadas não estiverem disponíveis
+        log('Definições atualizadas não encontradas, usando definições originais', 'warn');
+        return getServiceDefinitionsForFrontend();
+      }
+    } catch (error) {
+      log(`Erro ao obter dados de demonstração atualizados: ${error.message}`, 'error');
+      log('Usando definições originais como fallback', 'warn');
+      return getServiceDefinitionsForFrontend();
+    }
   }
 
   /**

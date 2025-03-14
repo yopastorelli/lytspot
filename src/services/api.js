@@ -1,6 +1,6 @@
 /**
  * Serviço centralizado para comunicação com a API
- * @version 1.0.6 - 2025-03-14 - Corrigida a configuração da URL base para evitar duplicação do prefixo /api
+ * @version 1.0.7 - 2025-03-14 - Corrigida a configuração da URL base e adição do prefixo /api
  * @description Fornece métodos para interagir com a API do backend
  */
 import axios from 'axios';
@@ -17,8 +17,8 @@ const createApiInstance = () => {
   // Garantir que a URL base tenha o prefixo /api apenas uma vez
   let baseURL = env.baseUrl;
   
-  // Se a baseURL não termina com /api, adicionar /api
-  if (!baseURL.endsWith('/api')) {
+  // Se a baseURL não termina com /api e não inclui /api, adicionar /api
+  if (!baseURL.endsWith('/api') && !baseURL.includes('/api')) {
     baseURL = `${baseURL}/api`;
   }
   

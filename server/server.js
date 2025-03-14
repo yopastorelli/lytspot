@@ -8,6 +8,7 @@ import pricingRoutes from './routes/pricing.js';
 import authRoutes from './routes/auth.js';
 import syncRoutes from './routes/sync.js';
 import setupRoutes from './routes/setup.js';
+import cacheRoutes from './routes/cache.js';
 import cors from 'cors';
 import fs from 'fs';
 import { ensureAdminUser } from './scripts/ensureAdminUser.js';
@@ -243,6 +244,11 @@ try {
   app.use('/api/setup', setupRoutes);
   logger.info('Rotas de configuração registradas.');
   console.log('Rotas de configuração registradas.');
+  
+  // Rotas de gerenciamento de cache
+  app.use('/api/cache', cacheRoutes);
+  logger.info('Rotas de gerenciamento de cache registradas.');
+  console.log('Rotas de gerenciamento de cache registradas.');
 
   // Endpoint de health check para verificar se a API está funcionando
   app.get('/api/health', (req, res) => {
