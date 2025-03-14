@@ -292,9 +292,12 @@ try {
       console.log('Executando script de atualização...');
       const { default: updateScript } = await import(`file://${scriptPath}`);
       
+      // Importar a função de limpeza de cache
+      const { clearCache } = await import('./middleware/cache.js');
+      
       // Limpar o cache da API após a atualização
       console.log('Limpando cache da API...');
-      clearAllCache();
+      clearCache();
       
       return res.json({ 
         success: true, 
