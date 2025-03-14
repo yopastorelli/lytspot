@@ -269,6 +269,47 @@ try {
   logger.info('Endpoint de health check registrado.');
   console.log('Endpoint de health check registrado.');
 
+  // Endpoint temporário para atualização de serviços (apenas para testes)
+  app.get('/api/admin/update-services', async (req, res) => {
+    try {
+      console.log('Iniciando atualização manual de serviços...');
+      
+      // Importar o script de atualização
+      const scriptPath = path.join(__dirname, 'scripts', 'render-update-services.js');
+      console.log(`Caminho do script: ${scriptPath}`);
+      
+      // Verificar se o arquivo existe
+      if (!fs.existsSync(scriptPath)) {
+        console.error(`Script não encontrado: ${scriptPath}`);
+        return res.status(500).json({ error: 'Script de atualização não encontrado' });
+      }
+      
+      // Configurar variáveis de ambiente
+      process.env.FORCE_UPDATE = 'true';
+      process.env.SERVICE_DEFINITIONS_PATH = path.join(__dirname, 'models', 'seeds', 'updatedServiceDefinitions.js');
+      
+      // Executar o script
+      console.log('Executando script de atualização...');
+      const { default: updateScript } = await import(`file://${scriptPath}`);
+      
+      // Limpar o cache da API após a atualização
+      console.log('Limpando cache da API...');
+      clearAllCache();
+      
+      return res.json({ 
+        success: true, 
+        message: 'Atualização de serviços iniciada com sucesso. Verifique os logs para mais detalhes.'
+      });
+    } catch (error) {
+      console.error(`Erro ao executar atualização de serviços: ${error.message}`);
+      console.error(error.stack);
+      return res.status(500).json({ 
+        error: 'Erro ao executar atualização de serviços', 
+        details: error.message 
+      });
+    }
+  });
+
   // Servir arquivos estáticos do diretório dist
   const distPath = path.join(__dirname, '..', 'dist');
   
