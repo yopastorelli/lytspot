@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
 
 /**
  * Script de configuração para ambiente Render
- * @version 1.3.0 - 2025-03-14 - Corrigido processo de build para evitar erros com Rollup
+ * @version 1.4.0 - 2025-03-14 - Adicionada criação automática do vite.render.config.js e melhorado processo de build
  */
 
 // Forçar NODE_ENV para production no ambiente Render
@@ -203,9 +203,9 @@ try {
   // Executar o build no ambiente Render
   if (process.env.RENDER) {
     try {
-      console.log("Executando build no ambiente Render...");
-      // Usar o script render-build em vez de npm run build diretamente
-      execSync('npm run render-build', { stdio: 'inherit' });
+      console.log("Executando script de build específico para o Render...");
+      // Usar o script render-build.js para um processo de build mais robusto
+      execSync('node render-build.js', { stdio: 'inherit' });
       console.log("Build executado com sucesso!");
     } catch (error) {
       console.error("Erro ao executar o build:", error);

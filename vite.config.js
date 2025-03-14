@@ -23,7 +23,7 @@ export default defineConfig({
     outDir: 'dist', // Diretório de saída
     emptyOutDir: true, // Limpa o diretório de saída antes de construir
     rollupOptions: {
-      // Marcar dependências do Node.js como externas para evitar problemas de build
+      // Marcar dependências do Node.js e bibliotecas problemáticas como externas
       external: [
         /^node:.*/,  // Módulos nativos do Node.js
         '@prisma/client',
@@ -38,7 +38,9 @@ export default defineConfig({
         'cors',
         'dotenv',
         'winston',
-        'nodemailer'
+        'nodemailer',
+        'axios',  // Adicionado axios como dependência externa
+        'node-fetch'
       ],
       output: {
         // Preservar módulos para melhor compatibilidade

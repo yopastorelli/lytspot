@@ -1,6 +1,6 @@
 /**
  * Serviço centralizado para comunicação com a API
- * @version 1.0.4 - 2025-03-12 - Corrigido prefixo duplicado nas URLs de autenticação
+ * @version 1.0.5 - 2025-03-14 - Modificada importação do axios para compatibilidade com o build
  * @description Fornece métodos para interagir com a API do backend
  */
 import axios from 'axios';
