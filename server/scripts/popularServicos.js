@@ -58,16 +58,71 @@ const prisma = new PrismaClient({
  */
 function sanitizeServiceData(service) {
   // Remover campos que não existem no modelo Prisma
-  const { id, ...sanitizedData } = service;
+  const { id, ...rawData } = service;
   
-  // Converter preço para número
-  if (sanitizedData.preco_base !== undefined) {
-    sanitizedData.preco_base = typeof sanitizedData.preco_base === 'string' 
-      ? parseFloat(sanitizedData.preco_base) 
-      : sanitizedData.preco_base;
-  }
+  // Estrutura de dados sanitizada
+  const sanitizedData = {
+    nome: rawData.nome,
+    descricao: rawData.descricao,
+    preco_base: typeof rawData.preco_base === 'string' 
+      ? parseFloat(rawData.preco_base) 
+      : rawData.preco_base,
+    // Duração média em dias (para ordenação)
+    duracao_media: 
+      rawData.duracao_media !== undefined 
+        ? rawData.duracao_media 
+        : estimateDurationInDays(rawData.duracao_media_tratamento),
+    // Estrutura aninhada com detalhes para compatibilidade com o frontend
+    detalhes: {
+      captura: rawData.duracao_media_captura,
+      tratamento: rawData.duracao_media_tratamento,
+      entregaveis: rawData.entregaveis,
+      adicionais: rawData.possiveis_adicionais,
+      deslocamento: rawData.valor_deslocamento
+    }
+  };
+  
+  // Registrar a conversão para fins de depuração
+  log(`Serviço "${service.nome}" convertido para o formato compatível com o frontend`);
   
   return sanitizedData;
+}
+
+/**
+ * Estima a duração em dias com base na string de duração
+ * @param {string} durationStr String de duração (ex: "até 10 dias")
+ * @returns {number} Duração estimada em dias
+ */
+function estimateDurationInDays(durationStr) {
+  if (!durationStr) return 7; // Valor padrão
+  
+  // Extrair números da string
+  const matches = durationStr.match(/\d+/g);
+  if (matches && matches.length > 0) {
+    return parseInt(matches[matches.length - 1], 10);
+  }
+  
+  // Mapeamento de termos para valores numéricos
+  const durationMap = {
+    'imediato': 1,
+    'mesmo dia': 1,
+    'próximo dia': 2,
+    'poucos dias': 3,
+    'uma semana': 7,
+    'duas semanas': 14,
+    'três semanas': 21,
+    'um mês': 30,
+    'dois meses': 60
+  };
+  
+  // Verificar se algum termo conhecido está na string
+  for (const [term, days] of Object.entries(durationMap)) {
+    if (durationStr.toLowerCase().includes(term)) {
+      return days;
+    }
+  }
+  
+  return 7; // Valor padrão se não conseguir estimar
 }
 
 /**
