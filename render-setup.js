@@ -208,9 +208,59 @@ try {
   
   // Executar script de atualização de serviços para garantir dados atualizados
   try {
+    console.log("=== INICIANDO ATUALIZAÇÃO DE SERVIÇOS ===");
+    console.log("Data e hora:", new Date().toISOString());
+    console.log("Verificando se o script de atualização existe...");
+    
+    const updateScriptPath = path.join(currentDir, 'server', 'scripts', 'render-update-services.js');
+    if (!fs.existsSync(updateScriptPath)) {
+      console.error(`Erro: Script de atualização não encontrado em: ${updateScriptPath}`);
+      console.log("Verificando conteúdo do diretório de scripts...");
+      
+      const scriptsDir = path.join(currentDir, 'server', 'scripts');
+      if (fs.existsSync(scriptsDir)) {
+        const files = fs.readdirSync(scriptsDir);
+        console.log(`Arquivos encontrados no diretório scripts: ${files.join(', ')}`);
+      } else {
+        console.error(`Diretório de scripts não encontrado: ${scriptsDir}`);
+      }
+      
+      throw new Error("Script de atualização de serviços não encontrado");
+    }
+    
+    console.log(`Script de atualização encontrado: ${updateScriptPath}`);
+    console.log("Verificando arquivo de definições de serviços...");
+    
+    const serviceDefinitionsPath = path.join(currentDir, 'server', 'models', 'seeds', 'updatedServiceDefinitions.js');
+    if (!fs.existsSync(serviceDefinitionsPath)) {
+      console.error(`Erro: Arquivo de definições não encontrado em: ${serviceDefinitionsPath}`);
+      console.log("Verificando conteúdo do diretório seeds...");
+      
+      const seedsDir = path.join(currentDir, 'server', 'models', 'seeds');
+      if (fs.existsSync(seedsDir)) {
+        const files = fs.readdirSync(seedsDir);
+        console.log(`Arquivos encontrados no diretório seeds: ${files.join(', ')}`);
+      } else {
+        console.error(`Diretório seeds não encontrado: ${seedsDir}`);
+      }
+      
+      throw new Error("Arquivo de definições de serviços não encontrado");
+    }
+    
+    console.log(`Arquivo de definições encontrado: ${serviceDefinitionsPath}`);
     console.log("Executando script de atualização de serviços...");
-    execSync('node server/scripts/render-update-services.js', { stdio: 'inherit' });
+    
+    // Executar o script com Node.js
+    execSync('node server/scripts/render-update-services.js', { 
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        FORCE_UPDATE: 'true' // Forçar atualização completa
+      }
+    });
+    
     console.log("Script de atualização de serviços executado com sucesso!");
+    console.log("=== ATUALIZAÇÃO DE SERVIÇOS CONCLUÍDA ===");
   } catch (error) {
     console.error("Erro ao executar script de atualização de serviços:", error);
     console.log("Continuando com a inicialização...");
