@@ -10,7 +10,8 @@
     "generate-portfolio": "node --loader ts-node/esm scripts/generatePortfolioItems.ts",
     "prestart": "node server/scripts/prestart.js",
     "start": "node server/server.js",
-    "postinstall": "npx prisma generate --schema=server/prisma/schema.prisma && node render-setup.js && npm run build",
+    "postinstall": "node render-setup.js",
+    "render-build": "npx prisma generate --schema=server/prisma/schema.prisma && set NODE_ENV=production && astro build",
     "verificar-persistencia": "node server/scripts/verificarPersistencia.js",
     "inicializar-sistema": "node server/scripts/inicializarSistema.js",
     "monitor-db": "node server/scripts/monitorBancoDados.js"

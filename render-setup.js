@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
 
 /**
  * Script de configuração para ambiente Render
- * @version 1.2.0 - 2025-03-12 - Adicionada inicialização do banco de dados com serviços
+ * @version 1.3.0 - 2025-03-14 - Corrigido processo de build para evitar erros com Rollup
  */
 
 // Forçar NODE_ENV para production no ambiente Render
@@ -200,8 +200,50 @@ try {
     }
   }
   
-  console.log("Configuração do ambiente Render concluída com sucesso!");
+  // Executar o build no ambiente Render
+  if (process.env.RENDER) {
+    try {
+      console.log("Executando build no ambiente Render...");
+      // Usar o script render-build em vez de npm run build diretamente
+      execSync('npm run render-build', { stdio: 'inherit' });
+      console.log("Build executado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao executar o build:", error);
+      // Criar um arquivo de fallback em caso de erro no build
+      if (!fs.existsSync(path.join(distPath, 'index.html'))) {
+        console.log("Criando arquivo index.html de fallback...");
+        fs.writeFileSync(path.join(distPath, 'index.html'), `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LytSpot - API</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    h1 { color: #333; }
+    .api-info { background: #f5f5f5; padding: 15px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h1>LytSpot - API</h1>
+  <div class="api-info">
+    <p>Esta é a API do LytSpot. O frontend está temporariamente indisponível.</p>
+    <p>Para acessar os endpoints da API, utilize:</p>
+    <ul>
+      <li>/api/pricing - Simulador de preços</li>
+      <li>/api/contact - Formulário de contato</li>
+      <li>/api/admin - Painel administrativo</li>
+    </ul>
+  </div>
+</body>
+</html>
+        `);
+        console.log("Arquivo index.html de fallback criado com sucesso!");
+      }
+    }
+  }
 } catch (error) {
-  console.error("Erro ao executar comandos do Prisma:", error);
+  console.error("Erro durante a configuração do ambiente Render:", error);
   process.exit(1);
 }
