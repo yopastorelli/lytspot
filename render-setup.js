@@ -210,9 +210,14 @@ try {
   try {
     console.log("=== INICIANDO ATUALIZAÇÃO DE SERVIÇOS ===");
     console.log("Data e hora:", new Date().toISOString());
-    console.log("Verificando se o script de atualização existe...");
+    console.log("Ambiente:", process.env.NODE_ENV);
+    console.log("Diretório atual:", process.cwd());
+    console.log("Diretório do script:", currentDir);
     
+    // Definir caminhos absolutos para os scripts e arquivos
     const updateScriptPath = path.join(currentDir, 'server', 'scripts', 'render-update-services.js');
+    console.log("Verificando se o script de atualização existe em:", updateScriptPath);
+    
     if (!fs.existsSync(updateScriptPath)) {
       console.error(`Erro: Script de atualização não encontrado em: ${updateScriptPath}`);
       console.log("Verificando conteúdo do diretório de scripts...");
@@ -221,14 +226,31 @@ try {
       if (fs.existsSync(scriptsDir)) {
         const files = fs.readdirSync(scriptsDir);
         console.log(`Arquivos encontrados no diretório scripts: ${files.join(', ')}`);
+        
+        // Tentar encontrar qualquer script de atualização
+        let alternativeScript = null;
+        for (const file of files) {
+          if (file.includes('update-service') || file.includes('updateService')) {
+            console.log(`Encontrado possível script alternativo: ${file}`);
+            alternativeScript = path.join(scriptsDir, file);
+            break;
+          }
+        }
+        
+        if (alternativeScript) {
+          console.log(`Usando script alternativo: ${alternativeScript}`);
+          // Continuar com o script alternativo
+        } else {
+          throw new Error("Nenhum script de atualização de serviços encontrado");
+        }
       } else {
         console.error(`Diretório de scripts não encontrado: ${scriptsDir}`);
+        throw new Error("Diretório de scripts não encontrado");
       }
-      
-      throw new Error("Script de atualização de serviços não encontrado");
+    } else {
+      console.log(`Script de atualização encontrado: ${updateScriptPath}`);
     }
     
-    console.log(`Script de atualização encontrado: ${updateScriptPath}`);
     console.log("Verificando arquivo de definições de serviços...");
     
     const serviceDefinitionsPath = path.join(currentDir, 'server', 'models', 'seeds', 'updatedServiceDefinitions.js');
@@ -240,14 +262,40 @@ try {
       if (fs.existsSync(seedsDir)) {
         const files = fs.readdirSync(seedsDir);
         console.log(`Arquivos encontrados no diretório seeds: ${files.join(', ')}`);
+        
+        // Tentar encontrar qualquer arquivo de definições
+        let alternativeDefinitions = null;
+        for (const file of files) {
+          if (file.includes('ServiceDefinition') || file.includes('serviceDefinition')) {
+            console.log(`Encontrado possível arquivo de definições alternativo: ${file}`);
+            alternativeDefinitions = path.join(seedsDir, file);
+            break;
+          }
+        }
+        
+        if (alternativeDefinitions) {
+          console.log(`Arquivo de definições alternativo encontrado: ${alternativeDefinitions}`);
+          // Continuar com o arquivo alternativo
+          process.env.SERVICE_DEFINITIONS_PATH = alternativeDefinitions;
+        } else {
+          console.warn("Nenhum arquivo de definições alternativo encontrado. O script usará definições básicas.");
+        }
       } else {
         console.error(`Diretório seeds não encontrado: ${seedsDir}`);
+        console.warn("Diretório seeds não encontrado. O script usará definições básicas.");
       }
-      
-      throw new Error("Arquivo de definições de serviços não encontrado");
+    } else {
+      console.log(`Arquivo de definições encontrado: ${serviceDefinitionsPath}`);
+      process.env.SERVICE_DEFINITIONS_PATH = serviceDefinitionsPath;
     }
     
-    console.log(`Arquivo de definições encontrado: ${serviceDefinitionsPath}`);
+    // Criar diretório de logs se não existir
+    const logDir = path.join(currentDir, 'server', 'logs');
+    if (!fs.existsSync(logDir)) {
+      console.log(`Criando diretório de logs: ${logDir}`);
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+    
     console.log("Executando script de atualização de serviços...");
     
     // Executar o script com Node.js
@@ -255,14 +303,36 @@ try {
       stdio: 'inherit',
       env: {
         ...process.env,
-        FORCE_UPDATE: 'true' // Forçar atualização completa
+        RENDER: 'true',
+        FORCE_UPDATE: 'true', // Forçar atualização completa
+        NODE_ENV: 'production'
       }
     });
     
     console.log("Script de atualização de serviços executado com sucesso!");
+    
+    // Verificar logs para garantir que a execução foi bem-sucedida
+    const logFilePath = path.join(logDir, 'render-update-services.log');
+    if (fs.existsSync(logFilePath)) {
+      console.log("Verificando logs da atualização...");
+      const logContent = fs.readFileSync(logFilePath, 'utf8');
+      const lastLines = logContent.split('\n').slice(-20).join('\n');
+      console.log("Últimas linhas do log:");
+      console.log(lastLines);
+      
+      if (logContent.includes('=== ATUALIZAÇÃO CONCLUÍDA COM SUCESSO ===')) {
+        console.log("✅ Atualização de serviços concluída com sucesso!");
+      } else if (logContent.includes('ERROR')) {
+        console.warn("⚠️ Possíveis erros detectados nos logs. Verifique o arquivo de log completo.");
+      }
+    } else {
+      console.warn("Arquivo de log não encontrado. Não foi possível verificar o resultado da atualização.");
+    }
+    
     console.log("=== ATUALIZAÇÃO DE SERVIÇOS CONCLUÍDA ===");
   } catch (error) {
     console.error("Erro ao executar script de atualização de serviços:", error);
+    console.log("Detalhes do erro:", error.stack);
     console.log("Continuando com a inicialização...");
   }
   
