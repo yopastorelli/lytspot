@@ -458,6 +458,71 @@ Sincroniza os dados de demonstração para uso offline.
 }
 ```
 
+### Cache
+
+#### Obter Status do Cache
+
+Retorna informações sobre o estado atual do cache da API.
+
+- **URL**: `/api/cache/status`
+- **Método**: `GET`
+- **Autenticação**: Não requerida
+
+**Resposta de Sucesso (200)**:
+
+```json
+{
+  "success": true,
+  "message": "Status do cache obtido com sucesso",
+  "data": {
+    "keys": 12,
+    "hits": 45,
+    "misses": 8,
+    "version": 1741976858280
+  }
+}
+```
+
+#### Limpar Cache
+
+Limpa o cache da API, forçando a atualização dos dados nas próximas requisições.
+
+- **URL**: `/api/cache/clear`
+- **Método**: `GET`
+- **Autenticação**: Não requerida
+
+**Parâmetros de URL (opcionais)**:
+
+- `key`: Chave específica para limpar (ex: `/api/pricing`)
+
+**Resposta de Sucesso (200) - Limpeza Completa**:
+
+```json
+{
+  "success": true,
+  "message": "Cache completo limpo com sucesso"
+}
+```
+
+**Resposta de Sucesso (200) - Limpeza de Chave Específica**:
+
+```json
+{
+  "success": true,
+  "message": "Cache para chave \"/api/pricing\" limpo com sucesso"
+}
+```
+
+**Resposta de Erro (500)**:
+
+```json
+{
+  "success": false,
+  "message": "Erro ao limpar cache",
+  "error": "Detalhes do erro"
+}
+```
+
 ## Tratamento de Erros
 
 ### Formato de Erro
@@ -603,5 +668,3 @@ Para questões relacionadas à API, entre em contato pelo email `api@lytspot.com
 - Endpoints de autenticação, serviços e contato
 - Implementação de cache e rate limiting
 - Documentação completa
-
-```

@@ -5,7 +5,7 @@ import crypto from 'crypto';
 
 /**
  * Script de configuração para ambiente Render
- * @version 1.5.0 - 2025-03-14 - Corrigido problema de inicialização do Prisma Client no ambiente Render
+ * @version 1.6.0 - 2025-03-14 - Adicionada execução do script de atualização de serviços e limpeza de cache
  */
 
 // Forçar NODE_ENV para production no ambiente Render
@@ -205,6 +205,16 @@ try {
   
   // Executar a inicialização de serviços
   await inicializarServicos();
+  
+  // Executar script de atualização de serviços para garantir dados atualizados
+  try {
+    console.log("Executando script de atualização de serviços...");
+    execSync('node server/scripts/render-update-services.js', { stdio: 'inherit' });
+    console.log("Script de atualização de serviços executado com sucesso!");
+  } catch (error) {
+    console.error("Erro ao executar script de atualização de serviços:", error);
+    console.log("Continuando com a inicialização...");
+  }
   
   // Criar diretório dist se não existir
   const distPath = path.join(currentDir, 'dist');

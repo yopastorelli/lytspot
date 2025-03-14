@@ -145,37 +145,53 @@ const authMiddleware = (req, res, next) => {
 
 #### cache.js
 
-Middleware de cache para melhorar a performance de requisições frequentes:
+O middleware de cache é responsável por armazenar e recuperar respostas da API, reduzindo o tempo de resposta e a carga no banco de dados:
+
+- Utiliza `node-cache` para armazenamento em memória
+- Implementa TTL (Time-To-Live) configurável por rota
+- Possui mecanismo de versão para invalidação rápida do cache
+- Inclui logs detalhados para monitoramento de hits e misses
 
 ```javascript
-const NodeCache = require('node-cache');
-const cache = new NodeCache({ stdTTL: 300 }); // 5 minutos de TTL padrão
-
-const cacheMiddleware = (duration) => {
+// Exemplo simplificado do middleware de cache
+const cacheMiddleware = (ttl = 30) => {
   return (req, res, next) => {
-    // Apenas cache para requisições GET
-    if (req.method !== 'GET') {
+    // Pular cache para métodos não-GET ou se o cache estiver desativado
+    if (req.method !== 'GET' || process.env.DISABLE_CACHE === 'true') {
       return next();
     }
-    
-    const key = req.originalUrl;
+
+    const key = `${req.originalUrl}_v${cacheVersion}`;
     const cachedResponse = cache.get(key);
-    
+
     if (cachedResponse) {
-      return res.json(cachedResponse);
+      // Cache hit - retornar resposta armazenada
+      logger.info(`[CACHE] HIT: ${key}`);
+      return res.status(200).json(cachedResponse);
     }
-    
-    // Sobrescrever res.json para capturar e armazenar a resposta
-    const originalJson = res.json;
-    res.json = function(body) {
-      cache.set(key, body, duration || 300);
-      originalJson.call(this, body);
+
+    // Cache miss - interceptar a resposta para armazenar no cache
+    logger.info(`[CACHE] MISS: ${key}`);
+    const originalSend = res.send;
+    res.send = function(body) {
+      try {
+        const parsedBody = JSON.parse(body);
+        cache.set(key, parsedBody, ttl);
+        logger.info(`[CACHE] STORED: ${key} (TTL: ${ttl}s)`);
+      } catch (error) {
+        logger.error(`[CACHE] ERROR storing cache: ${error.message}`);
+      }
+      originalSend.call(this, body);
     };
     
     next();
   };
 };
 ```
+
+#### validation.js
+
+{{ ... }}
 
 ### Routes
 
@@ -261,6 +277,48 @@ router.delete('/:id', authMiddleware, pricingController.deleteService);
 
 module.exports = router;
 ```
+
+### Sistema de Cache
+
+O sistema de cache é um componente crítico para a performance da API, especialmente para endpoints frequentemente acessados como `/api/pricing`. Ele consiste em:
+
+#### Componentes do Sistema de Cache
+
+1. **Middleware de Cache (`middleware/cache.js`)**
+   - Implementa o armazenamento e recuperação de respostas da API
+   - Configura TTL específico por rota
+   - Registra estatísticas de uso (hits, misses)
+
+2. **Rota de Gerenciamento de Cache (`routes/cache.js`)**
+   - Fornece endpoints para verificar o status do cache
+   - Permite limpar o cache manualmente ou programaticamente
+
+3. **Mecanismo de Invalidação**
+   - Versão global incrementada a cada limpeza de cache
+   - Invalidação automática baseada em TTL
+   - Invalidação explícita após atualizações no banco de dados
+
+4. **Integração com Scripts de Atualização**
+   - Scripts de atualização de serviços limpam o cache automaticamente
+   - Garante que os dados mais recentes sejam servidos após atualizações
+
+#### Fluxo de Dados com Cache
+
+1. **Requisição Recebida**: Cliente envia requisição para um endpoint
+2. **Verificação de Cache**: Middleware verifica se há uma resposta em cache válida
+3. **Cache Hit**: Se encontrado, retorna imediatamente a resposta armazenada
+4. **Cache Miss**: Se não encontrado, processa a requisição normalmente
+5. **Armazenamento em Cache**: Após processamento, armazena a resposta no cache
+6. **Invalidação**: Cache é invalidado após atualizações ou expiração do TTL
+
+#### Estratégia de Cache por Endpoint
+
+| Endpoint | TTL | Observações |
+|----------|-----|-------------|
+| `/api/pricing` | 30s | Dados de serviços e preços |
+| `/api/pricing/:id` | 30s | Detalhes de serviço específico |
+| `/api/contact` | Sem cache | Dados dinâmicos de formulário |
+| `/api/auth/*` | Sem cache | Endpoints de autenticação |
 
 ## Banco de Dados
 
