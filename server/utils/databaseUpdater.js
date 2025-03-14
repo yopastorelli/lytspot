@@ -205,7 +205,7 @@ export async function updateServices(options = {}) {
                 data: {
                   ...sanitizedData,
                   detalhes: typeof sanitizedData.detalhes === 'object' 
-                    ? sanitizedData.detalhes 
+                    ? JSON.stringify(sanitizedData.detalhes) 
                     : sanitizedData.detalhes
                 }
               });
@@ -243,7 +243,7 @@ export async function updateServices(options = {}) {
               data: {
                 ...sanitizedData,
                 detalhes: typeof sanitizedData.detalhes === 'object' 
-                  ? sanitizedData.detalhes 
+                  ? JSON.stringify(sanitizedData.detalhes) 
                   : sanitizedData.detalhes
               }
             });
@@ -319,8 +319,27 @@ function compareServices(existingService, updatedService) {
   }
   
   // Comparação especial para o campo detalhes (objeto)
-  const existingDetails = existingService.detalhes || {};
-  const updatedDetails = updatedService.detalhes || {};
+  let existingDetails = existingService.detalhes || {};
+  let updatedDetails = updatedService.detalhes || {};
+  
+  // Converter para objeto se for string
+  if (typeof existingDetails === 'string') {
+    try {
+      existingDetails = JSON.parse(existingDetails);
+    } catch (e) {
+      log('WARN', `Erro ao fazer parse do campo detalhes existente: ${e.message}`);
+      existingDetails = {};
+    }
+  }
+  
+  if (typeof updatedDetails === 'string') {
+    try {
+      updatedDetails = JSON.parse(updatedDetails);
+    } catch (e) {
+      log('WARN', `Erro ao fazer parse do campo detalhes atualizado: ${e.message}`);
+      updatedDetails = {};
+    }
+  }
   
   // Converter para string para comparação
   const existingDetailsStr = JSON.stringify(existingDetails);
