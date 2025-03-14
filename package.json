@@ -16,7 +16,8 @@
     "inicializar-sistema": "node server/scripts/inicializarSistema.js",
     "monitor-db": "node server/scripts/monitorBancoDados.js",
     "atualizar-servicos": "node server/scripts/popularServicos.js --update",
-    "atualizar-servicos-force": "node server/scripts/popularServicos.js --update --force"
+    "atualizar-servicos-force": "node server/scripts/popularServicos.js --update --force",
+    "sync-services": "node server/scripts/sync-services.js"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",

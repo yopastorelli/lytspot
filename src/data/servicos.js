@@ -1,8 +1,8 @@
 /**
  * Dados de serviços para o Simulador de Preços - Versão 2.1
  * Este arquivo centraliza os dados para uso consistente entre a API e o fallback
- * Última atualização: 2025-03-12
- * ATENÇÃO: Este arquivo é gerado automaticamente pelo script updateSimulatorServices.js
+ * Última atualização: 2025-03-14
+ * ATENÇÃO: Este arquivo é gerado automaticamente pelo script sync-services.js
  * Não edite manualmente!
  */
 
@@ -19,7 +19,12 @@ export const servicos = [
       "entregaveis": "20 fotos editadas em alta resolução",
       "adicionais": "Edição Mediana, Edição Avançada",
       "deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
-    }
+    },
+    "duracao_media_captura": "1 a 2 horas",
+    "duracao_media_tratamento": "7 dias úteis",
+    "entregaveis": "20 fotos editadas em alta resolução",
+    "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+    "valor_deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
   },
   {
     "id": 2,
@@ -33,7 +38,12 @@ export const servicos = [
       "entregaveis": "30 fotos editadas em alta resolução",
       "adicionais": "Edição Mediana, Edição Avançada",
       "deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
-    }
+    },
+    "duracao_media_captura": "2 a 4 horas",
+    "duracao_media_tratamento": "10 dias úteis",
+    "entregaveis": "30 fotos editadas em alta resolução",
+    "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+    "valor_deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
   },
   {
     "id": 3,
@@ -47,7 +57,12 @@ export const servicos = [
       "entregaveis": "40 fotos editadas em alta resolução",
       "adicionais": "Edição Mediana, Edição Avançada",
       "deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
-    }
+    },
+    "duracao_media_captura": "4 horas",
+    "duracao_media_tratamento": "10 dias úteis",
+    "entregaveis": "40 fotos editadas em alta resolução",
+    "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+    "valor_deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
   },
   {
     "id": 4,
@@ -61,7 +76,12 @@ export const servicos = [
       "entregaveis": "Vídeo editado de 3-5 minutos em alta resolução",
       "adicionais": "Edição Mediana, Edição Avançada",
       "deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
-    }
+    },
+    "duracao_media_captura": "4 horas",
+    "duracao_media_tratamento": "14 dias úteis",
+    "entregaveis": "Vídeo editado de 3-5 minutos em alta resolução",
+    "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+    "valor_deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)"
   },
   {
     "id": 5,
@@ -75,7 +95,12 @@ export const servicos = [
       "entregaveis": "15 fotos em alta resolução com edição básica",
       "adicionais": "Edição Mediana, Edição Avançada",
       "deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,50/km)"
-    }
+    },
+    "duracao_media_captura": "1 a 2 horas",
+    "duracao_media_tratamento": "7 dias úteis",
+    "entregaveis": "15 fotos em alta resolução com edição básica",
+    "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+    "valor_deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,50/km)"
   },
   {
     "id": 6,
@@ -89,7 +114,12 @@ export const servicos = [
       "entregaveis": "Vídeo editado de 1-2 minutos em alta resolução",
       "adicionais": "Edição Mediana, Edição Avançada",
       "deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,50/km)"
-    }
+    },
+    "duracao_media_captura": "1 a 2 horas",
+    "duracao_media_tratamento": "10 dias úteis",
+    "entregaveis": "Vídeo editado de 1-2 minutos em alta resolução",
+    "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+    "valor_deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,50/km)"
   },
   {
     "id": 7,
@@ -103,7 +133,12 @@ export const servicos = [
       "entregaveis": "Vídeo editado de 3-5 minutos + 30 fotos em alta resolução",
       "adicionais": "Edição Mediana, Edição Avançada",
       "deslocamento": "Sob consulta (depende da localização)"
-    }
+    },
+    "duracao_media_captura": "4 a 6 horas",
+    "duracao_media_tratamento": "14 dias úteis",
+    "entregaveis": "Vídeo editado de 3-5 minutos + 30 fotos em alta resolução",
+    "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+    "valor_deslocamento": "Sob consulta (depende da localização)"
   },
   {
     "id": 8,
@@ -117,6 +152,11 @@ export const servicos = [
       "entregaveis": "Vídeo editado de 5-7 minutos + 40 fotos em alta resolução",
       "adicionais": "Edição Mediana, Edição Avançada",
       "deslocamento": "Sob consulta (depende da localização)"
-    }
+    },
+    "duracao_media_captura": "6 a 8 horas",
+    "duracao_media_tratamento": "14 dias úteis",
+    "entregaveis": "Vídeo editado de 5-7 minutos + 40 fotos em alta resolução",
+    "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+    "valor_deslocamento": "Sob consulta (depende da localização)"
   }
 ];

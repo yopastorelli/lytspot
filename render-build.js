@@ -1,6 +1,6 @@
 /**
  * Script de build específico para o ambiente Render
- * @version 1.0.0 - 2025-03-14 - Script para facilitar o processo de build no Render
+ * @version 1.1.0 - 2025-03-14 - Adicionada sincronização de serviços ao processo de build
  */
 import { execSync } from 'child_process';
 import fs from 'fs';
@@ -11,6 +11,10 @@ console.log("Iniciando script render-build.js...");
 // Definir NODE_ENV como production
 process.env.NODE_ENV = 'production';
 console.log("NODE_ENV definido como:", process.env.NODE_ENV);
+
+// Definir RENDER como true para indicar que estamos no ambiente Render
+process.env.RENDER = 'true';
+console.log("RENDER definido como:", process.env.RENDER);
 
 // Obter o diretório atual
 const currentDir = process.cwd();
@@ -109,6 +113,16 @@ try {
 </html>
     `);
     console.log("Arquivo index.html de fallback criado com sucesso!");
+  }
+  
+  // Executar o script de sincronização de serviços
+  console.log("Executando sincronização de serviços...");
+  try {
+    execSync('node server/scripts/sync-services.js', { stdio: 'inherit' });
+    console.log("Sincronização de serviços executada com sucesso!");
+  } catch (error) {
+    console.error("Erro ao executar sincronização de serviços:", error.message);
+    console.log("Continuando mesmo com o erro...");
   }
   
   console.log("Script render-build.js concluído!");
