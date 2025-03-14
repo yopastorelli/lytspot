@@ -159,39 +159,53 @@ async function importarDefinicoes(filePath) {
         const fileUrl = `file://${filePath}`;
         log('INFO', `URL do arquivo: ${fileUrl}`);
         
-        const module = await import(fileUrl);
-        log('INFO', `Módulo importado. Exportações: ${Object.keys(module).join(', ')}`);
-        
-        // Verificar diferentes formatos de exportação
-        if (module.updatedServiceDefinitions && Array.isArray(module.updatedServiceDefinitions)) {
-          log('INFO', 'Usando array updatedServiceDefinitions');
-          return module.updatedServiceDefinitions;
-        } else if (module.getUpdatedServiceDefinitions && typeof module.getUpdatedServiceDefinitions === 'function') {
-          log('INFO', 'Usando função getUpdatedServiceDefinitions');
-          return module.getUpdatedServiceDefinitions();
-        } else if (module.default && Array.isArray(module.default)) {
-          log('INFO', 'Usando array default');
-          return module.default;
-        } else if (module.default && typeof module.default === 'function') {
-          log('INFO', 'Usando função default');
-          return module.default();
-        } else {
-          // Tentar encontrar qualquer array exportado
-          for (const key in module) {
-            if (Array.isArray(module[key]) && module[key].length > 0 && module[key][0].nome) {
-              log('INFO', `Usando array encontrado em '${key}'`);
-              return module[key];
-            }
-          }
+        // Tentar importar o módulo
+        try {
+          const module = await import(fileUrl);
+          log('INFO', `Módulo importado. Exportações: ${Object.keys(module).join(', ')}`);
           
-          log('WARN', 'Nenhuma exportação válida encontrada no módulo');
-          return getBasicServices();
+          // Verificar diferentes formatos de exportação
+          if (module.updatedServiceDefinitions && Array.isArray(module.updatedServiceDefinitions)) {
+            log('INFO', 'Usando array updatedServiceDefinitions');
+            return module.updatedServiceDefinitions;
+          } else if (module.getUpdatedServiceDefinitions && typeof module.getUpdatedServiceDefinitions === 'function') {
+            log('INFO', 'Usando função getUpdatedServiceDefinitions');
+            return module.getUpdatedServiceDefinitions();
+          } else if (module.default && Array.isArray(module.default)) {
+            log('INFO', 'Usando array default');
+            return module.default;
+          } else if (module.default && typeof module.default === 'function') {
+            log('INFO', 'Usando função default');
+            return module.default();
+          } else {
+            // Tentar encontrar qualquer array exportado
+            for (const key in module) {
+              if (Array.isArray(module[key]) && module[key].length > 0 && module[key][0].nome) {
+                log('INFO', `Usando array encontrado em '${key}'`);
+                return module[key];
+              }
+            }
+            
+            log('WARN', 'Nenhuma exportação válida encontrada no módulo');
+            
+            // Se não encontrou exportações válidas, tentar extrair do conteúdo
+            log('INFO', 'Tentando extrair definições do conteúdo do arquivo');
+            return extrairDefinicoesDoConteudo(fileContent);
+          }
+        } catch (importError) {
+          log('ERROR', `Erro ao importar módulo: ${importError.message}`);
+          log('ERROR', importError.stack);
+          
+          // Tentar extrair definições diretamente do conteúdo do arquivo
+          log('INFO', 'Tentando extrair definições do conteúdo do arquivo após falha no import');
+          return extrairDefinicoesDoConteudo(fileContent);
         }
-      } catch (importError) {
-        log('ERROR', `Erro ao importar módulo: ${importError.message}`);
-        log('ERROR', importError.stack);
+      } catch (urlError) {
+        log('ERROR', `Erro ao criar URL do arquivo: ${urlError.message}`);
+        log('ERROR', urlError.stack);
         
         // Tentar extrair definições diretamente do conteúdo do arquivo
+        log('INFO', 'Tentando extrair definições do conteúdo do arquivo após falha na URL');
         return extrairDefinicoesDoConteudo(fileContent);
       }
     } else {
@@ -217,63 +231,103 @@ function extrairDefinicoesDoConteudo(content) {
     // Remover comentários e quebras de linha para facilitar a análise
     const cleanContent = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '').replace(/\n/g, ' ');
     
-    // Procurar por array de definições
-    const arrayMatch = cleanContent.match(/export\s+const\s+(\w+)\s*=\s*\[([\s\S]*?)\];/);
-    if (arrayMatch) {
-      const arrayName = arrayMatch[1];
-      log('INFO', `Encontrado array '${arrayName}' no conteúdo`);
+    // Procurar por array de definições (suporta diferentes formatos de exportação)
+    const arrayMatches = [
+      cleanContent.match(/export\s+const\s+(\w+)\s*=\s*\[([\s\S]*?)\];/),
+      cleanContent.match(/const\s+(\w+)\s*=\s*\[([\s\S]*?)\];\s*export/),
+      cleanContent.match(/export\s+default\s*\[([\s\S]*?)\];/),
+      cleanContent.match(/export\s+function\s+\w+\s*\(\s*\)\s*{\s*return\s*\[([\s\S]*?)\];\s*}/)
+    ].filter(Boolean);
+    
+    log('INFO', `Encontrados ${arrayMatches.length} possíveis padrões de array no conteúdo`);
+    
+    // Tentar cada um dos padrões encontrados
+    for (const arrayMatch of arrayMatches) {
+      const arrayContent = arrayMatch[1] || arrayMatch[2];
+      if (!arrayContent) continue;
       
-      // Tentar extrair os serviços diretamente do conteúdo
-      try {
-        // Extrair o conteúdo do array
-        const arrayContent = arrayMatch[2];
+      log('INFO', `Analisando conteúdo do array (primeiros 100 caracteres): ${arrayContent.substring(0, 100)}...`);
+      
+      // Usar uma abordagem mais robusta para extrair os objetos de serviço
+      const servicosExtraidos = [];
+      
+      // Regex melhorada para capturar objetos completos
+      const regex = /{(?:[^{}]|{[^{}]*})*nome\s*:\s*['"]([^'"]+)['"](?:[^{}]|{[^{}]*})*}/g;
+      let match;
+      let matchCount = 0;
+      
+      while ((match = regex.exec(arrayContent)) !== null) {
+        matchCount++;
+        const servicoStr = match[0];
+        const nomeServico = match[1];
+        log('INFO', `Encontrado serviço #${matchCount}: ${nomeServico}`);
         
-        // Criar um arquivo JavaScript temporário com o array
-        const tempFilePath = path.join(logDir, 'temp-definitions.js');
-        const tempFileContent = `
-          export const servicos = [${arrayContent}];
-        `;
-        
-        fs.writeFileSync(tempFilePath, tempFileContent);
-        log('INFO', `Arquivo temporário criado: ${tempFilePath}`);
-        
-        // Usar uma abordagem mais simples para avaliar o conteúdo
-        // Ler o conteúdo do arquivo e procurar por objetos de serviço
-        const servicosExtraidos = [];
-        const regex = /{[^{}]*nome:\s*['"]([^'"]+)['"][^{}]*}/g;
-        let match;
-        
-        while ((match = regex.exec(arrayContent)) !== null) {
-          const servicoStr = match[0];
-          log('INFO', `Encontrado serviço: ${match[1]}`);
-          
+        try {
           // Extrair propriedades do serviço
           const nome = extrairPropriedade(servicoStr, 'nome');
           const descricao = extrairPropriedade(servicoStr, 'descricao');
-          const preco_base = parseFloat(extrairPropriedade(servicoStr, 'preco_base')) || 0;
+          
+          // Tratar o preço base com mais robustez
+          let preco_base = 0;
+          const precoStr = extrairPropriedade(servicoStr, 'preco_base');
+          if (precoStr) {
+            // Remover qualquer caractere não numérico exceto ponto e vírgula
+            const precoLimpo = precoStr.replace(/[^\d.,]/g, '').replace(',', '.');
+            preco_base = parseFloat(precoLimpo) || 0;
+          }
+          
           const duracao_media_captura = extrairPropriedade(servicoStr, 'duracao_media_captura');
           const duracao_media_tratamento = extrairPropriedade(servicoStr, 'duracao_media_tratamento');
           const entregaveis = extrairPropriedade(servicoStr, 'entregaveis');
           const possiveis_adicionais = extrairPropriedade(servicoStr, 'possiveis_adicionais');
           const valor_deslocamento = extrairPropriedade(servicoStr, 'valor_deslocamento');
           
-          // Extrair detalhes
-          const detalhesStr = extrairPropriedadeObjeto(servicoStr, 'detalhes');
-          let detalhes = {};
+          // Calcular duração média total para compatibilidade com o frontend
+          let duracao_media = 0;
+          if (duracao_media_captura) {
+            // Extrair o primeiro número da string (ex: "1 a 2 horas" -> 1)
+            const capturaDias = parseInt(duracao_media_captura.match(/\d+/)?.[0] || '0');
+            duracao_media += capturaDias;
+          }
+          if (duracao_media_tratamento) {
+            // Extrair o primeiro número da string (ex: "até 7 dias" -> 7)
+            const tratamentoDias = parseInt(duracao_media_tratamento.match(/\d+/)?.[0] || '0');
+            duracao_media += tratamentoDias;
+          }
           
-          if (detalhesStr) {
-            try {
-              // Tentar converter para objeto
+          // Extrair detalhes com tratamento de erro melhorado
+          let detalhes = {};
+          try {
+            const detalhesStr = extrairPropriedadeObjeto(servicoStr, 'detalhes');
+            if (detalhesStr) {
               detalhes = {
-                captura: extrairPropriedade(detalhesStr, 'captura'),
-                tratamento: extrairPropriedade(detalhesStr, 'tratamento'),
-                entregaveis: extrairPropriedade(detalhesStr, 'entregaveis'),
-                adicionais: extrairPropriedade(detalhesStr, 'adicionais'),
-                deslocamento: extrairPropriedade(detalhesStr, 'deslocamento')
+                captura: extrairPropriedade(detalhesStr, 'captura') || duracao_media_captura,
+                tratamento: extrairPropriedade(detalhesStr, 'tratamento') || duracao_media_tratamento,
+                entregaveis: extrairPropriedade(detalhesStr, 'entregaveis') || entregaveis,
+                adicionais: extrairPropriedade(detalhesStr, 'adicionais') || possiveis_adicionais,
+                deslocamento: extrairPropriedade(detalhesStr, 'deslocamento') || valor_deslocamento
               };
-            } catch (e) {
-              log('WARN', `Erro ao extrair detalhes para serviço ${nome}: ${e.message}`);
+            } else {
+              // Se não encontrou o objeto detalhes, criar um a partir dos campos principais
+              log('INFO', `Criando objeto detalhes para serviço ${nome} a partir dos campos principais`);
+              detalhes = {
+                captura: duracao_media_captura || '',
+                tratamento: duracao_media_tratamento || '',
+                entregaveis: entregaveis || '',
+                adicionais: possiveis_adicionais || '',
+                deslocamento: valor_deslocamento || ''
+              };
             }
+          } catch (detalhesError) {
+            log('WARN', `Erro ao extrair detalhes para serviço ${nome}: ${detalhesError.message}`);
+            // Criar objeto detalhes básico
+            detalhes = {
+              captura: duracao_media_captura || '',
+              tratamento: duracao_media_tratamento || '',
+              entregaveis: entregaveis || '',
+              adicionais: possiveis_adicionais || '',
+              deslocamento: valor_deslocamento || ''
+            };
           }
           
           // Criar objeto de serviço
@@ -283,36 +337,92 @@ function extrairDefinicoesDoConteudo(content) {
             preco_base,
             duracao_media_captura,
             duracao_media_tratamento,
+            duracao_media: duracao_media || 5, // Valor padrão se não conseguir calcular
             entregaveis,
             possiveis_adicionais,
             valor_deslocamento,
             detalhes
           };
           
+          log('INFO', `Serviço extraído: ${nome}, Preço: ${preco_base}, Duração: ${duracao_media}`);
           servicosExtraidos.push(servico);
+        } catch (servicoError) {
+          log('ERROR', `Erro ao processar serviço ${nomeServico}: ${servicoError.message}`);
         }
-        
-        if (servicosExtraidos.length > 0) {
-          log('INFO', `Extraídos ${servicosExtraidos.length} serviços do conteúdo`);
-          return servicosExtraidos;
-        }
-        
-        // Limpar arquivo temporário
-        try {
-          fs.unlinkSync(tempFilePath);
-        } catch (e) {
-          log('WARN', `Erro ao remover arquivo temporário: ${e.message}`);
-        }
-      } catch (evalError) {
-        log('ERROR', `Erro ao extrair serviços: ${evalError.message}`);
       }
+      
+      if (servicosExtraidos.length > 0) {
+        log('INFO', `Extraídos ${servicosExtraidos.length} serviços do conteúdo`);
+        return servicosExtraidos;
+      } else {
+        log('WARN', `Nenhum serviço extraído do padrão de array encontrado`);
+      }
+    }
+    
+    // Se chegou aqui, tentar uma abordagem ainda mais simples
+    log('INFO', 'Tentando abordagem alternativa para extrair serviços');
+    const servicosSimples = extrairServicosSimples(content);
+    if (servicosSimples.length > 0) {
+      log('INFO', `Extraídos ${servicosSimples.length} serviços usando método simples`);
+      return servicosSimples;
     }
     
     log('WARN', 'Não foi possível extrair definições do conteúdo');
     return getBasicServices();
   } catch (error) {
     log('ERROR', `Erro ao extrair definições: ${error.message}`);
+    log('ERROR', error.stack);
     return getBasicServices();
+  }
+}
+
+/**
+ * Extrai serviços usando uma abordagem mais simples
+ * @param {string} content - Conteúdo do arquivo
+ * @returns {Array} Array de serviços
+ */
+function extrairServicosSimples(content) {
+  try {
+    // Procurar por nomes de serviços
+    const nomeRegex = /nome\s*:\s*['"]([^'"]+)['"]/g;
+    const precoRegex = /preco_base\s*:\s*(\d+(?:\.\d+)?)/g;
+    
+    const nomes = [];
+    let match;
+    while ((match = nomeRegex.exec(content)) !== null) {
+      nomes.push(match[1]);
+    }
+    
+    const precos = [];
+    while ((match = precoRegex.exec(content)) !== null) {
+      precos.push(parseFloat(match[1]));
+    }
+    
+    log('INFO', `Encontrados ${nomes.length} nomes e ${precos.length} preços`);
+    
+    if (nomes.length > 0) {
+      return nomes.map((nome, index) => {
+        const preco = index < precos.length ? precos[index] : 0;
+        return {
+          nome,
+          descricao: `Serviço ${nome}`,
+          preco_base: preco,
+          duracao_media: 5,
+          detalhes: {
+            captura: '1 a 2 horas',
+            tratamento: 'até 7 dias',
+            entregaveis: 'Entrega digital',
+            adicionais: 'Consulte opções adicionais',
+            deslocamento: 'Sob consulta'
+          }
+        };
+      });
+    }
+    
+    return [];
+  } catch (error) {
+    log('ERROR', `Erro ao extrair serviços simples: ${error.message}`);
+    return [];
   }
 }
 
@@ -549,6 +659,7 @@ async function atualizarServicos() {
       // Garantir que detalhes seja uma string JSON e não um objeto
       if (servicoParaSalvar.detalhes && typeof servicoParaSalvar.detalhes === 'object') {
         try {
+          // Converter para string JSON
           servicoParaSalvar.detalhes = JSON.stringify(servicoParaSalvar.detalhes);
           log('INFO', `Convertido campo detalhes de objeto para string JSON para o serviço "${servicoParaSalvar.nome}"`);
         } catch (e) {
