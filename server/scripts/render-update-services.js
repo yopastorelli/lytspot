@@ -548,10 +548,9 @@ async function limparCacheAPI() {
     
     log('INFO', `URL para limpeza de cache: ${cacheUrl}`);
     
-    // Tentar limpar o cache
-    const response = await axios.post(cacheUrl, {}, {
+    // Tentar limpar o cache (alterado para GET conforme implementação da rota)
+    const response = await axios.get(cacheUrl, {
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.CACHE_SECRET || 'cache-secret-key'}`
       },
       timeout: 10000 // 10 segundos de timeout
