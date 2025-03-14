@@ -1,317 +1,293 @@
 /**
- * Script para atualização de serviços diretamente no banco de dados de produção
+ * Script para atualização remota de serviços no ambiente de produção
+ * @description Conecta-se diretamente ao banco de dados de produção e atualiza os serviços
  * @version 1.0.0 - 2025-03-14
- * @description Atualiza serviços no banco de dados de produção usando a mesma conexão da API
+ * @usage node server/scripts/atualizar-servicos-producao.js
  */
 
+// Importações
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
-import axios from 'axios';
-import { PrismaClient } from '@prisma/client';
 import { loadServiceDefinitions } from '../utils/serviceDefinitionLoader.js';
+import { PrismaClient } from '@prisma/client';
+import axios from 'axios';
+import readline from 'readline';
 
-// Configuração para obter o diretório atual
+// Configuração para ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..', '..');
+const rootDir = path.resolve(__dirname, '../..');
 
 // Carregar variáveis de ambiente
 dotenv.config({ path: path.join(rootDir, '.env') });
 
-// URL da API de produção
+// URL do banco de dados de produção (SQLite no Render)
+const PROD_DB_URL = 'file:/opt/render/project/src/database.sqlite';
+
+// URL da API de produção para verificação
 const PROD_API_URL = 'https://lytspot.onrender.com/api/pricing';
-const PROD_CACHE_PURGE_URL = 'https://lytspot.onrender.com/api/cache/purge';
+
+// Caminho para o arquivo de serviços estáticos do frontend
+const simulatorServicesPath = path.join(rootDir, 'src', 'data', 'servicos.js');
 
 /**
- * Sanitiza os dados de um serviço para o formato do banco de dados
- * @param {Object} servicoData - Dados do serviço
- * @returns {Object} Dados sanitizados
+ * Interface de linha de comando para confirmar ações
  */
-function sanitizeServiceData(servicoData) {
-  console.log(`Sanitizando dados do serviço: ${servicoData.nome || 'Sem nome'}`);
-  
-  // Criar cópia para não modificar o objeto original
-  const sanitizedData = { ...servicoData };
-  
-  // Garantir que o campo detalhes seja um objeto JSON válido
-  let detalhesObj = {};
-  
-  if (sanitizedData.detalhes) {
-    if (typeof sanitizedData.detalhes === 'string') {
-      try {
-        detalhesObj = JSON.parse(sanitizedData.detalhes);
-      } catch (e) {
-        console.warn(`Erro ao fazer parse do campo detalhes como JSON: ${e.message}`);
-        detalhesObj = {};
-      }
-    } else if (typeof sanitizedData.detalhes === 'object') {
-      detalhesObj = { ...sanitizedData.detalhes };
-    } else {
-      console.warn(`Campo detalhes com formato inesperado: ${typeof sanitizedData.detalhes}`);
-      detalhesObj = {};
-    }
-  }
-  
-  // Garantir que os campos captura e tratamento estejam presentes no objeto detalhes
-  if (!detalhesObj.captura && sanitizedData.duracao_media_captura) {
-    detalhesObj.captura = sanitizedData.duracao_media_captura;
-  }
-  
-  if (!detalhesObj.tratamento && sanitizedData.duracao_media_tratamento) {
-    detalhesObj.tratamento = sanitizedData.duracao_media_tratamento;
-  }
-  
-  // Garantir que os campos entregaveis, adicionais e deslocamento estejam presentes
-  if (!detalhesObj.entregaveis && sanitizedData.entregaveis) {
-    detalhesObj.entregaveis = sanitizedData.entregaveis;
-  }
-  
-  if (!detalhesObj.adicionais && sanitizedData.possiveis_adicionais) {
-    detalhesObj.adicionais = sanitizedData.possiveis_adicionais;
-  }
-  
-  if (!detalhesObj.deslocamento && sanitizedData.valor_deslocamento) {
-    detalhesObj.deslocamento = sanitizedData.valor_deslocamento;
-  }
-  
-  // Converter o objeto detalhes para string JSON
-  sanitizedData.detalhes = JSON.stringify(detalhesObj);
-  
-  // Garantir que o preço seja um número
-  if (sanitizedData.preco_base) {
-    sanitizedData.preco_base = Number(sanitizedData.preco_base);
-  }
-  
-  return sanitizedData;
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+/**
+ * Solicita confirmação do usuário
+ * @param {string} mensagem - Mensagem a ser exibida
+ * @returns {Promise<boolean>} - True se confirmado, false caso contrário
+ */
+function confirmar(mensagem) {
+  return new Promise((resolve) => {
+    rl.question(`${mensagem} (s/N): `, (resposta) => {
+      resolve(resposta.toLowerCase() === 's');
+    });
+  });
 }
 
 /**
- * Obtém os serviços da API de produção
- * @returns {Promise<Array>} Lista de serviços
+ * Atualiza os serviços no banco de dados remoto
+ * @param {Array} serviceDefinitions - Definições de serviços
+ * @param {PrismaClient} prisma - Cliente Prisma
+ * @returns {Object} - Estatísticas de atualização
  */
-async function obterServicosDaApi() {
-  console.log(`Consultando serviços da API de produção: ${PROD_API_URL}`);
+async function atualizarServicosRemoto(serviceDefinitions, prisma) {
+  console.log('[atualizar-producao] Iniciando atualização de serviços no banco de dados remoto');
+  
+  // Verificar serviços existentes no banco de dados
+  console.log('[atualizar-producao] Consultando serviços existentes no banco de dados remoto...');
+  const servicosExistentes = await prisma.servico.findMany();
+  console.log(`[atualizar-producao] Encontrados ${servicosExistentes.length} serviços no banco de dados remoto`);
+  
+  // Criar um mapa de serviços existentes por nome para facilitar a busca
+  const servicosPorNome = {};
+  servicosExistentes.forEach(servico => {
+    servicosPorNome[servico.nome] = servico;
+  });
+  
+  let stats = {
+    atualizados: 0,
+    criados: 0,
+    erros: 0
+  };
+  
+  for (const serviceDefinition of serviceDefinitions) {
+    try {
+      // Verificar se já existe um serviço com este nome
+      const servicoExistente = servicosPorNome[serviceDefinition.nome];
+      
+      // Preparar os dados para atualização
+      // Garantir que o campo detalhes seja um objeto JSON válido
+      let detalhesObj = {};
+      
+      // Se o serviço tem campos duracao_media_captura e duracao_media_tratamento, 
+      // mas não tem um campo detalhes estruturado, criar um
+      if (serviceDefinition.duracao_media_captura || serviceDefinition.duracao_media_tratamento) {
+        detalhesObj = {
+          captura: serviceDefinition.duracao_media_captura || '',
+          tratamento: serviceDefinition.duracao_media_tratamento || '',
+          entregaveis: serviceDefinition.entregaveis || '',
+          adicionais: serviceDefinition.possiveis_adicionais || '',
+          deslocamento: serviceDefinition.valor_deslocamento || ''
+        };
+      }
+      
+      // Se já existe um campo detalhes como objeto, usar ele
+      if (typeof serviceDefinition.detalhes === 'object') {
+        detalhesObj = { ...detalhesObj, ...serviceDefinition.detalhes };
+      } 
+      // Se é uma string JSON, fazer parse e mesclar
+      else if (typeof serviceDefinition.detalhes === 'string') {
+        try {
+          const parsedDetails = JSON.parse(serviceDefinition.detalhes);
+          detalhesObj = { ...detalhesObj, ...parsedDetails };
+        } catch (e) {
+          console.error(`[atualizar-producao] Erro ao fazer parse do campo detalhes: ${e.message}`);
+        }
+      }
+      
+      // Garantir que os campos captura e tratamento estejam sempre presentes
+      if (!detalhesObj.captura && serviceDefinition.duracao_media_captura) {
+        detalhesObj.captura = serviceDefinition.duracao_media_captura;
+      }
+      
+      if (!detalhesObj.tratamento && serviceDefinition.duracao_media_tratamento) {
+        detalhesObj.tratamento = serviceDefinition.duracao_media_tratamento;
+      }
+      
+      // Preparar dados para atualização ou criação
+      const dadosServico = {
+        nome: serviceDefinition.nome,
+        descricao: serviceDefinition.descricao,
+        preco_base: serviceDefinition.preco_base,
+        duracao_media_captura: serviceDefinition.duracao_media_captura,
+        duracao_media_tratamento: serviceDefinition.duracao_media_tratamento,
+        entregaveis: serviceDefinition.entregaveis,
+        possiveis_adicionais: serviceDefinition.possiveis_adicionais,
+        valor_deslocamento: serviceDefinition.valor_deslocamento,
+        detalhes: JSON.stringify(detalhesObj)
+      };
+      
+      // Se o serviço já existe, atualizar
+      if (servicoExistente) {
+        console.log(`[atualizar-producao] Atualizando serviço existente: ${serviceDefinition.nome} (ID: ${servicoExistente.id})`);
+        await prisma.servico.update({
+          where: { id: servicoExistente.id },
+          data: dadosServico
+        });
+        stats.atualizados++;
+      } 
+      // Se não existe, criar novo
+      else {
+        console.log(`[atualizar-producao] Criando novo serviço: ${serviceDefinition.nome}`);
+        const novoServico = await prisma.servico.create({
+          data: dadosServico
+        });
+        console.log(`[atualizar-producao] Novo serviço criado com ID: ${novoServico.id}`);
+        stats.criados++;
+      }
+    } catch (error) {
+      console.error(`[atualizar-producao] Erro ao processar serviço ${serviceDefinition.nome}:`, error.message);
+      stats.erros++;
+    }
+  }
+  
+  return stats;
+}
+
+/**
+ * Verifica os serviços na API de produção
+ * @returns {Promise<Array>} - Serviços da API de produção
+ */
+async function verificarApiProducao() {
+  console.log(`[atualizar-producao] Verificando API de produção: ${PROD_API_URL}`);
   
   try {
     const response = await axios.get(PROD_API_URL);
     
-    if (response.data && Array.isArray(response.data)) {
-      console.log(`Encontrados ${response.data.length} serviços na API de produção`);
-      return response.data;
-    } else {
-      console.warn('API retornou dados inválidos ou vazios');
-      return [];
+    if (!response.data || !Array.isArray(response.data)) {
+      console.error('[atualizar-producao] Resposta da API de produção não é um array');
+      return null;
     }
-  } catch (error) {
-    console.error(`Erro ao consultar API de produção: ${error.message}`);
-    return [];
-  }
-}
-
-/**
- * Limpa o cache da API de produção
- * @returns {Promise<boolean>} True se o cache foi limpo com sucesso
- */
-async function limparCacheApi() {
-  console.log(`Limpando cache da API de produção: ${PROD_CACHE_PURGE_URL}`);
-  
-  try {
-    const response = await axios.post(PROD_CACHE_PURGE_URL, {
-      paths: ['/api/pricing', '/api/services']
-    });
     
-    console.log(`Cache limpo com sucesso: ${response.status} ${response.statusText}`);
-    return true;
+    console.log(`[atualizar-producao] API de produção retornou ${response.data.length} serviços`);
+    return response.data;
   } catch (error) {
-    console.error(`Erro ao limpar cache da API: ${error.message}`);
-    return false;
+    console.error('[atualizar-producao] Erro ao verificar API de produção:', error.message);
+    return null;
   }
 }
 
 /**
- * Atualiza os serviços no banco de dados de produção
+ * Função principal
  */
-async function atualizarServicosProducao() {
+async function main() {
   console.log('='.repeat(80));
-  console.log(`Iniciando atualização de serviços em produção - ${new Date().toISOString()}`);
+  console.log(`[atualizar-producao] Iniciando atualização remota de serviços (v1.0.0) - ${new Date().toISOString()}`);
   console.log('='.repeat(80));
   
+  // Aviso de segurança
+  console.log('\n⚠️  ATENÇÃO: Este script irá modificar diretamente o banco de dados de PRODUÇÃO! ⚠️\n');
+  
+  const confirmacao = await confirmar('Tem certeza que deseja continuar?');
+  
+  if (!confirmacao) {
+    console.log('[atualizar-producao] Operação cancelada pelo usuário.');
+    rl.close();
+    return;
+  }
+  
   try {
-    // Obter serviços da API de produção para diagnóstico
-    const servicosAtuais = await obterServicosDaApi();
+    // Determinar caminho para o arquivo de definições de serviços
+    const definitionsPath = path.join(__dirname, '../models/seeds/serviceDefinitions.js');
+    console.log(`[atualizar-producao] Carregando definições de serviços de: ${definitionsPath}`);
     
     // Carregar definições de serviços
-    const definitionsPath = path.join(__dirname, '../models/seeds/serviceDefinitions.js');
-    console.log(`Carregando definições de serviços de: ${definitionsPath}`);
-    
-    const serviceDefinitions = await loadServiceDefinitions(definitionsPath);
+    const serviceDefinitions = await loadServiceDefinitions(definitionsPath, console.log);
     
     if (!serviceDefinitions || !Array.isArray(serviceDefinitions) || serviceDefinitions.length === 0) {
-      console.error('Erro: Nenhuma definição de serviço encontrada ou formato inválido');
-      process.exit(1);
+      console.error('[atualizar-producao] Erro: Nenhuma definição de serviço encontrada ou formato inválido');
+      rl.close();
+      return;
     }
     
-    console.log(`Carregadas ${serviceDefinitions.length} definições de serviços`);
+    console.log(`[atualizar-producao] Carregadas ${serviceDefinitions.length} definições de serviços`);
     
-    // Configuração para conexão com o banco de dados de produção
-    console.log('Configurando conexão com o banco de dados de produção...');
+    // Verificar API de produção antes da atualização
+    console.log('[atualizar-producao] Verificando estado atual da API de produção...');
+    const servicosAntes = await verificarApiProducao();
     
-    // Solicitar URL de conexão ao usuário
-    console.log('\n⚠️ IMPORTANTE: Este script precisa da URL de conexão do banco de dados de produção.');
-    console.log('Você pode encontrar esta URL nas configurações do seu serviço no Render.');
-    console.log('Por favor, execute este script com a variável de ambiente DATABASE_URL definida:');
-    console.log('DATABASE_URL=sua_url_de_conexao node server/scripts/atualizar-servicos-producao.js\n');
-    
-    if (!process.env.DATABASE_URL) {
-      console.error('❌ Variável DATABASE_URL não definida. Impossível continuar.');
-      process.exit(1);
-    }
-    
-    // Inicializar cliente Prisma com a URL de conexão fornecida
-    console.log('Inicializando cliente Prisma com a URL de conexão fornecida...');
+    // Inicializar cliente Prisma com URL do banco de dados de produção
+    console.log('[atualizar-producao] Inicializando cliente Prisma com URL do banco de dados de produção');
     const prisma = new PrismaClient({
       datasources: {
         db: {
-          url: process.env.DATABASE_URL
+          url: PROD_DB_URL
         }
       },
       log: ['query', 'info', 'warn', 'error']
     });
     
     // Testar conexão com o banco de dados
-    console.log('Testando conexão com o banco de dados...');
-    await prisma.$queryRaw`SELECT 1 as test`;
-    console.log('✅ Conexão com o banco de dados estabelecida com sucesso!');
-    
-    // Obter serviços existentes no banco de dados
-    console.log('Consultando serviços existentes no banco de dados...');
-    const servicosExistentes = await prisma.servico.findMany();
-    console.log(`Encontrados ${servicosExistentes.length} serviços no banco de dados`);
-    
-    // Mapear serviços existentes por nome para facilitar a busca
-    const servicosPorNome = {};
-    servicosExistentes.forEach(servico => {
-      servicosPorNome[servico.nome] = servico;
-    });
-    
-    // Contadores para estatísticas
-    let atualizados = 0;
-    let criados = 0;
-    let erros = 0;
-    
-    // Processar cada definição de serviço
-    console.log('\nProcessando definições de serviços...');
-    
-    for (const servico of serviceDefinitions) {
-      try {
-        // Sanitizar dados do serviço
-        const dadosSanitizados = sanitizeServiceData(servico);
-        
-        // Verificar se o serviço já existe
-        const servicoExistente = servicosPorNome[dadosSanitizados.nome];
-        
-        if (servicoExistente) {
-          // Atualizar serviço existente
-          console.log(`Atualizando serviço: ${dadosSanitizados.nome} (ID: ${servicoExistente.id})`);
-          
-          try {
-            await prisma.servico.update({
-              where: { id: servicoExistente.id },
-              data: dadosSanitizados
-            });
-            
-            console.log(`✅ Serviço atualizado com sucesso: ${dadosSanitizados.nome}`);
-            atualizados++;
-          } catch (updateError) {
-            console.error(`❌ Erro ao atualizar serviço ${dadosSanitizados.nome}: ${updateError.message}`);
-            
-            // Tentar abordagem alternativa se o erro for relacionado ao campo detalhes
-            if (updateError.message.includes('Unknown argument') || updateError.message.includes('detalhes')) {
-              console.log(`Tentando abordagem alternativa para atualizar serviço ${dadosSanitizados.nome}...`);
-              
-              try {
-                // Criar um objeto de atualização sem o campo detalhes
-                const dadosBasicos = { ...dadosSanitizados };
-                delete dadosBasicos.detalhes;
-                
-                // Atualizar primeiro os campos básicos
-                await prisma.servico.update({
-                  where: { id: servicoExistente.id },
-                  data: dadosBasicos
-                });
-                
-                // Depois atualizar apenas o campo detalhes
-                await prisma.servico.update({
-                  where: { id: servicoExistente.id },
-                  data: { detalhes: dadosSanitizados.detalhes }
-                });
-                
-                console.log(`✅ Serviço atualizado com abordagem alternativa: ${dadosSanitizados.nome}`);
-                atualizados++;
-              } catch (altError) {
-                console.error(`❌ Erro na abordagem alternativa: ${altError.message}`);
-                erros++;
-              }
-            } else {
-              erros++;
-            }
-          }
-        } else {
-          // Criar novo serviço
-          console.log(`Criando novo serviço: ${dadosSanitizados.nome}`);
-          
-          try {
-            const novoServico = await prisma.servico.create({
-              data: dadosSanitizados
-            });
-            
-            console.log(`✅ Novo serviço criado: ${dadosSanitizados.nome} (ID: ${novoServico.id})`);
-            criados++;
-          } catch (createError) {
-            console.error(`❌ Erro ao criar serviço ${dadosSanitizados.nome}: ${createError.message}`);
-            erros++;
-          }
-        }
-      } catch (error) {
-        console.error(`❌ Erro ao processar serviço ${servico.nome || 'Sem nome'}: ${error.message}`);
-        erros++;
-      }
+    console.log('[atualizar-producao] Testando conexão com o banco de dados de produção...');
+    try {
+      await prisma.$queryRaw`SELECT 1 as test`;
+      console.log('[atualizar-producao] Conexão com o banco de dados de produção estabelecida com sucesso!');
+    } catch (dbError) {
+      console.error(`[atualizar-producao] ERRO ao conectar ao banco de dados de produção: ${dbError.message}`);
+      console.error('[atualizar-producao] Verifique se a URL de conexão está correta e se o banco de dados está acessível.');
+      rl.close();
+      return;
     }
     
-    // Limpar cache da API
-    await limparCacheApi();
+    // Confirmação final
+    const confirmacaoFinal = await confirmar(`Pronto para atualizar ${serviceDefinitions.length} serviços no banco de dados de PRODUÇÃO. Continuar?`);
     
-    // Resumo da atualização
-    console.log('\n='.repeat(80));
-    console.log('Resumo da atualização:');
-    console.log(`- Serviços processados: ${serviceDefinitions.length}`);
-    console.log(`- Serviços atualizados: ${atualizados}`);
-    console.log(`- Serviços criados: ${criados}`);
-    console.log(`- Erros: ${erros}`);
+    if (!confirmacaoFinal) {
+      console.log('[atualizar-producao] Operação cancelada pelo usuário.');
+      await prisma.$disconnect();
+      rl.close();
+      return;
+    }
+    
+    // Atualizar serviços no banco de dados remoto
+    const stats = await atualizarServicosRemoto(serviceDefinitions, prisma);
+    
+    // Resumo da operação
+    console.log('='.repeat(80));
+    console.log('[atualizar-producao] Resumo da atualização:');
+    console.log(`[atualizar-producao] Serviços atualizados: ${stats.atualizados}`);
+    console.log(`[atualizar-producao] Serviços criados: ${stats.criados}`);
+    console.log(`[atualizar-producao] Erros: ${stats.erros}`);
     console.log('='.repeat(80));
     
-    // Verificar serviços após atualização
-    console.log('\nVerificando serviços após atualização...');
-    const servicosAposAtualizacao = await prisma.servico.findMany();
-    console.log(`Total de serviços no banco após atualização: ${servicosAposAtualizacao.length}`);
+    // Verificar API de produção após a atualização
+    console.log('[atualizar-producao] Aguardando 5 segundos para que as alterações sejam propagadas...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    console.log('[atualizar-producao] Verificando estado da API de produção após a atualização...');
+    const servicosDepois = await verificarApiProducao();
     
     // Fechar conexão com o banco de dados
     await prisma.$disconnect();
     
-    console.log('\n✅ Processo de atualização concluído!');
-    console.log('Para verificar se as alterações foram aplicadas, acesse:');
-    console.log(`${PROD_API_URL}\n`);
+    console.log('[atualizar-producao] Atualização remota concluída com sucesso!');
+    console.log('[atualizar-producao] Nota: Pode ser necessário reiniciar o servidor de produção para que as alterações sejam refletidas na API.');
+    
+    rl.close();
   } catch (error) {
-    console.error(`\n❌ Erro durante o processo de atualização: ${error.message}`);
-    console.error(error);
-    process.exit(1);
+    console.error('[atualizar-producao] Erro durante a atualização remota:', error);
+    rl.close();
   }
 }
 
-// Executar a função principal
-atualizarServicosProducao()
-  .catch(error => {
-    console.error(`Erro fatal: ${error.message}`);
-    process.exit(1);
-  });
+// Executar função principal
+main();

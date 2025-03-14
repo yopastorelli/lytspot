@@ -1,0 +1,298 @@
+---
+// Endpoint de administração para sincronização de serviços
+// Versão 1.0.0 - 2025-03-14
+// ATENÇÃO: Este endpoint deve ser removido após uso!
+
+import { PrismaClient } from '@prisma/client';
+import { loadServiceDefinitions } from '../../../server/utils/serviceDefinitionLoader.js';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Configuração para ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '../../..');
+
+// Chave de API para autenticação (deve ser uma chave forte em produção)
+const API_KEY = 'lytspot-admin-2025';
+
+// Caminho para o arquivo de serviços estáticos do frontend
+const simulatorServicesPath = path.join(rootDir, 'src', 'data', 'servicos.js');
+
+// Caminho para o arquivo de definições de serviços
+const definitionsPath = path.join(rootDir, 'server', 'models', 'seeds', 'serviceDefinitions.js');
+
+// Cabeçalhos CORS para permitir acesso
+const corsHeaders = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, X-API-Key"
+};
+
+// Log para depuração no servidor
+console.log(`[API] Endpoint /api/admin-sync-services acessado - ${new Date().toISOString()}`);
+
+// Verifica se é um pre-flight request OPTIONS
+if (Astro.request.method === 'OPTIONS') {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders
+  });
+}
+
+// Verifica se o método é POST
+if (Astro.request.method !== 'POST') {
+  return new Response(JSON.stringify({ error: 'Método não permitido' }), {
+    status: 405,
+    headers: corsHeaders
+  });
+}
+
+// Verifica a chave de API
+const apiKey = Astro.request.headers.get('X-API-Key');
+if (apiKey !== API_KEY) {
+  console.log(`[API] Tentativa de acesso não autorizado ao endpoint admin-sync-services`);
+  return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+    status: 401,
+    headers: corsHeaders
+  });
+}
+
+// Função para atualizar os serviços no banco de dados
+async function atualizarServicos(serviceDefinitions) {
+  console.log(`[API] Iniciando atualização de serviços no banco de dados`);
+  
+  const prisma = new PrismaClient();
+  let stats = { atualizados: 0, criados: 0, erros: 0 };
+  
+  try {
+    // Verificar serviços existentes no banco de dados
+    const servicosExistentes = await prisma.servico.findMany();
+    console.log(`[API] Encontrados ${servicosExistentes.length} serviços no banco de dados`);
+    
+    // Criar um mapa de serviços existentes por nome para facilitar a busca
+    const servicosPorNome = {};
+    servicosExistentes.forEach(servico => {
+      servicosPorNome[servico.nome] = servico;
+    });
+    
+    // Processar cada definição de serviço
+    for (const serviceDefinition of serviceDefinitions) {
+      try {
+        // Verificar se já existe um serviço com este nome
+        const servicoExistente = servicosPorNome[serviceDefinition.nome];
+        
+        // Preparar os dados para atualização
+        // Garantir que o campo detalhes seja um objeto JSON válido
+        let detalhesObj = {};
+        
+        // Se o serviço tem campos duracao_media_captura e duracao_media_tratamento, 
+        // mas não tem um campo detalhes estruturado, criar um
+        if (serviceDefinition.duracao_media_captura || serviceDefinition.duracao_media_tratamento) {
+          detalhesObj = {
+            captura: serviceDefinition.duracao_media_captura || '',
+            tratamento: serviceDefinition.duracao_media_tratamento || '',
+            entregaveis: serviceDefinition.entregaveis || '',
+            adicionais: serviceDefinition.possiveis_adicionais || '',
+            deslocamento: serviceDefinition.valor_deslocamento || ''
+          };
+        }
+        
+        // Se já existe um campo detalhes como objeto, usar ele
+        if (typeof serviceDefinition.detalhes === 'object') {
+          detalhesObj = { ...detalhesObj, ...serviceDefinition.detalhes };
+        } 
+        // Se é uma string JSON, fazer parse e mesclar
+        else if (typeof serviceDefinition.detalhes === 'string') {
+          try {
+            const parsedDetails = JSON.parse(serviceDefinition.detalhes);
+            detalhesObj = { ...detalhesObj, ...parsedDetails };
+          } catch (e) {
+            console.error(`[API] Erro ao fazer parse do campo detalhes: ${e.message}`);
+          }
+        }
+        
+        // Garantir que os campos captura e tratamento estejam sempre presentes
+        if (!detalhesObj.captura && serviceDefinition.duracao_media_captura) {
+          detalhesObj.captura = serviceDefinition.duracao_media_captura;
+        }
+        
+        if (!detalhesObj.tratamento && serviceDefinition.duracao_media_tratamento) {
+          detalhesObj.tratamento = serviceDefinition.duracao_media_tratamento;
+        }
+        
+        // Preparar dados para atualização ou criação
+        const dadosServico = {
+          nome: serviceDefinition.nome,
+          descricao: serviceDefinition.descricao,
+          preco_base: serviceDefinition.preco_base,
+          duracao_media_captura: serviceDefinition.duracao_media_captura,
+          duracao_media_tratamento: serviceDefinition.duracao_media_tratamento,
+          entregaveis: serviceDefinition.entregaveis,
+          possiveis_adicionais: serviceDefinition.possiveis_adicionais,
+          valor_deslocamento: serviceDefinition.valor_deslocamento,
+          detalhes: JSON.stringify(detalhesObj)
+        };
+        
+        // Se o serviço já existe, atualizar
+        if (servicoExistente) {
+          console.log(`[API] Atualizando serviço existente: ${serviceDefinition.nome} (ID: ${servicoExistente.id})`);
+          await prisma.servico.update({
+            where: { id: servicoExistente.id },
+            data: dadosServico
+          });
+          stats.atualizados++;
+        } 
+        // Se não existe, criar novo
+        else {
+          console.log(`[API] Criando novo serviço: ${serviceDefinition.nome}`);
+          const novoServico = await prisma.servico.create({
+            data: dadosServico
+          });
+          console.log(`[API] Novo serviço criado com ID: ${novoServico.id}`);
+          stats.criados++;
+        }
+      } catch (error) {
+        console.error(`[API] Erro ao processar serviço ${serviceDefinition.nome}:`, error.message);
+        stats.erros++;
+      }
+    }
+  } catch (error) {
+    console.error(`[API] Erro durante a atualização de serviços:`, error.message);
+    stats.erros++;
+  } finally {
+    // Fechar conexão com o banco de dados
+    await prisma.$disconnect();
+  }
+  
+  return stats;
+}
+
+// Função para atualizar o arquivo estático de serviços
+async function atualizarArquivoEstatico(serviceDefinitions) {
+  console.log(`[API] Atualizando arquivo estático de serviços: ${simulatorServicesPath}`);
+  
+  try {
+    // Transformar as definições para o formato do frontend
+    const servicosParaFrontend = serviceDefinitions.map((servico, index) => {
+      // Garantir que o campo detalhes exista
+      let detalhes = {};
+      
+      if (typeof servico.detalhes === 'object') {
+        detalhes = { ...servico.detalhes };
+      } else if (typeof servico.detalhes === 'string') {
+        try {
+          detalhes = JSON.parse(servico.detalhes);
+        } catch (e) {
+          console.error(`[API] Erro ao fazer parse do campo detalhes: ${e.message}`);
+          // Criar objeto detalhes a partir dos campos individuais
+          detalhes = {
+            captura: servico.duracao_media_captura || '',
+            tratamento: servico.duracao_media_tratamento || '',
+            entregaveis: servico.entregaveis || '',
+            adicionais: servico.possiveis_adicionais || '',
+            deslocamento: servico.valor_deslocamento || ''
+          };
+        }
+      } else {
+        // Criar objeto detalhes a partir dos campos individuais
+        detalhes = {
+          captura: servico.duracao_media_captura || '',
+          tratamento: servico.duracao_media_tratamento || '',
+          entregaveis: servico.entregaveis || '',
+          adicionais: servico.possiveis_adicionais || '',
+          deslocamento: servico.valor_deslocamento || ''
+        };
+      }
+      
+      // Garantir que o ID seja um número sequencial
+      return {
+        id: servico.id || index + 1,
+        nome: servico.nome,
+        descricao: servico.descricao,
+        preco_base: servico.preco_base,
+        duracao_media: servico.duracao_media || 3,
+        detalhes,
+        // Manter campos individuais para compatibilidade
+        duracao_media_captura: servico.duracao_media_captura,
+        duracao_media_tratamento: servico.duracao_media_tratamento,
+        entregaveis: servico.entregaveis,
+        possiveis_adicionais: servico.possiveis_adicionais,
+        valor_deslocamento: servico.valor_deslocamento
+      };
+    });
+    
+    // Gerar conteúdo do arquivo
+    const timestamp = new Date().toISOString();
+    const conteudoArquivo = `/**
+ * Dados de serviços para o Simulador de Preços - Versão 2.1
+ * Este arquivo centraliza os dados para uso consistente entre a API e o fallback
+ * Última atualização: ${timestamp}
+ * ATENÇÃO: Este arquivo é gerado automaticamente pelo script sync-services.js
+ * Não edite manualmente!
+ */
+
+export const servicos = ${JSON.stringify(servicosParaFrontend, null, 2)};
+`;
+    
+    // Escrever arquivo
+    await fs.writeFile(simulatorServicesPath, conteudoArquivo, 'utf8');
+    console.log(`[API] Arquivo estático de serviços atualizado com sucesso`);
+    
+    return true;
+  } catch (error) {
+    console.error(`[API] Erro ao atualizar arquivo estático:`, error.message);
+    return false;
+  }
+}
+
+// Função principal
+async function main() {
+  try {
+    // Carregar definições de serviços
+    console.log(`[API] Carregando definições de serviços de: ${definitionsPath}`);
+    const serviceDefinitions = await loadServiceDefinitions(definitionsPath, console.log);
+    
+    if (!serviceDefinitions || !Array.isArray(serviceDefinitions) || serviceDefinitions.length === 0) {
+      throw new Error('Nenhuma definição de serviço encontrada ou formato inválido');
+    }
+    
+    console.log(`[API] Carregadas ${serviceDefinitions.length} definições de serviços`);
+    
+    // Atualizar serviços no banco de dados
+    const statsDB = await atualizarServicos(serviceDefinitions);
+    
+    // Atualizar arquivo estático
+    const arquivoAtualizado = await atualizarArquivoEstatico(serviceDefinitions);
+    
+    // Retornar resultado
+    return {
+      sucesso: true,
+      mensagem: 'Serviços sincronizados com sucesso',
+      estatisticas: {
+        definicoes_carregadas: serviceDefinitions.length,
+        banco_de_dados: statsDB,
+        arquivo_estatico: arquivoAtualizado ? 'Atualizado com sucesso' : 'Falha na atualização'
+      }
+    };
+  } catch (error) {
+    console.error(`[API] Erro durante a sincronização:`, error.message);
+    return {
+      sucesso: false,
+      mensagem: `Erro durante a sincronização: ${error.message}`,
+      erro: error.stack
+    };
+  }
+}
+
+// Executar função principal e retornar resultado
+const resultado = await main();
+
+// Retornar resposta
+return new Response(JSON.stringify(resultado), {
+  status: resultado.sucesso ? 200 : 500,
+  headers: corsHeaders
+});
+---

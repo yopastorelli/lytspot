@@ -17,7 +17,9 @@
     "monitor-db": "node server/scripts/monitorBancoDados.js",
     "atualizar-servicos": "node server/scripts/popularServicos.js --update",
     "atualizar-servicos-force": "node server/scripts/popularServicos.js --update --force",
-    "sync-services": "node server/scripts/sync-services.js"
+    "sync-services": "node server/scripts/sync-services.js",
+    "atualizar-producao": "node server/scripts/atualizar-servicos-producao.js",
+    "sync-services-remote": "node server/scripts/sync-services-remote.js"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",
