@@ -2,11 +2,10 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { PrismaClient } from '@prisma/client';
 
 /**
  * Script de configuração para ambiente Render
- * @version 1.4.0 - 2025-03-14 - Adicionada criação automática do vite.render.config.js e melhorado processo de build
+ * @version 1.5.0 - 2025-03-14 - Corrigido problema de inicialização do Prisma Client no ambiente Render
  */
 
 // Forçar NODE_ENV para production no ambiente Render
@@ -102,11 +101,26 @@ try {
     console.log("Banco de dados já existe, pulando prisma db push");
   }
   
+  // Importante: Recarregar o módulo @prisma/client após a geração
+  console.log("Recarregando o módulo @prisma/client...");
+  try {
+    // Limpar o cache do módulo para garantir que a versão mais recente seja carregada
+    Object.keys(require.cache).forEach(key => {
+      if (key.includes('@prisma/client')) {
+        delete require.cache[key];
+      }
+    });
+    console.log("Cache do módulo @prisma/client limpo com sucesso!");
+  } catch (error) {
+    console.warn("Aviso: Não foi possível limpar o cache do módulo @prisma/client:", error);
+  }
+  
   // Inicializar o banco de dados com dados de serviços
   console.log("Verificando se existem serviços no banco de dados...");
   
   // Função para inicializar o banco de dados com serviços básicos
   async function inicializarServicos() {
+    const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
     
     try {
@@ -126,7 +140,14 @@ try {
             duracao_media_tratamento: 'até 7 dias úteis',
             entregaveis: '20 fotos editadas em alta resolução',
             possiveis_adicionais: 'Edição avançada, maquiagem profissional',
-            valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+            valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km',
+            detalhes: JSON.stringify({
+              captura: '2 a 3 horas',
+              tratamento: 'até 7 dias úteis',
+              entregaveis: '20 fotos editadas em alta resolução',
+              adicionais: 'Edição avançada, maquiagem profissional',
+              deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+            })
           },
           {
             nome: 'TESTE - Ensaio Externo de Casal ou Família',
@@ -136,7 +157,14 @@ try {
             duracao_media_tratamento: 'até 10 dias úteis',
             entregaveis: '30 fotos editadas em alta resolução',
             possiveis_adicionais: 'Álbum impresso, fotos adicionais',
-            valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+            valor_deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km',
+            detalhes: JSON.stringify({
+              captura: '2 a 4 horas',
+              tratamento: 'até 10 dias úteis',
+              entregaveis: '30 fotos editadas em alta resolução',
+              adicionais: 'Álbum impresso, fotos adicionais',
+              deslocamento: 'gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+            })
           },
           {
             nome: 'TESTE - Fotografia de Eventos',
@@ -146,7 +174,14 @@ try {
             duracao_media_tratamento: 'até 14 dias úteis',
             entregaveis: '100+ fotos editadas em alta resolução, galeria online',
             possiveis_adicionais: 'Impressões, segundo fotógrafo, entrega expressa',
-            valor_deslocamento: 'gratuito até 30 km do centro de Curitiba, excedente R$1,50/km'
+            valor_deslocamento: 'gratuito até 30 km do centro de Curitiba, excedente R$1,50/km',
+            detalhes: JSON.stringify({
+              captura: '4 a 8 horas',
+              tratamento: 'até 14 dias úteis',
+              entregaveis: '100+ fotos editadas em alta resolução, galeria online',
+              adicionais: 'Impressões, segundo fotógrafo, entrega expressa',
+              deslocamento: 'gratuito até 30 km do centro de Curitiba, excedente R$1,50/km'
+            })
           }
         ];
         
