@@ -1,0 +1,73 @@
+{
+  "timestamp": "2025-03-14T14-07-33.702Z",
+  "ambiente": "development",
+  "render": "Não",
+  "total": 5,
+  "servicos": [
+    {
+      "id": 342,
+      "nome": "Ensaio Fotográfico Pessoal",
+      "descricao": "Sessão individual em locação externa ou estúdio, ideal para redes sociais, uso profissional ou pessoal. Inclui direção de poses, correção básica de cor e entrega digital em alta resolução.",
+      "preco_base": 350,
+      "duracao_media_captura": "1 a 2 horas",
+      "duracao_media_tratamento": "7 dias úteis",
+      "entregaveis": "20 fotos editadas em alta resolução",
+      "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+      "valor_deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)",
+      "createdAt": "2025-03-13T01:59:39.888Z",
+      "updatedAt": "2025-03-13T01:59:39.888Z"
+    },
+    {
+      "id": 345,
+      "nome": "Filmagem de Evento Social (Solo)",
+      "descricao": "Captação de vídeo para eventos sociais, incluindo edição básica com trilha sonora e entrega em formato digital de alta qualidade.",
+      "preco_base": 1200,
+      "duracao_media_captura": "4 horas",
+      "duracao_media_tratamento": "14 dias úteis",
+      "entregaveis": "Vídeo editado de 3-5 minutos em alta resolução",
+      "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+      "valor_deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,20/km)",
+      "createdAt": "2025-03-13T01:59:39.916Z",
+      "updatedAt": "2025-03-13T01:59:39.916Z"
+    },
+    {
+      "id": 346,
+      "nome": "Fotografia Aérea com Drone",
+      "descricao": "Captura de imagens aéreas de propriedades, eventos ou locações, com equipamento profissional e piloto certificado.",
+      "preco_base": 700,
+      "duracao_media_captura": "1 a 2 horas",
+      "duracao_media_tratamento": "7 dias úteis",
+      "entregaveis": "15 fotos em alta resolução com edição básica",
+      "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+      "valor_deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,50/km)",
+      "createdAt": "2025-03-13T01:59:39.927Z",
+      "updatedAt": "2025-03-13T01:59:39.927Z"
+    },
+    {
+      "id": 347,
+      "nome": "Filmagem Aérea com Drone",
+      "descricao": "Captação de vídeos aéreos para imóveis, eventos ou projetos especiais, com equipamento profissional e piloto certificado.",
+      "preco_base": 900,
+      "duracao_media_captura": "1 a 2 horas",
+      "duracao_media_tratamento": "10 dias úteis",
+      "entregaveis": "Vídeo editado de 1-2 minutos em alta resolução",
+      "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+      "valor_deslocamento": "Gratuito até 20 km do centro de Curitiba (excedente de R$ 1,50/km)",
+      "createdAt": "2025-03-13T01:59:39.936Z",
+      "updatedAt": "2025-03-13T01:59:39.936Z"
+    },
+    {
+      "id": 349,
+      "nome": "Pacote VLOG Friends & Community",
+      "descricao": "Cobertura fotográfica e de vídeo para grupos de amigos ou comunidades, perfeita para registrar viagens, encontros ou eventos colaborativos.",
+      "preco_base": 1800,
+      "duracao_media_captura": "6 a 8 horas",
+      "duracao_media_tratamento": "14 dias úteis",
+      "entregaveis": "Vídeo editado de 5-7 minutos + 40 fotos em alta resolução",
+      "possiveis_adicionais": "Edição Mediana, Edição Avançada",
+      "valor_deslocamento": "Sob consulta (depende da localização)",
+      "createdAt": "2025-03-13T01:59:39.955Z",
+      "updatedAt": "2025-03-13T01:59:39.955Z"
+    }
+  ]
+}

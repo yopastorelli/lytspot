@@ -1,6 +1,6 @@
 /**
  * Definições atualizadas de serviços para atualização em produção
- * @version 1.1.0 - 2025-03-14
+ * @version 1.2.0 - 2025-03-14 - Adicionada estrutura detalhes para compatibilidade com frontend
  */
 
 export const updatedServiceDefinitions = [
@@ -12,7 +12,14 @@ export const updatedServiceDefinitions = [
     duracao_media_tratamento: 'até 30 dias',
     entregaveis: 'Vídeo editado de até 15 minutos + Vídeo Highlights (melhores momentos) de 1 minuto + 70 fotos em alta resolução. Entrega digital via link seguro e exclusivo.',
     possiveis_adicionais: 'Horas Adicionais, Dia adicional, Versão Estendida, Versão para Redes Sociais, Edição Avançada, Arquivos Originais',
-    valor_deslocamento: 'Sob consulta, dependendo da localidade'
+    valor_deslocamento: 'Sob consulta, dependendo da localidade',
+    detalhes: {
+      captura: '6 a 8 horas',
+      tratamento: 'até 30 dias',
+      entregaveis: 'Vídeo editado de até 15 minutos + Vídeo Highlights (melhores momentos) de 1 minuto + 70 fotos em alta resolução. Entrega digital via link seguro e exclusivo.',
+      adicionais: 'Horas Adicionais, Dia adicional, Versão Estendida, Versão para Redes Sociais, Edição Avançada, Arquivos Originais',
+      deslocamento: 'Sob consulta, dependendo da localidade'
+    }
   },
   {
     nome: 'Pacote VLOG Friends & Community',
@@ -22,7 +29,14 @@ export const updatedServiceDefinitions = [
     duracao_media_tratamento: 'até 15 dias',
     entregaveis: 'Vídeo editado de até 10 minutos + Vídeo Highlights (melhores momentos) de 1 minuto + 50 fotos em alta resolução. Entrega digital via link seguro e exclusivo.',
     possiveis_adicionais: 'Horas Adicionais, Dia adicional, Versão Estendida, Versão para Redes Sociais, Edição Avançada, Arquivos Originais',
-    valor_deslocamento: 'Sob consulta, dependendo da localidade'
+    valor_deslocamento: 'Sob consulta, dependendo da localidade',
+    detalhes: {
+      captura: '3 a 4 horas',
+      tratamento: 'até 15 dias',
+      entregaveis: 'Vídeo editado de até 10 minutos + Vídeo Highlights (melhores momentos) de 1 minuto + 50 fotos em alta resolução. Entrega digital via link seguro e exclusivo.',
+      adicionais: 'Horas Adicionais, Dia adicional, Versão Estendida, Versão para Redes Sociais, Edição Avançada, Arquivos Originais',
+      deslocamento: 'Sob consulta, dependendo da localidade'
+    }
   },
   {
     nome: 'Cobertura Fotográfica de Evento Social',
@@ -32,7 +46,14 @@ export const updatedServiceDefinitions = [
     duracao_media_tratamento: 'até 10 dias',
     entregaveis: '250 fotos em alta resolução, selecionadas, organizadas e com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
     possiveis_adicionais: 'Horas Adicionais ou Redução de horas, Vídeo Slideshow, Pendrive personalizado, Álbum Impresso',
-    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km',
+    detalhes: {
+      captura: '3 a 4 horas',
+      tratamento: 'até 10 dias',
+      entregaveis: '250 fotos em alta resolução, selecionadas, organizadas e com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
+      adicionais: 'Horas Adicionais ou Redução de horas, Vídeo Slideshow, Pendrive personalizado, Álbum Impresso',
+      deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    }
   },
   {
     nome: 'Filmagem de Evento Social (Solo)',
@@ -42,7 +63,14 @@ export const updatedServiceDefinitions = [
     duracao_media_tratamento: 'até 20 dias',
     entregaveis: 'Vídeo editado de até 5 minutos em 4K ou Full HD com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
     possiveis_adicionais: 'Horas Adicionais, Versão Estendida, Versão para Redes Sociais, Drone',
-    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km',
+    detalhes: {
+      captura: '3 a 4 horas',
+      tratamento: 'até 20 dias',
+      entregaveis: 'Vídeo editado de até 5 minutos em 4K ou Full HD com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
+      adicionais: 'Horas Adicionais, Versão Estendida, Versão para Redes Sociais, Drone',
+      deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    }
   },
   {
     nome: 'Ensaio Fotográfico Pessoal',
@@ -52,7 +80,14 @@ export const updatedServiceDefinitions = [
     duracao_media_tratamento: 'até 10 dias',
     entregaveis: '70 fotos em alta resolução, selecionadas, organizadas e com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
     possiveis_adicionais: 'Horas Adicionais ou Redução de horas, Vídeo Slideshow, Pendrive personalizado, Álbum Impresso',
-    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km',
+    detalhes: {
+      captura: '1 a 2 horas',
+      tratamento: 'até 10 dias',
+      entregaveis: '70 fotos em alta resolução, selecionadas, organizadas e com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
+      adicionais: 'Horas Adicionais ou Redução de horas, Vídeo Slideshow, Pendrive personalizado, Álbum Impresso',
+      deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    }
   },
   {
     nome: 'Ensaio Externo de Casal ou Família',
@@ -62,7 +97,14 @@ export const updatedServiceDefinitions = [
     duracao_media_tratamento: 'até 10 dias',
     entregaveis: '70 fotos em alta resolução, selecionadas, organizadas e com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
     possiveis_adicionais: 'Horas Adicionais ou Redução de horas, Vídeo Slideshow, Pendrive personalizado, Álbum Impresso',
-    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km',
+    detalhes: {
+      captura: '1 a 2 horas',
+      tratamento: 'até 10 dias',
+      entregaveis: '70 fotos em alta resolução, selecionadas, organizadas e com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
+      adicionais: 'Horas Adicionais ou Redução de horas, Vídeo Slideshow, Pendrive personalizado, Álbum Impresso',
+      deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    }
   },
   {
     nome: 'Fotografia Aérea com Drone',
@@ -72,7 +114,14 @@ export const updatedServiceDefinitions = [
     duracao_media_tratamento: 'até 7 dias',
     entregaveis: '15 fotos em alta resolução com edição básica. Entrega digital via link seguro e exclusivo.',
     possiveis_adicionais: 'Horas Adicionais, Edição Avançada',
-    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km',
+    detalhes: {
+      captura: '1 a 2 horas',
+      tratamento: 'até 7 dias',
+      entregaveis: '15 fotos em alta resolução com edição básica. Entrega digital via link seguro e exclusivo.',
+      adicionais: 'Horas Adicionais, Edição Avançada',
+      deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    }
   },
   {
     nome: 'Filmagem Aérea com Drone',
@@ -82,7 +131,14 @@ export const updatedServiceDefinitions = [
     duracao_media_tratamento: 'até 10 dias',
     entregaveis: 'Vídeo editado de 1-2 minutos em alta resolução. Entrega digital via link seguro e exclusivo.',
     possiveis_adicionais: 'Horas Adicionais, Edição Estendida',
-    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    valor_deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km',
+    detalhes: {
+      captura: '1 a 2 horas',
+      tratamento: 'até 10 dias',
+      entregaveis: 'Vídeo editado de 1-2 minutos em alta resolução. Entrega digital via link seguro e exclusivo.',
+      adicionais: 'Horas Adicionais, Edição Estendida',
+      deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
+    }
   }
 ];
 

@@ -1,7 +1,7 @@
 /**
  * Transformador de Serviços
  * @description Converte dados de serviços entre diferentes formatos
- * @version 1.0.0 - 2025-03-12
+ * @version 1.1.0 - 2025-03-14 - Atualizado para lidar com detalhes como JSON string
  */
 
 /**
@@ -16,9 +16,23 @@ class ServiceTransformer {
   toSimulatorFormat(servico) {
     if (!servico) return null;
 
+    // Tenta fazer parse do campo detalhes se for uma string
+    let detalhesObj = {};
+    if (servico.detalhes) {
+      try {
+        if (typeof servico.detalhes === 'string') {
+          detalhesObj = JSON.parse(servico.detalhes);
+        } else if (typeof servico.detalhes === 'object') {
+          detalhesObj = servico.detalhes;
+        }
+      } catch (error) {
+        console.error(`Erro ao fazer parse do campo detalhes do serviço ${servico.id}:`, error);
+      }
+    }
+
     // Extrai duração média aproximada a partir dos campos individuais
-    const duracaoCaptura = this._extractDuration(servico.duracao_media_captura);
-    const duracaoTratamento = this._extractDuration(servico.duracao_media_tratamento);
+    const duracaoCaptura = this._extractDuration(detalhesObj.captura || servico.duracao_media_captura);
+    const duracaoTratamento = this._extractDuration(detalhesObj.tratamento || servico.duracao_media_tratamento);
     
     // Calcula a duração média (ou usa o valor existente, se disponível)
     const duracaoMedia = servico.duracao_media || 
@@ -31,11 +45,11 @@ class ServiceTransformer {
       preco_base: servico.preco_base,
       duracao_media: duracaoMedia,
       detalhes: {
-        captura: servico.duracao_media_captura || '',
-        tratamento: servico.duracao_media_tratamento || '',
-        entregaveis: servico.entregaveis || '',
-        adicionais: servico.possiveis_adicionais || '',
-        deslocamento: servico.valor_deslocamento || ''
+        captura: detalhesObj.captura || servico.duracao_media_captura || '',
+        tratamento: detalhesObj.tratamento || servico.duracao_media_tratamento || '',
+        entregaveis: detalhesObj.entregaveis || servico.entregaveis || '',
+        adicionais: detalhesObj.adicionais || servico.possiveis_adicionais || '',
+        deslocamento: detalhesObj.deslocamento || servico.valor_deslocamento || ''
       }
     };
   }
@@ -50,6 +64,15 @@ class ServiceTransformer {
 
     const { detalhes = {} } = servicoSimulador;
     
+    // Criar objeto detalhes para armazenar como JSON string
+    const detalhesObj = {
+      captura: detalhes.captura || '',
+      tratamento: detalhes.tratamento || '',
+      entregaveis: detalhes.entregaveis || '',
+      adicionais: detalhes.adicionais || '',
+      deslocamento: detalhes.deslocamento || ''
+    };
+    
     return {
       nome: servicoSimulador.nome,
       descricao: servicoSimulador.descricao,
@@ -58,7 +81,8 @@ class ServiceTransformer {
       duracao_media_tratamento: detalhes.tratamento || '',
       entregaveis: detalhes.entregaveis || '',
       possiveis_adicionais: detalhes.adicionais || '',
-      valor_deslocamento: detalhes.deslocamento || ''
+      valor_deslocamento: detalhes.deslocamento || '',
+      detalhes: JSON.stringify(detalhesObj)
     };
   }
 
@@ -95,5 +119,4 @@ class ServiceTransformer {
   }
 }
 
-// Exportar uma instância única do transformador
 export default new ServiceTransformer();
