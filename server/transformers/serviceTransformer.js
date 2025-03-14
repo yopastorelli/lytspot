@@ -1,7 +1,7 @@
 /**
  * Transformador de Serviços
  * @description Converte dados de serviços entre diferentes formatos
- * @version 1.1.0 - 2025-03-14 - Atualizado para lidar com detalhes como JSON string
+ * @version 1.2.0 - 2025-03-14 - Melhorada a transformação para garantir estrutura de dados consistente
  */
 
 /**
@@ -30,9 +30,13 @@ class ServiceTransformer {
       }
     }
 
+    // Garantir que os campos de captura e tratamento estejam sempre presentes no objeto detalhes
+    const capturaValue = detalhesObj.captura || servico.duracao_media_captura || '';
+    const tratamentoValue = detalhesObj.tratamento || servico.duracao_media_tratamento || '';
+    
     // Extrai duração média aproximada a partir dos campos individuais
-    const duracaoCaptura = this._extractDuration(detalhesObj.captura || servico.duracao_media_captura);
-    const duracaoTratamento = this._extractDuration(detalhesObj.tratamento || servico.duracao_media_tratamento);
+    const duracaoCaptura = this._extractDuration(capturaValue);
+    const duracaoTratamento = this._extractDuration(tratamentoValue);
     
     // Calcula a duração média (ou usa o valor existente, se disponível)
     const duracaoMedia = servico.duracao_media || 
@@ -45,8 +49,8 @@ class ServiceTransformer {
       preco_base: servico.preco_base,
       duracao_media: duracaoMedia,
       detalhes: {
-        captura: detalhesObj.captura || servico.duracao_media_captura || '',
-        tratamento: detalhesObj.tratamento || servico.duracao_media_tratamento || '',
+        captura: capturaValue,
+        tratamento: tratamentoValue,
         entregaveis: detalhesObj.entregaveis || servico.entregaveis || '',
         adicionais: detalhesObj.adicionais || servico.possiveis_adicionais || '',
         deslocamento: detalhesObj.deslocamento || servico.valor_deslocamento || ''
