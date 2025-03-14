@@ -22,6 +22,7 @@ class ServiceTransformer {
       try {
         if (typeof servico.detalhes === 'string') {
           detalhesObj = JSON.parse(servico.detalhes);
+          console.log(`[serviceTransformer] Parse do campo detalhes para o serviço ${servico.id} - ${servico.nome}:`, detalhesObj);
         } else if (typeof servico.detalhes === 'object') {
           detalhesObj = servico.detalhes;
         }
@@ -31,6 +32,7 @@ class ServiceTransformer {
     }
 
     // Garantir que os campos de captura e tratamento estejam sempre presentes no objeto detalhes
+    // Priorizar os valores do campo detalhes sobre os campos individuais
     const capturaValue = detalhesObj.captura || servico.duracao_media_captura || '';
     const tratamentoValue = detalhesObj.tratamento || servico.duracao_media_tratamento || '';
     
@@ -51,12 +53,11 @@ class ServiceTransformer {
       deslocamento: detalhesObj.deslocamento || servico.valor_deslocamento || ''
     };
     
-    // Registra log para depuração se necessário
-    if (process.env.DEBUG) {
-      console.log(`[serviceTransformer] Transformando serviço ${servico.id} - ${servico.nome}`);
-      console.log(`[serviceTransformer] Detalhes originais:`, typeof servico.detalhes === 'string' ? servico.detalhes.substring(0, 100) + '...' : servico.detalhes);
-      console.log(`[serviceTransformer] Detalhes transformados:`, detalhesCompletos);
-    }
+    // Registra log para depuração
+    console.log(`[serviceTransformer] Transformando serviço ${servico.id} - ${servico.nome}`);
+    console.log(`[serviceTransformer] Detalhes originais:`, typeof servico.detalhes === 'string' ? servico.detalhes.substring(0, 100) + '...' : servico.detalhes);
+    console.log(`[serviceTransformer] Campos individuais: captura=${servico.duracao_media_captura}, tratamento=${servico.duracao_media_tratamento}`);
+    console.log(`[serviceTransformer] Detalhes transformados:`, detalhesCompletos);
     
     return {
       id: servico.id,
