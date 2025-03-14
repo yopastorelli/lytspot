@@ -14,7 +14,9 @@
     "render-build": "node render-build.js",
     "verificar-persistencia": "node server/scripts/verificarPersistencia.js",
     "inicializar-sistema": "node server/scripts/inicializarSistema.js",
-    "monitor-db": "node server/scripts/monitorBancoDados.js"
+    "monitor-db": "node server/scripts/monitorBancoDados.js",
+    "atualizar-servicos": "node server/scripts/popularServicos.js --update",
+    "atualizar-servicos-force": "node server/scripts/popularServicos.js --update --force"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",

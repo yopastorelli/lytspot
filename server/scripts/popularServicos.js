@@ -158,9 +158,107 @@ async function popularServicos() {
   log('=== POPULAÇÃO CONCLUÍDA ===');
 }
 
-// Executar população de serviços
-popularServicos()
-  .catch(error => {
-    console.error('Erro fatal durante a população de serviços:', error);
-    process.exit(1);
-  });
+/**
+ * Atualiza serviços existentes no banco de dados
+ * @param {boolean} forceUpdate Se true, força a atualização mesmo se os dados forem iguais
+ */
+async function atualizarServicosExistentes(forceUpdate = false) {
+  log('=== ATUALIZANDO SERVIÇOS EXISTENTES ===');
+  log(`Data e hora: ${new Date().toISOString()}`);
+  log(`Ambiente: ${process.env.NODE_ENV || 'não definido'}`);
+  log(`Modo: ${forceUpdate ? 'Forçado' : 'Normal'}`);
+  
+  try {
+    // Conectar ao banco de dados
+    await prisma.$connect();
+    log('Conexão estabelecida com sucesso');
+    
+    // Importar definições atualizadas
+    const { getUpdatedServiceDefinitions } = await import('../models/seeds/updatedServiceDefinitions.js');
+    const servicosAtualizados = getUpdatedServiceDefinitions();
+    log(`Obtidos ${servicosAtualizados.length} serviços para atualização`);
+    
+    // Verificar e atualizar cada serviço
+    for (const servicoAtualizado of servicosAtualizados) {
+      // Verificar se o serviço existe no banco de dados
+      const servicoExistente = await prisma.servico.findFirst({
+        where: {
+          nome: servicoAtualizado.nome
+        }
+      });
+      
+      if (servicoExistente) {
+        // Se forçar atualização ou se houver diferenças, atualizar
+        if (forceUpdate || JSON.stringify(servicoExistente) !== JSON.stringify({...servicoExistente, ...sanitizeServiceData(servicoAtualizado)})) {
+          log(`Atualizando serviço "${servicoAtualizado.nome}" (ID: ${servicoExistente.id})...`);
+          
+          try {
+            const servicoAtual = await prisma.servico.update({
+              where: { id: servicoExistente.id },
+              data: sanitizeServiceData(servicoAtualizado)
+            });
+            
+            log(`Serviço atualizado com sucesso (ID: ${servicoAtual.id})`);
+          } catch (error) {
+            log(`Erro ao atualizar serviço "${servicoAtualizado.nome}": ${error.message}`);
+          }
+        } else {
+          log(`Serviço "${servicoAtualizado.nome}" já está atualizado (ID: ${servicoExistente.id})`);
+        }
+      } else {
+        // Criar serviço se não existir
+        log(`Criando serviço "${servicoAtualizado.nome}"...`);
+        const sanitizedData = sanitizeServiceData(servicoAtualizado);
+        
+        try {
+          const novoServico = await prisma.servico.create({
+            data: sanitizedData
+          });
+          
+          log(`Serviço criado com sucesso (ID: ${novoServico.id})`);
+        } catch (error) {
+          log(`Erro ao criar serviço "${servicoAtualizado.nome}": ${error.message}`);
+        }
+      }
+    }
+    
+    // Verificar resultado final
+    const countFinal = await prisma.servico.count();
+    log(`Total de serviços após atualização: ${countFinal}`);
+    
+    log('Atualização de serviços concluída com sucesso');
+  } catch (error) {
+    log(`Erro durante a atualização de serviços: ${error.message}`);
+    console.error('Detalhes do erro:', error);
+  } finally {
+    await prisma.$disconnect();
+    log('Desconectado do banco de dados');
+  }
+  
+  log('=== ATUALIZAÇÃO CONCLUÍDA ===');
+}
+
+// Exportar a função para uso em outros scripts
+export { atualizarServicosExistentes };
+
+// Verificar argumentos da linha de comando para determinar o modo de execução
+const args = process.argv.slice(2);
+if (args.includes('--update')) {
+  const forceUpdate = args.includes('--force');
+  atualizarServicosExistentes(forceUpdate)
+    .then(() => {
+      log('Script de atualização concluído');
+      process.exit(0);
+    })
+    .catch(error => {
+      log(`Erro fatal: ${error.message}`);
+      process.exit(1);
+    });
+} else if (!args.includes('--no-run')) {
+  // Executar população de serviços por padrão
+  popularServicos()
+    .catch(error => {
+      console.error('Erro fatal durante a população de serviços:', error);
+      process.exit(1);
+    });
+}

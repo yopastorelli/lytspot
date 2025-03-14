@@ -120,6 +120,30 @@ async function prestart() {
       // Continuar mesmo com erro para tentar iniciar o servidor
     }
     
+    // Atualizar serviços no ambiente Render
+    if (isRenderEnvironment()) {
+      // Verificar se a atualização automática está habilitada
+      const autoUpdateEnabled = process.env.ENABLE_AUTO_SERVICE_UPDATE === 'true';
+      
+      if (autoUpdateEnabled) {
+        log('Atualização automática de serviços habilitada');
+        log('Executando atualização de serviços no ambiente Render...');
+        try {
+          // Importar a função de atualização de serviços
+          const { atualizarServicosExistentes } = await import('./popularServicos.js');
+          
+          // Executar atualização forçada
+          await atualizarServicosExistentes(true);
+          log('Atualização de serviços concluída com sucesso');
+        } catch (error) {
+          log(`Erro durante atualização de serviços: ${error.message}`);
+          // Continuar mesmo com erro para tentar iniciar o servidor
+        }
+      } else {
+        log('Atualização automática de serviços desabilitada');
+      }
+    }
+    
     log('Pré-inicialização concluída com sucesso');
   } catch (error) {
     log(`Erro durante pré-inicialização: ${error.message}`);
