@@ -1,7 +1,7 @@
 /**
  * Transformador de Serviços
  * @description Converte dados de serviços entre diferentes formatos
- * @version 1.3.0 - 2025-03-14 - Corrigida a transformação para garantir estrutura de dados consistente entre backend e frontend
+ * @version 1.4.0 - 2025-03-14 - Adicionados logs detalhados para diagnóstico de inconsistências entre ambientes
  */
 
 /**
@@ -16,18 +16,25 @@ class ServiceTransformer {
   toSimulatorFormat(servico) {
     if (!servico) return null;
 
+    console.log(`[serviceTransformer] Início da transformação para o serviço ${servico.id} - ${servico.nome}`);
+    console.log(`[serviceTransformer] Tipo do campo detalhes: ${typeof servico.detalhes}`);
+    console.log(`[serviceTransformer] Valor bruto do campo detalhes: ${JSON.stringify(servico.detalhes).substring(0, 200)}`);
+
     // Tenta fazer parse do campo detalhes se for uma string
     let detalhesObj = {};
     if (servico.detalhes) {
       try {
         if (typeof servico.detalhes === 'string') {
+          console.log(`[serviceTransformer] Tentando fazer parse do campo detalhes como string para o serviço ${servico.id}`);
           detalhesObj = JSON.parse(servico.detalhes);
-          console.log(`[serviceTransformer] Parse do campo detalhes para o serviço ${servico.id} - ${servico.nome}:`, detalhesObj);
+          console.log(`[serviceTransformer] Parse do campo detalhes para o serviço ${servico.id} - ${servico.nome}:`, JSON.stringify(detalhesObj));
         } else if (typeof servico.detalhes === 'object') {
+          console.log(`[serviceTransformer] Campo detalhes já é um objeto para o serviço ${servico.id}`);
           detalhesObj = servico.detalhes;
         }
       } catch (error) {
-        console.error(`Erro ao fazer parse do campo detalhes do serviço ${servico.id}:`, error);
+        console.error(`[serviceTransformer] Erro ao fazer parse do campo detalhes do serviço ${servico.id}:`, error.message);
+        console.error(`[serviceTransformer] Conteúdo que causou erro: ${servico.detalhes.substring(0, 100)}`);
       }
     }
 
@@ -36,9 +43,13 @@ class ServiceTransformer {
     const capturaValue = detalhesObj.captura || servico.duracao_media_captura || '';
     const tratamentoValue = detalhesObj.tratamento || servico.duracao_media_tratamento || '';
     
+    console.log(`[serviceTransformer] Valores extraídos - captura: "${capturaValue}", tratamento: "${tratamentoValue}"`);
+    
     // Extrai duração média aproximada a partir dos campos individuais
     const duracaoCaptura = this._extractDuration(capturaValue);
     const duracaoTratamento = this._extractDuration(tratamentoValue);
+    
+    console.log(`[serviceTransformer] Durações extraídas - captura: ${duracaoCaptura}, tratamento: ${duracaoTratamento}`);
     
     // Calcula a duração média (ou usa o valor existente, se disponível)
     const duracaoMedia = servico.duracao_media || 
@@ -55,11 +66,12 @@ class ServiceTransformer {
     
     // Registra log para depuração
     console.log(`[serviceTransformer] Transformando serviço ${servico.id} - ${servico.nome}`);
-    console.log(`[serviceTransformer] Detalhes originais:`, typeof servico.detalhes === 'string' ? servico.detalhes.substring(0, 100) + '...' : servico.detalhes);
+    console.log(`[serviceTransformer] Detalhes originais (tipo): ${typeof servico.detalhes}`);
+    console.log(`[serviceTransformer] Detalhes originais (conteúdo): ${typeof servico.detalhes === 'string' ? servico.detalhes.substring(0, 100) + '...' : JSON.stringify(servico.detalhes).substring(0, 100) + '...'}`);
     console.log(`[serviceTransformer] Campos individuais: captura=${servico.duracao_media_captura}, tratamento=${servico.duracao_media_tratamento}`);
-    console.log(`[serviceTransformer] Detalhes transformados:`, detalhesCompletos);
+    console.log(`[serviceTransformer] Detalhes transformados: ${JSON.stringify(detalhesCompletos)}`);
     
-    return {
+    const resultado = {
       id: servico.id,
       nome: servico.nome,
       descricao: servico.descricao,
@@ -67,6 +79,10 @@ class ServiceTransformer {
       duracao_media: duracaoMedia,
       detalhes: detalhesCompletos
     };
+    
+    console.log(`[serviceTransformer] Resultado final da transformação: ${JSON.stringify(resultado).substring(0, 200)}...`);
+    
+    return resultado;
   }
 
   /**

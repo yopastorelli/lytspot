@@ -58,6 +58,7 @@ export function initializePrisma(options = {}) {
  * Sanitiza os dados de um serviço para o formato do banco de dados
  * @param {Object} servicoData - Dados do serviço
  * @returns {Object} Dados sanitizados
+ * @version 1.2.0 - 2025-03-14 - Adicionados logs detalhados para diagnóstico
  */
 export function sanitizeServiceData(servicoData) {
   try {
@@ -69,6 +70,7 @@ export function sanitizeServiceData(servicoData) {
     // Registrar estado inicial dos campos relevantes
     log('DEBUG', `Estado inicial - duracao_media_captura: ${sanitizedData.duracao_media_captura || 'não definido'}`);
     log('DEBUG', `Estado inicial - duracao_media_tratamento: ${sanitizedData.duracao_media_tratamento || 'não definido'}`);
+    log('DEBUG', `Estado inicial - tipo do campo detalhes: ${typeof sanitizedData.detalhes}`);
     log('DEBUG', `Estado inicial - detalhes: ${typeof sanitizedData.detalhes === 'object' 
       ? JSON.stringify(sanitizedData.detalhes).substring(0, 100) + '...' 
       : (sanitizedData.detalhes || 'não definido')}`);
@@ -79,16 +81,19 @@ export function sanitizeServiceData(servicoData) {
     if (sanitizedData.detalhes) {
       if (typeof sanitizedData.detalhes === 'string') {
         try {
+          log('DEBUG', `Tentando fazer parse do campo detalhes como string: "${sanitizedData.detalhes.substring(0, 50)}..."`);
           detalhesObj = JSON.parse(sanitizedData.detalhes);
-          log('DEBUG', `Parse do campo detalhes como string: ${JSON.stringify(detalhesObj).substring(0, 100)}...`);
+          log('DEBUG', `Parse do campo detalhes como string bem-sucedido: ${JSON.stringify(detalhesObj).substring(0, 100)}...`);
         } catch (e) {
           log('WARN', `Erro ao fazer parse do campo detalhes como JSON: ${e.message}`);
+          log('WARN', `Conteúdo que causou erro: "${sanitizedData.detalhes.substring(0, 50)}..."`);
           // Criar um objeto vazio se não for possível fazer o parse
           detalhesObj = {};
         }
       } else if (typeof sanitizedData.detalhes === 'object') {
         detalhesObj = { ...sanitizedData.detalhes };
         log('DEBUG', `Campo detalhes já é um objeto: ${JSON.stringify(detalhesObj).substring(0, 100)}...`);
+        log('DEBUG', `Propriedades do objeto detalhes: ${Object.keys(detalhesObj).join(', ')}`);
       } else {
         log('WARN', `Campo detalhes com formato inesperado: ${typeof sanitizedData.detalhes}`);
         detalhesObj = {};
@@ -122,7 +127,7 @@ export function sanitizeServiceData(servicoData) {
     // Atualizar o campo detalhes com o objeto completo
     sanitizedData.detalhes = detalhesObj;
     
-    log('DEBUG', `Detalhes sanitizados: ${JSON.stringify(sanitizedData.detalhes).substring(0, 100)}...`);
+    log('DEBUG', `Detalhes sanitizados (objeto): ${JSON.stringify(sanitizedData.detalhes).substring(0, 100)}...`);
     
     // Garantir que o preço seja um número
     if (sanitizedData.preco_base) {

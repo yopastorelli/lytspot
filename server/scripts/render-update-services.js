@@ -1,340 +1,122 @@
 /**
- * Script de atualização de serviços específico para ambiente Render
- * @version 2.0.1 - 2025-03-14 - Melhorado tratamento de erros para ambiente de desenvolvimento
+ * Script para atualização de serviços no ambiente Render
+ * @description Carrega definições de serviços e atualiza no banco de dados
+ * @version 1.3.0 - 2025-03-14 - Removidas funções duplicadas e adicionados logs detalhados
  */
 
-import fs from 'fs';
+// Importações
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-
-// Importar módulos utilitários
-import { clearApiCache, checkCacheStatus } from '../utils/cacheManager.js';
+import { loadServiceDefinitions } from '../utils/serviceDefinitionLoader.js';
 import { initializePrisma, updateServices } from '../utils/databaseUpdater.js';
+import axios from 'axios';
 
-// Carregar variáveis de ambiente
+// Configuração de ambiente
 dotenv.config();
+const isRender = process.env.RENDER === 'true';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Configurar ambiente de desenvolvimento
-if (!process.env.RENDER) {
-  process.env.NODE_ENV = 'development';
-  process.env.DEBUG = 'true';
-}
+// Função principal
+async function main() {
+  console.log('='.repeat(80));
+  console.log(`[render-update-services] Iniciando atualização de serviços (v1.3.0) - ${new Date().toISOString()}`);
+  console.log(`[render-update-services] Ambiente: ${isRender ? 'Render (Produção)' : 'Local (Desenvolvimento)'}`);
+  console.log('='.repeat(80));
 
-// Configurar diretório atual
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const projectRoot = process.env.RENDER ? '/opt/render/project/src' : path.resolve(__dirname, '..', '..');
-
-// Caminho para o arquivo de definições de serviços (usando caminho absoluto no Render)
-const serviceDefinitionsPath = process.env.SERVICE_DEFINITIONS_PATH || (
-  process.env.RENDER 
-    ? path.join(projectRoot, 'server', 'models', 'seeds', 'updatedServiceDefinitions.js')
-    : path.join(__dirname, '..', 'models', 'seeds', 'updatedServiceDefinitions.js')
-);
-
-// Configurar logger
-const logDir = path.join(process.env.RENDER ? projectRoot : __dirname, '..', 'logs');
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
-}
-
-const logFilePath = path.join(logDir, 'render-update-services.log');
-
-/**
- * Função para registrar logs com timestamp
- * @param {string} level - Nível do log (INFO, ERROR, etc)
- * @param {string} message - Mensagem do log
- */
-function log(level, message) {
-  const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}] [${level}] ${message}\n`;
-  
-  // Registrar no console
-  console.log(logMessage);
-  
-  // Registrar no arquivo
   try {
-    fs.appendFileSync(logFilePath, logMessage);
-  } catch (error) {
-    console.error(`Erro ao escrever no arquivo de log: ${error.message}`);
-  }
-}
-
-/**
- * Carrega as definições de serviços do arquivo especificado
- * @param {string} filePath Caminho do arquivo de definições
- * @param {Function} logFunction Função para registrar logs
- * @returns {Promise<Array>} Array com as definições de serviços
- */
-async function loadServiceDefinitions(filePath, logFunction) {
-  try {
-    logFunction('INFO', `Tentando carregar definições de: ${filePath}`);
+    // Determinar caminho para o arquivo de definições de serviços
+    const definitionsPath = isRender
+      ? path.join(__dirname, '../data/serviceDefinitions.js')
+      : path.join(__dirname, '../data/serviceDefinitions.js');
     
-    // Importar definições de serviços
-    const servicosModule = await import(filePath);
-    const servicos = servicosModule.default || servicosModule;
-    
-    if (!Array.isArray(servicos)) {
-      logFunction('ERROR', `Formato inválido de definições de serviços: ${typeof servicos}`);
-      return [];
-    }
-    
-    // Registrar detalhes de cada serviço para diagnóstico
-    servicos.forEach((servico, index) => {
-      logFunction('DEBUG', `Serviço #${index + 1}: ${servico.nome}`);
-      logFunction('DEBUG', `  - Detalhes: ${typeof servico.detalhes === 'object' ? 
-        JSON.stringify(servico.detalhes).substring(0, 100) + '...' : 
-        (servico.detalhes || 'não definido')}`);
-      logFunction('DEBUG', `  - Campos individuais: captura=${servico.duracao_media_captura || 'não definido'}, tratamento=${servico.duracao_media_tratamento || 'não definido'}`);
-    });
-    
-    return servicos;
-  } catch (error) {
-    logFunction('ERROR', `Erro ao carregar definições de serviços: ${error.message}`);
-    logFunction('ERROR', `Stack: ${error.stack}`);
-    return [];
-  }
-}
-
-/**
- * Inicializa o cliente Prisma
- * @param {Object} options Opções de inicialização
- * @returns {Object} Cliente Prisma inicializado
- */
-function initializePrisma({ prismaOptions = {}, logFunction = console.log }) {
-  try {
-    // Importar PrismaClient
-    const { PrismaClient } = require('@prisma/client');
-    
-    // Criar instância do cliente
-    const prisma = new PrismaClient(prismaOptions);
-    
-    // Adicionar middleware para logging de queries
-    prisma.$use(async (params, next) => {
-      const start = Date.now();
-      const result = await next(params);
-      const end = Date.now();
-      
-      logFunction('DEBUG', `Prisma Query: ${params.model}.${params.action} - ${end - start}ms`);
-      
-      // Para operações de update, registrar os dados enviados
-      if (params.action === 'update' && params.args.data) {
-        logFunction('DEBUG', `Update data para ${params.model}: ${JSON.stringify(params.args.data).substring(0, 200)}...`);
-        
-        // Verificar especificamente o campo detalhes
-        if (params.args.data.detalhes) {
-          logFunction('DEBUG', `Campo detalhes: ${typeof params.args.data.detalhes} - ${params.args.data.detalhes.substring(0, 100)}...`);
-        }
-      }
-      
-      return result;
-    });
-    
-    return prisma;
-  } catch (error) {
-    logFunction('ERROR', `Erro ao inicializar Prisma: ${error.message}`);
-    throw error;
-  }
-}
-
-/**
- * Limpa o cache da API
- * @param {Object} options Opções para limpeza do cache
- * @returns {Promise<boolean>} true se o cache foi limpo com sucesso, false caso contrário
- */
-async function clearApiCache(options) {
-  const { baseUrl, cacheSecret, logFunction = log } = options;
-  
-  try {
-    logFunction('INFO', `Tentando limpar cache da API em: ${baseUrl}/api/cache/clear`);
-    
-    const response = await axios.post(`${baseUrl}/api/cache/clear`, {
-      secret: cacheSecret
-    });
-    
-    if (response.status === 200 && response.data.success) {
-      logFunction('INFO', 'Cache da API limpo com sucesso');
-      return true;
-    } else {
-      logFunction('WARN', `Resposta inesperada ao limpar cache: ${JSON.stringify(response.data)}`);
-      return false;
-    }
-  } catch (error) {
-    logFunction('ERROR', `Erro ao limpar cache da API: ${error.message}`);
-    return false;
-  }
-}
-
-/**
- * Verifica o status do cache da API
- * @param {Object} options Opções para verificação do cache
- * @returns {Promise<Object>} Status do cache
- */
-async function checkCacheStatus(options) {
-  const { baseUrl, logFunction = log } = options;
-  
-  try {
-    logFunction('INFO', `Verificando status do cache em: ${baseUrl}/api/cache/status`);
-    
-    const response = await axios.get(`${baseUrl}/api/cache/status`);
-    
-    if (response.status === 200) {
-      logFunction('INFO', `Status do cache: ${JSON.stringify(response.data)}`);
-      return response.data;
-    } else {
-      logFunction('WARN', `Resposta inesperada ao verificar cache: ${response.status}`);
-      return null;
-    }
-  } catch (error) {
-    logFunction('ERROR', `Erro ao verificar status do cache: ${error.message}`);
-    return null;
-  }
-}
-
-/**
- * Função principal para atualizar serviços
- */
-async function atualizarServicos() {
-  try {
-    log('INFO', '=== INICIANDO ATUALIZAÇÃO DE SERVIÇOS ===');
-    log('INFO', `Ambiente: ${process.env.RENDER ? 'Render (Produção)' : 'Local (Desenvolvimento)'}`);
-    log('INFO', `Diretório do projeto: ${projectRoot}`);
-    log('INFO', `Caminho das definições: ${serviceDefinitionsPath}`);
-    
-    // Inicializar cliente Prisma
-    const prisma = initializePrisma({
-      prismaOptions: {
-        log: ['error', 'warn'],
-        errorFormat: 'pretty'
-      },
-      logFunction: log
-    });
-    
-    log('INFO', 'Cliente Prisma inicializado com sucesso');
+    console.log(`[render-update-services] Carregando definições de serviços de: ${definitionsPath}`);
     
     // Carregar definições de serviços
-    log('INFO', 'Carregando definições de serviços...');
-    const servicosDefinicoes = await loadServiceDefinitions(serviceDefinitionsPath, log);
+    const serviceDefinitions = await loadServiceDefinitions(definitionsPath, console.log);
     
-    if (!servicosDefinicoes || servicosDefinicoes.length === 0) {
-      log('ERROR', 'Não foi possível carregar as definições de serviços');
+    if (!serviceDefinitions || !Array.isArray(serviceDefinitions) || serviceDefinitions.length === 0) {
+      console.error('[render-update-services] Erro: Nenhuma definição de serviço encontrada ou formato inválido');
       process.exit(1);
     }
     
-    log('INFO', `${servicosDefinicoes.length} definições de serviços carregadas com sucesso`);
+    console.log(`[render-update-services] Carregadas ${serviceDefinitions.length} definições de serviços`);
     
-    // Verificar estrutura dos serviços antes da atualização
-    log('INFO', 'Verificando estrutura dos serviços antes da atualização...');
-    const servicosAtuais = await prisma.servico.findMany();
-    
-    log('INFO', `${servicosAtuais.length} serviços encontrados no banco de dados`);
-    
-    // Registrar detalhes de alguns serviços para diagnóstico
-    if (servicosAtuais.length > 0) {
-      const amostra = servicosAtuais.slice(0, 2); // Analisar apenas os 2 primeiros para não sobrecarregar os logs
+    // Log detalhado de cada serviço para diagnóstico
+    serviceDefinitions.forEach((service, index) => {
+      console.log(`[render-update-services] Serviço #${index + 1}: ${service.nome}`);
+      console.log(`[render-update-services] - Tipo do campo detalhes: ${typeof service.detalhes}`);
       
-      amostra.forEach(servico => {
-        log('DEBUG', `Serviço atual ID ${servico.id}: ${servico.nome}`);
-        log('DEBUG', `  - Detalhes: ${typeof servico.detalhes === 'string' ? 
-          servico.detalhes.substring(0, 100) + '...' : 
-          JSON.stringify(servico.detalhes).substring(0, 100) + '...'}`);
-        log('DEBUG', `  - Campos individuais: captura=${servico.duracao_media_captura || 'não definido'}, tratamento=${servico.duracao_media_tratamento || 'não definido'}`);
+      if (typeof service.detalhes === 'object') {
+        console.log(`[render-update-services] - Propriedades do objeto detalhes: ${Object.keys(service.detalhes).join(', ')}`);
+        console.log(`[render-update-services] - Valor de detalhes.captura: ${service.detalhes.captura || 'não definido'}`);
+        console.log(`[render-update-services] - Valor de detalhes.tratamento: ${service.detalhes.tratamento || 'não definido'}`);
+      } else if (typeof service.detalhes === 'string') {
+        console.log(`[render-update-services] - Conteúdo do campo detalhes (string): "${service.detalhes.substring(0, 100)}..."`);
         
-        // Tentar fazer parse do campo detalhes se for string
-        if (typeof servico.detalhes === 'string') {
-          try {
-            const detalhesObj = JSON.parse(servico.detalhes);
-            log('DEBUG', `  - Detalhes parseados: ${JSON.stringify(detalhesObj).substring(0, 100)}...`);
-          } catch (e) {
-            log('WARN', `  - Erro ao fazer parse do campo detalhes: ${e.message}`);
-          }
+        try {
+          const parsedDetails = JSON.parse(service.detalhes);
+          console.log(`[render-update-services] - Parse bem-sucedido, propriedades: ${Object.keys(parsedDetails).join(', ')}`);
+        } catch (e) {
+          console.log(`[render-update-services] - Erro ao fazer parse do campo detalhes: ${e.message}`);
         }
-      });
-    }
+      }
+      
+      console.log(`[render-update-services] - Campo duracao_media_captura: ${service.duracao_media_captura || 'não definido'}`);
+      console.log(`[render-update-services] - Campo duracao_media_tratamento: ${service.duracao_media_tratamento || 'não definido'}`);
+      console.log('-'.repeat(40));
+    });
+    
+    // Inicializar cliente Prisma
+    console.log('[render-update-services] Inicializando cliente Prisma');
+    const prisma = initializePrisma({
+      logFunction: console.log,
+      prismaOptions: {
+        log: ['query', 'info', 'warn', 'error']
+      }
+    });
     
     // Atualizar serviços no banco de dados
-    log('INFO', 'Atualizando serviços no banco de dados...');
-    const resultado = await updateServices({
-      services: servicosDefinicoes,
-      forceUpdate: process.env.FORCE_UPDATE === 'true',
+    console.log('[render-update-services] Iniciando atualização de serviços no banco de dados');
+    const updateResult = await updateServices({
+      services: serviceDefinitions,
+      forceUpdate: true,
       prismaClient: prisma,
-      logFunction: log
+      logFunction: console.log
     });
     
-    // Exibir resumo da atualização
-    log('INFO', `Resumo da atualização: ${resultado.created} criados, ${resultado.updated} atualizados, ${resultado.unchanged} inalterados, ${resultado.errors} erros`);
+    console.log('='.repeat(80));
+    console.log('[render-update-services] Resultado da atualização:');
+    console.log(`- Total de serviços: ${serviceDefinitions.length}`);
+    console.log(`- Atualizados: ${updateResult.updated}`);
+    console.log(`- Criados: ${updateResult.created}`);
+    console.log(`- Sem alterações: ${updateResult.unchanged}`);
+    console.log(`- Erros: ${updateResult.errors}`);
+    console.log('='.repeat(80));
     
-    // Verificar detalhes dos erros, se houver
-    if (resultado.errors > 0) {
-      log('WARN', 'Detalhes dos erros:');
-      resultado.details
-        .filter(d => d.action === 'error')
-        .forEach(d => {
-          log('ERROR', `  - Serviço: ${d.nome}, Erro: ${d.error}`);
+    // Limpar cache da API, se estiver em produção
+    if (isRender && process.env.API_CACHE_PURGE_URL) {
+      try {
+        console.log('[render-update-services] Limpando cache da API');
+        const purgeResponse = await axios.post(process.env.API_CACHE_PURGE_URL, {
+          paths: ['/api/pricing', '/api/services']
         });
-    }
-    
-    // Limpar cache da API
-    log('INFO', 'Limpando cache da API...');
-    const cacheCleared = await clearApiCache({
-      baseUrl: process.env.BASE_URL || 'https://lytspot.onrender.com',
-      cacheSecret: process.env.CACHE_SECRET,
-      logFunction: log
-    });
-    
-    if (cacheCleared) {
-      log('INFO', 'Cache da API limpo com sucesso');
-      
-      // Verificar status do cache após limpeza
-      const cacheStatus = await checkCacheStatus({
-        baseUrl: process.env.BASE_URL || 'https://lytspot.onrender.com',
-        logFunction: log
-      });
-      
-      if (cacheStatus) {
-        log('INFO', `Status do cache após limpeza: ${JSON.stringify(cacheStatus)}`);
+        console.log(`[render-update-services] Cache limpo com sucesso: ${purgeResponse.status} ${purgeResponse.statusText}`);
+      } catch (cacheError) {
+        console.error(`[render-update-services] Erro ao limpar cache da API: ${cacheError.message}`);
       }
-    } else {
-      log('WARN', 'Não foi possível limpar o cache da API');
     }
     
-    // Fechar conexão com o banco de dados
-    await prisma.$disconnect();
-    log('INFO', 'Conexão com o banco de dados fechada');
-    
-    log('INFO', '=== ATUALIZAÇÃO CONCLUÍDA COM SUCESSO ===');
-    return true;
+    console.log('[render-update-services] Processo concluído com sucesso');
   } catch (error) {
-    log('ERROR', `Erro durante a atualização de serviços: ${error.message}`);
-    log('ERROR', error.stack || 'Sem stack trace disponível');
-    
-    try {
-      // Tentar fechar a conexão com o banco de dados em caso de erro
-      const prisma = global.prisma;
-      if (prisma) {
-        await prisma.$disconnect();
-        log('INFO', 'Conexão com o banco de dados fechada após erro');
-      }
-    } catch (disconnectError) {
-      log('ERROR', `Erro ao fechar conexão com o banco de dados: ${disconnectError.message}`);
-    }
-    
-    log('ERROR', '=== ATUALIZAÇÃO FALHOU ===');
-    return false;
+    console.error(`[render-update-services] Erro durante a execução: ${error.message}`);
+    console.error(error.stack);
+    process.exit(1);
+  } finally {
+    // Garantir que o processo termine
+    process.exit(0);
   }
 }
 
-// Executar a função principal
-atualizarServicos().then((success) => {
-  if (success) {
-    log('INFO', 'Script finalizado com sucesso');
-    process.exit(0);
-  } else {
-    log('ERROR', 'Script finalizado com erros');
-    process.exit(1);
-  }
-}).catch((error) => {
-  log('ERROR', `Erro fatal: ${error.message}`);
-  process.exit(1);
-});
+// Executar função principal
+main();
