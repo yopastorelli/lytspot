@@ -33,7 +33,7 @@ const PriceSimulator = () => {
     const controller = new AbortController();
     
     try {
-      console.log(`Carregando serviços da API: ${env.baseUrl}/api/pricing`);
+      console.log(`Carregando serviços da API: ${env.baseUrl}/pricing`);
       
       // Usa o serviço de API centralizado com o método específico
       const response = await servicosAPI.listar();

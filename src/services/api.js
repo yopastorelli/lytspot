@@ -1,6 +1,6 @@
 /**
  * Serviço centralizado para comunicação com a API
- * @version 1.0.5 - 2025-03-14 - Modificada importação do axios para compatibilidade com o build
+ * @version 1.0.6 - 2025-03-14 - Corrigida a configuração da URL base para evitar duplicação do prefixo /api
  * @description Fornece métodos para interagir com a API do backend
  */
 import axios from 'axios';
@@ -13,9 +13,20 @@ import { getEnvironment } from '../utils/environment';
 const createApiInstance = () => {
   const env = getEnvironment();
   
+  // Determinar a URL base correta para a API
+  // Garantir que a URL base tenha o prefixo /api apenas uma vez
+  let baseURL = env.baseUrl;
+  
+  // Se a baseURL não termina com /api, adicionar /api
+  if (!baseURL.endsWith('/api')) {
+    baseURL = `${baseURL}/api`;
+  }
+  
+  console.log(`[API] Configurando instância do axios com baseURL: ${baseURL}`);
+  
   // Criar instância do axios com a URL base correta
   const instance = axios.create({
-    baseURL: env.baseUrl,
+    baseURL,
     timeout: 10000,
     headers: {
       'Content-Type': 'application/json',
