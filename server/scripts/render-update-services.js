@@ -1,6 +1,6 @@
 /**
  * Script de atualização de serviços específico para ambiente Render
- * @version 1.5.0 - 2025-03-15 - Melhorado tratamento de erros e compatibilidade com Node.js 23+
+ * @version 1.5.1 - 2025-03-14 - Corrigido tratamento do campo detalhes para compatibilidade com Prisma
  */
 
 import fs from 'fs';
@@ -323,7 +323,7 @@ function extrairDefinicoesDoConteudo(content) {
  * @returns {string} Valor da propriedade
  */
 function extrairPropriedade(str, prop) {
-  const regex = new RegExp(`${prop}\\s*:\\s*['"]([^'"]*)['\"]|${prop}\\s*:\\s*([0-9.]+)`, 'i');
+  const regex = new RegExp(`${prop}\\s*:\\s*['"]([^'"]+)['\"]|${prop}\\s*:\\s*([0-9.]+)`, 'i');
   const match = str.match(regex);
   return match ? (match[1] || match[2] || '') : '';
 }
@@ -543,14 +543,26 @@ async function atualizarServicos() {
         }
       });
       
-      // Garantir que detalhes seja um objeto JSON e não uma string
-      if (typeof servico.detalhes === 'string') {
+      // Criar uma cópia do objeto serviço para manipulação
+      const servicoParaSalvar = { ...servico };
+      
+      // Garantir que detalhes seja uma string JSON e não um objeto
+      if (servicoParaSalvar.detalhes && typeof servicoParaSalvar.detalhes === 'object') {
         try {
-          servico.detalhes = JSON.parse(servico.detalhes);
-          log('INFO', `Convertido campo detalhes de string para objeto para o serviço "${servico.nome}"`);
+          servicoParaSalvar.detalhes = JSON.stringify(servicoParaSalvar.detalhes);
+          log('INFO', `Convertido campo detalhes de objeto para string JSON para o serviço "${servicoParaSalvar.nome}"`);
         } catch (e) {
-          log('WARN', `Erro ao converter detalhes para JSON para o serviço "${servico.nome}": ${e.message}`);
-          // Manter como string se não for possível converter
+          log('WARN', `Erro ao converter detalhes para string JSON para o serviço "${servicoParaSalvar.nome}": ${e.message}`);
+          servicoParaSalvar.detalhes = null; // Definir como null se não for possível converter
+        }
+      } else if (typeof servicoParaSalvar.detalhes === 'string') {
+        // Verificar se é uma string JSON válida
+        try {
+          JSON.parse(servicoParaSalvar.detalhes);
+          log('INFO', `Campo detalhes já é uma string JSON válida para o serviço "${servicoParaSalvar.nome}"`);
+        } catch (e) {
+          log('WARN', `Campo detalhes não é uma string JSON válida para o serviço "${servicoParaSalvar.nome}": ${e.message}`);
+          servicoParaSalvar.detalhes = null; // Definir como null se não for uma string JSON válida
         }
       }
       
@@ -562,16 +574,18 @@ async function atualizarServicos() {
         for (const campo in servico) {
           if (campo === 'detalhes') {
             // Comparar objetos de detalhes
-            const detalhesAtuais = typeof servicoExistente.detalhes === 'string' 
+            const detalhesAtuais = typeof servicoExistente.detalhes === 'string' && servicoExistente.detalhes
               ? JSON.parse(servicoExistente.detalhes) 
               : servicoExistente.detalhes;
               
-            const detalhesNovos = typeof servico.detalhes === 'string'
-              ? JSON.parse(servico.detalhes)
-              : servico.detalhes;
+            const detalhesNovos = typeof servico.detalhes === 'object'
+              ? servico.detalhes
+              : (typeof servico.detalhes === 'string' && servico.detalhes ? JSON.parse(servico.detalhes) : null);
               
             if (JSON.stringify(detalhesAtuais) !== JSON.stringify(detalhesNovos)) {
-              mudancas.detalhes = detalhesNovos;
+              mudancas.detalhes = typeof detalhesNovos === 'object' 
+                ? JSON.stringify(detalhesNovos) 
+                : detalhesNovos;
               temMudancas = true;
             }
           } else if (servicoExistente[campo] !== servico[campo]) {
@@ -594,7 +608,7 @@ async function atualizarServicos() {
             where: {
               id: servicoExistente.id
             },
-            data: servico
+            data: servicoParaSalvar
           });
           
           log('INFO', `Serviço "${servico.nome}" atualizado com sucesso (ID: ${servicoExistente.id})`);
@@ -607,12 +621,18 @@ async function atualizarServicos() {
         // Criar novo serviço
         log('INFO', `Criando novo serviço "${servico.nome}"`);
         
-        const novoServico = await prisma.servico.create({
-          data: servico
-        });
-        
-        log('INFO', `Serviço "${servico.nome}" criado com sucesso (ID: ${novoServico.id})`);
-        criados++;
+        try {
+          const novoServico = await prisma.servico.create({
+            data: servicoParaSalvar
+          });
+          
+          log('INFO', `Serviço "${servico.nome}" criado com sucesso (ID: ${novoServico.id})`);
+          criados++;
+        } catch (createError) {
+          log('ERROR', `Erro ao criar serviço "${servico.nome}": ${createError.message}`);
+          log('INFO', `Dados do serviço: ${JSON.stringify(servicoParaSalvar, null, 2)}`);
+          throw createError;
+        }
       }
     }
     
