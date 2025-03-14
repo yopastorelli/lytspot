@@ -1,7 +1,7 @@
 /**
  * Script para atualização de serviços no ambiente Render
  * @description Carrega definições de serviços e atualiza no banco de dados
- * @version 1.5.0 - 2025-03-14 - Adicionado suporte explícito para o caminho do SQLite no Render
+ * @version 1.6.0 - 2025-03-14 - Adicionada lógica para atualizar serviços existentes por nome em vez de criar novos
  */
 
 // Importações
@@ -10,7 +10,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadServiceDefinitions } from '../utils/serviceDefinitionLoader.js';
 import { PrismaClient } from '@prisma/client';
-import { updateServices } from '../utils/databaseUpdater.js';
 import axios from 'axios';
 
 // Configuração de ambiente
@@ -24,7 +23,7 @@ const RENDER_DB_PATH = 'file:/opt/render/project/src/database.sqlite';
 // Função principal
 async function main() {
   console.log('='.repeat(80));
-  console.log(`[render-update-services] Iniciando atualização de serviços (v1.5.0) - ${new Date().toISOString()}`);
+  console.log(`[render-update-services] Iniciando atualização de serviços (v1.6.0) - ${new Date().toISOString()}`);
   console.log(`[render-update-services] Ambiente: ${isRender ? 'Render (Produção)' : 'Local (Desenvolvimento)'}`);
   console.log('='.repeat(80));
 
@@ -110,22 +109,106 @@ async function main() {
     const servicosExistentes = await prisma.servico.findMany();
     console.log(`[render-update-services] Encontrados ${servicosExistentes.length} serviços no banco de dados`);
     
-    // Atualizar serviços no banco de dados
-    console.log('[render-update-services] Iniciando atualização de serviços no banco de dados');
-    const updateResult = await updateServices({
-      services: serviceDefinitions,
-      forceUpdate: true,
-      prismaClient: prisma,
-      logFunction: console.log
+    // Criar um mapa de serviços existentes por nome para facilitar a busca
+    const servicosPorNome = {};
+    servicosExistentes.forEach(servico => {
+      servicosPorNome[servico.nome] = servico;
     });
+    
+    // Atualizar serviços existentes ou criar novos
+    console.log('[render-update-services] Iniciando atualização de serviços no banco de dados');
+    
+    let atualizados = 0;
+    let criados = 0;
+    let erros = 0;
+    
+    for (const serviceDefinition of serviceDefinitions) {
+      try {
+        // Verificar se já existe um serviço com este nome
+        const servicoExistente = servicosPorNome[serviceDefinition.nome];
+        
+        // Preparar os dados para atualização
+        // Garantir que o campo detalhes seja um objeto JSON válido
+        let detalhesObj = {};
+        
+        // Se o serviço tem campos duracao_media_captura e duracao_media_tratamento, 
+        // mas não tem um campo detalhes estruturado, criar um
+        if (serviceDefinition.duracao_media_captura || serviceDefinition.duracao_media_tratamento) {
+          detalhesObj = {
+            captura: serviceDefinition.duracao_media_captura || '',
+            tratamento: serviceDefinition.duracao_media_tratamento || '',
+            entregaveis: serviceDefinition.entregaveis || '',
+            adicionais: serviceDefinition.possiveis_adicionais || '',
+            deslocamento: serviceDefinition.valor_deslocamento || ''
+          };
+        }
+        
+        // Se já existe um campo detalhes como objeto, usar ele
+        if (typeof serviceDefinition.detalhes === 'object') {
+          detalhesObj = { ...detalhesObj, ...serviceDefinition.detalhes };
+        } 
+        // Se é uma string JSON, fazer parse e mesclar
+        else if (typeof serviceDefinition.detalhes === 'string') {
+          try {
+            const parsedDetails = JSON.parse(serviceDefinition.detalhes);
+            detalhesObj = { ...detalhesObj, ...parsedDetails };
+          } catch (e) {
+            console.error(`[render-update-services] Erro ao fazer parse do campo detalhes: ${e.message}`);
+          }
+        }
+        
+        // Garantir que os campos captura e tratamento estejam sempre presentes
+        if (!detalhesObj.captura && serviceDefinition.duracao_media_captura) {
+          detalhesObj.captura = serviceDefinition.duracao_media_captura;
+        }
+        
+        if (!detalhesObj.tratamento && serviceDefinition.duracao_media_tratamento) {
+          detalhesObj.tratamento = serviceDefinition.duracao_media_tratamento;
+        }
+        
+        // Preparar dados para atualização ou criação
+        const dadosServico = {
+          nome: serviceDefinition.nome,
+          descricao: serviceDefinition.descricao,
+          preco_base: serviceDefinition.preco_base,
+          duracao_media_captura: serviceDefinition.duracao_media_captura,
+          duracao_media_tratamento: serviceDefinition.duracao_media_tratamento,
+          entregaveis: serviceDefinition.entregaveis,
+          possiveis_adicionais: serviceDefinition.possiveis_adicionais,
+          valor_deslocamento: serviceDefinition.valor_deslocamento,
+          detalhes: JSON.stringify(detalhesObj)
+        };
+        
+        // Se o serviço já existe, atualizar
+        if (servicoExistente) {
+          console.log(`[render-update-services] Atualizando serviço existente: ${serviceDefinition.nome} (ID: ${servicoExistente.id})`);
+          await prisma.servico.update({
+            where: { id: servicoExistente.id },
+            data: dadosServico
+          });
+          atualizados++;
+        } 
+        // Se não existe, criar novo
+        else {
+          console.log(`[render-update-services] Criando novo serviço: ${serviceDefinition.nome}`);
+          const novoServico = await prisma.servico.create({
+            data: dadosServico
+          });
+          console.log(`[render-update-services] Novo serviço criado com ID: ${novoServico.id}`);
+          criados++;
+        }
+      } catch (error) {
+        console.error(`[render-update-services] Erro ao processar serviço ${serviceDefinition.nome}:`, error.message);
+        erros++;
+      }
+    }
     
     console.log('='.repeat(80));
     console.log('[render-update-services] Resultado da atualização:');
-    console.log(`- Total de serviços: ${serviceDefinitions.length}`);
-    console.log(`- Atualizados: ${updateResult.updated}`);
-    console.log(`- Criados: ${updateResult.created}`);
-    console.log(`- Sem alterações: ${updateResult.unchanged}`);
-    console.log(`- Erros: ${updateResult.errors}`);
+    console.log(`- Total de serviços processados: ${serviceDefinitions.length}`);
+    console.log(`- Atualizados: ${atualizados}`);
+    console.log(`- Criados: ${criados}`);
+    console.log(`- Erros: ${erros}`);
     console.log('='.repeat(80));
     
     // Limpar cache da API, se estiver em produção
