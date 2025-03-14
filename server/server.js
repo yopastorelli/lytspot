@@ -328,7 +328,8 @@ try {
   console.log(`Servindo arquivos estáticos do diretório: ${distPath}`);
 
   // Rota para todas as outras requisições que não correspondem a rotas específicas
-  app.get('*', (req, res) => {
+  // e que não são requisições para a API
+  app.get(/^(?!\/api\/).+$/, (req, res) => {
     const indexPath = path.join(distPath, 'index.html');
     
     // Verificar se o arquivo index.html existe
