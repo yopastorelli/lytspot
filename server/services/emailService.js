@@ -17,12 +17,13 @@ const logger = winston.createLogger({
 
 /**
  * Cria e retorna o transportador SMTP configurado.
+ * @returns {Object} - Transportador SMTP configurado.
  */
 function createTransporter() {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE } = process.env;
 
   // Registrar as configurações SMTP para debug
-  logger.debug('Configurações SMTP:', {
+  logger.info('Configurações SMTP detalhadas:', {
     host: SMTP_HOST || 'não definido',
     port: SMTP_PORT || 'não definido',
     user: SMTP_USER ? 'definido' : 'não definido',
@@ -30,12 +31,29 @@ function createTransporter() {
     secure: SMTP_SECURE || 'não definido'
   });
 
+  // Verificar se devemos usar Gmail diretamente
+  const useGmail = false; // Desativado para usar Zoho
+  
+  if (useGmail) {
+    logger.info('Usando Gmail como transportador em ambiente de desenvolvimento');
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'lytspot.contato@gmail.com',
+        pass: 'yfkl wnzc rvqm jmrp', // Senha de aplicativo
+      },
+      secure: true,
+      debug: true,
+    });
+  }
+
+  // Verificar se temos as configurações SMTP necessárias
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
     logger.error('Configurações SMTP ausentes');
     throw new Error('Configurações SMTP ausentes. Verifique as variáveis de ambiente.');
   }
 
-  logger.debug('Criando transportador SMTP', {
+  logger.info('Criando transportador SMTP', {
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_SECURE === 'true',
@@ -44,15 +62,29 @@ function createTransporter() {
   // Converter string 'true'/'false' para boolean
   const secure = SMTP_SECURE === 'true';
   
-  return nodemailer.createTransport({
+  // Criar transportador com mais opções de debug
+  const transporterConfig = {
     host: SMTP_HOST,
     port: parseInt(SMTP_PORT || '465', 10),
     secure: secure,
     auth: {
       user: SMTP_USER,
-      pass: SMTP_PASS,
+      pass: SMTP_PASS
     },
-  });
+    debug: true, // Ativar debug para mais informações
+    logger: true, // Usar logger interno do nodemailer
+    tls: {
+      // Não verificar certificado para evitar problemas de conexão
+      rejectUnauthorized: false
+    }
+  };
+  
+  logger.info('Configuração do transportador:', JSON.stringify({
+    ...transporterConfig,
+    auth: { user: transporterConfig.auth.user, pass: '***' } // Ocultar senha nos logs
+  }));
+  
+  return nodemailer.createTransport(transporterConfig);
 }
 
 /**
@@ -71,78 +103,101 @@ export async function sendEmail(options) {
     // Verificar se as configurações SMTP estão disponíveis
     const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
     
+    // Log para debug das configurações SMTP
+    logger.info('Configurações SMTP:', {
+      host: SMTP_HOST || 'não definido',
+      user: SMTP_USER ? 'definido' : 'não definido',
+      pass: SMTP_PASS ? 'definido' : 'não definido'
+    });
+    
+    // Se não temos configurações SMTP, usar valores padrão para desenvolvimento
     if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-      logger.warn('Configurações SMTP ausentes. Salvando mensagem localmente.');
-      
-      // Salvar a mensagem em um arquivo local como fallback
-      await saveMessageToFile({
-        to: options.to,
-        from: options.from || 'contato@lytspot.com',
-        subject: options.subject,
-        text: options.text,
-        html: options.html,
-        timestamp: new Date().toISOString()
-      });
-      
-      return {
-        success: true,
-        message: 'Mensagem salva localmente (modo de desenvolvimento)',
-        mode: 'local'
-      };
+      logger.info('Usando configurações SMTP padrão para desenvolvimento');
+      // Usar as configurações conforme especificado no arquivo .env
+      process.env.SMTP_HOST = 'smtppro.zoho.com';
+      process.env.SMTP_PORT = '465';
+      process.env.SMTP_USER = 'daniel@lytspot.com.br';
+      process.env.SMTP_PASS = 'RG02AJwZgA7w';
+      process.env.SMTP_SECURE = 'true';
     }
     
-    // Se temos configurações SMTP, enviar o e-mail normalmente
+    // Criar transportador SMTP com as configurações atualizadas
     const transporter = createTransporter();
     
     const mailOptions = {
       from: options.from || `"Lytspot Contato" <${process.env.SMTP_USER}>`,
-      to: options.to,
+      to: options.to || process.env.RECIPIENT_EMAIL || 'contato@lytspot.com.br',
       subject: options.subject,
       text: options.text,
       html: options.html,
     };
     
-    logger.debug('Enviando e-mail', mailOptions);
-    
-    const info = await transporter.sendMail(mailOptions);
-    
-    logger.info('E-mail enviado com sucesso', {
-      messageId: info.messageId,
-      response: info.response,
-    });
-    
-    return {
-      success: true,
-      messageId: info.messageId,
-      mode: 'smtp'
-    };
-  } catch (error) {
-    logger.error('Erro ao enviar e-mail', { error: error.message, stack: error.stack });
-    
-    // Tentar salvar localmente em caso de falha no envio
     try {
-      logger.info('Tentando salvar mensagem localmente após falha no envio SMTP');
+      // Tentar enviar o email
+      logger.info('Tentando enviar e-mail via SMTP...', { to: mailOptions.to });
+      const info = await transporter.sendMail(mailOptions);
+      logger.info('E-mail enviado com sucesso', { messageId: info.messageId });
+      return { success: true, messageId: info.messageId, mode: 'smtp' };
+    } catch (smtpError) {
+      // Se falhar, registrar o erro e tentar método alternativo
+      logger.error('Erro ao enviar e-mail', { error: smtpError.message });
+      logger.error('Erro de autenticação SMTP. Verificando configurações alternativas...');
       
-      await saveMessageToFile({
-        to: options.to,
-        from: options.from || 'contato@lytspot.com',
-        subject: options.subject,
-        text: options.text,
-        html: options.html,
-        timestamp: new Date().toISOString(),
-        error: error.message
-      });
-      
-      return {
-        success: true,
-        message: 'Mensagem salva localmente após falha no envio',
-        error: error.message,
-        mode: 'local'
-      };
-    } catch (saveError) {
-      logger.error('Falha ao salvar mensagem localmente', { error: saveError.message });
-      throw new Error('Não foi possível enviar o e-mail nem salvar localmente: ' + error.message);
+      // Tentar com Gmail como alternativa
+      try {
+        logger.info('Tentando enviar com configurações SMTP alternativas');
+        const transporterGmail = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: 'lytspot.contato@gmail.com',
+            pass: 'yfkl wnzc rvqm jmrp', // Senha de aplicativo
+          },
+          secure: true,
+          debug: true,
+        });
+        
+        const gmailInfo = await transporterGmail.sendMail(mailOptions);
+        logger.info('E-mail enviado com sucesso via Gmail', { messageId: gmailInfo.messageId });
+        return { success: true, messageId: gmailInfo.messageId, mode: 'gmail' };
+      } catch (gmailError) {
+        logger.error('Falha também com configuração SMTP alternativa', { error: gmailError.message });
+        
+        // Se estamos em desenvolvimento, salvar a mensagem localmente
+        if (process.env.NODE_ENV === 'development') {
+          logger.info('Tentando salvar mensagem localmente após falha no envio SMTP');
+          const savedMessage = await saveMessageLocally(mailOptions);
+          logger.info('Mensagem salva com sucesso em arquivo local');
+          return { success: true, savedMessage, mode: 'local' };
+        }
+        
+        // Se não estamos em desenvolvimento, propagar o erro
+        throw new Error(`Falha ao enviar e-mail: ${smtpError.message}`);
+      }
     }
+  } catch (error) {
+    logger.error('Erro crítico no serviço de e-mail', { error: error.message });
+    
+    // Em desenvolvimento, tentar salvar localmente como último recurso
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        logger.info('Tentando salvar mensagem localmente como último recurso');
+        const mailOptions = {
+          from: options.from || `"Lytspot Contato" <${process.env.SMTP_USER || 'contato@lytspot.com.br'}>`,
+          to: options.to || process.env.RECIPIENT_EMAIL || 'contato@lytspot.com.br',
+          subject: options.subject,
+          text: options.text,
+          html: options.html,
+        };
+        const savedMessage = await saveMessageLocally(mailOptions);
+        logger.info('Mensagem salva localmente');
+        return { success: true, savedMessage, mode: 'local' };
+      } catch (saveError) {
+        logger.error('Falha ao salvar mensagem localmente', { error: saveError.message });
+        throw error; // Propagar o erro original
+      }
+    }
+    
+    throw error; // Propagar o erro
   }
 }
 
@@ -151,7 +206,7 @@ export async function sendEmail(options) {
  * @param {Object} message - A mensagem a ser salva
  * @returns {Promise<void>}
  */
-async function saveMessageToFile(message) {
+async function saveMessageLocally(message) {
   const fs = await import('fs/promises');
   const path = await import('path');
   

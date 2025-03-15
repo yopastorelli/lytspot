@@ -1,15 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import axios from 'axios';
+import { getEnvironment } from '../../utils/environment';
 
 /**
  * Componente de calculadora de preços para o simulador
- * @version 2.0.0 - 2025-03-12 - Adicionado suporte para múltiplos serviços
+ * @version 2.1.0 - 2025-03-15 - Adicionado formulário de contato integrado
  */
 const PricingCalculator = ({ servicos }) => {
   const [quantidades, setQuantidades] = useState({});
   const [adicionais, setAdicionais] = useState([]);
   const [deslocamento, setDeslocamento] = useState(false);
   const [precoTotal, setPrecoTotal] = useState(0);
+  const [formData, setFormData] = useState({
+    nome: '',
+    email: '',
+    telefone: '',
+    metodoContato: 'email',
+    mensagem: ''
+  });
+  const [enviando, setEnviando] = useState(false);
+  const [mensagemStatus, setMensagemStatus] = useState(null);
 
   // Lista de adicionais disponíveis
   const opcoesAdicionais = [
@@ -88,6 +99,113 @@ const PricingCalculator = ({ servicos }) => {
     if (!servicos || servicos.length === 0) return 0;
     
     return Math.max(...servicos.map(servico => servico.duracao_media || 0));
+  };
+
+  // Manipula mudanças nos campos do formulário
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Prepara os detalhes dos serviços selecionados para o email
+  const prepararDetalhesServicos = () => {
+    return servicos.map(servico => ({
+      nome: servico.nome,
+      quantidade: quantidades[servico.id] || 1,
+      precoUnitario: servico.preco_base,
+      precoTotal: servico.preco_base * (quantidades[servico.id] || 1)
+    }));
+  };
+
+  // Prepara os detalhes dos adicionais selecionados para o email
+  const prepararDetalhesAdicionais = () => {
+    return adicionais.map(adicionalId => {
+      const adicional = opcoesAdicionais.find(a => a.id === adicionalId);
+      return {
+        nome: adicional.nome,
+        valor: adicional.valor
+      };
+    });
+  };
+
+  // Envia o formulário de orçamento
+  const enviarOrcamento = async (e) => {
+    e.preventDefault();
+    
+    // Validação básica
+    if (!formData.nome || !formData.email || (formData.metodoContato === 'telefone' && !formData.telefone)) {
+      setMensagemStatus({
+        tipo: 'erro',
+        texto: 'Por favor, preencha todos os campos obrigatórios.'
+      });
+      return;
+    }
+
+    setEnviando(true);
+    setMensagemStatus(null);
+
+    try {
+      // Preparar dados do orçamento
+      const dadosOrcamento = {
+        name: formData.nome, // Compatibilidade com o formato original
+        email: formData.email,
+        phone: formData.telefone, // Compatibilidade com o formato original
+        message: formData.mensagem, // Compatibilidade com o formato original
+        tipo: 'orcamento',
+        nome: formData.nome,
+        telefone: formData.telefone,
+        mensagem: formData.mensagem,
+        metodoContato: formData.metodoContato,
+        servicos: prepararDetalhesServicos(),
+        adicionais: prepararDetalhesAdicionais(),
+        deslocamento: deslocamento ? { incluido: true, valor: 120 } : { incluido: false },
+        precoTotal: precoTotal,
+        tempoEstimado: calcularTempoEntrega()
+      };
+
+      // Obter a URL base do ambiente
+      const env = getEnvironment();
+      
+      // Log para debug
+      console.info("Enviando orçamento para API", {
+        baseUrl: env.baseUrl,
+        endpoint: `${env.baseUrl}/api/contact`,
+        dados: dadosOrcamento
+      });
+      
+      // Enviar para o mesmo endpoint de contato
+      const response = await axios.post(`${env.baseUrl}/api/contact`, dadosOrcamento);
+      
+      if (response.status === 200 || response.status === 201) {
+        console.info("Orçamento enviado com sucesso", response.data);
+        setMensagemStatus({
+          tipo: 'sucesso',
+          texto: 'Orçamento enviado com sucesso! Entraremos em contato em breve.'
+        });
+        
+        // Limpar formulário
+        setFormData({
+          nome: '',
+          email: '',
+          telefone: '',
+          metodoContato: 'email',
+          mensagem: ''
+        });
+      } else {
+        throw new Error('Erro ao enviar orçamento');
+      }
+    } catch (error) {
+      console.error("Erro ao enviar orçamento:", error);
+      setMensagemStatus({
+        tipo: 'erro',
+        texto: 'Ocorreu um erro ao enviar o orçamento. Por favor, tente novamente mais tarde.'
+      });
+    } finally {
+      setEnviando(false);
+    }
   };
 
   if (!servicos || servicos.length === 0) return null;
@@ -195,10 +313,109 @@ const PricingCalculator = ({ servicos }) => {
           </p>
         </div>
         
-        {/* Botão de contato */}
-        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition duration-200">
-          Solicitar Orçamento Detalhado
-        </button>
+        {/* Formulário de contato */}
+        <form onSubmit={enviarOrcamento} className="space-y-4 border-t border-gray-200 pt-4 mt-4">
+          <h3 className="text-lg font-semibold text-gray-700">
+            Solicitar Orçamento Detalhado
+          </h3>
+          
+          {/* Campos de contato */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-1">
+                Nome *
+              </label>
+              <input
+                type="text"
+                id="nome"
+                name="nome"
+                value={formData.nome}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                E-mail *
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 mb-1">
+                Telefone {formData.metodoContato === 'telefone' || formData.metodoContato === 'whatsapp' ? '*' : ''}
+              </label>
+              <input
+                type="tel"
+                id="telefone"
+                name="telefone"
+                value={formData.telefone}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required={formData.metodoContato === 'telefone' || formData.metodoContato === 'whatsapp'}
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="metodoContato" className="block text-sm font-medium text-gray-700 mb-1">
+                Método de contato preferido *
+              </label>
+              <select
+                id="metodoContato"
+                name="metodoContato"
+                value={formData.metodoContato}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="email">E-mail</option>
+                <option value="telefone">Telefone</option>
+                <option value="whatsapp">WhatsApp</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* Campo de mensagem */}
+          <div>
+            <label htmlFor="mensagem" className="block text-sm font-medium text-gray-700 mb-1">
+              Detalhes adicionais ou dúvidas
+            </label>
+            <textarea
+              id="mensagem"
+              name="mensagem"
+              value={formData.mensagem}
+              onChange={handleInputChange}
+              rows="4"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            ></textarea>
+          </div>
+          
+          {/* Mensagem de status */}
+          {mensagemStatus && (
+            <div className={`p-3 rounded ${mensagemStatus.tipo === 'sucesso' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              {mensagemStatus.texto}
+            </div>
+          )}
+          
+          {/* Botão de envio */}
+          <button 
+            type="submit" 
+            disabled={enviando}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition duration-200 disabled:opacity-70"
+          >
+            {enviando ? 'Enviando...' : 'Solicitar Orçamento Detalhado'}
+          </button>
+        </form>
       </div>
     </div>
   );
