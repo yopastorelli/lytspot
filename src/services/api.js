@@ -1,6 +1,6 @@
 /**
  * Serviço centralizado para comunicação com a API
- * @version 1.0.7 - 2025-03-14 - Corrigida a configuração da URL base e adição do prefixo /api
+ * @version 1.5.0 - 2025-03-15 - Adicionado suporte para identificação de requisições do simulador
  * @description Fornece métodos para interagir com a API do backend
  */
 import axios from 'axios';
@@ -84,7 +84,41 @@ const api = createApiInstance();
 
 // Métodos específicos para diferentes recursos
 const servicosAPI = {
-  listar: () => api.get('/pricing'),
+  /**
+   * Lista todos os serviços disponíveis
+   * @param {Object} options Opções para a requisição
+   * @param {boolean} options.simulador Se true, indica que a requisição vem do simulador de preços
+   * @returns {Promise} Promessa com a resposta da API
+   */
+  listar: async (options = {}) => {
+    try {
+      // Construir parâmetros de consulta
+      const params = new URLSearchParams();
+      if (options.simulador) {
+        params.append('simulador', 'true');
+      }
+      
+      if (options.page) {
+        params.append('page', options.page);
+      }
+      
+      if (options.limit) {
+        params.append('limit', options.limit);
+      }
+      
+      if (options.search) {
+        params.append('search', options.search);
+      }
+      
+      // Construir URL com parâmetros
+      const url = `/pricing${params.toString() ? `?${params.toString()}` : ''}`;
+      
+      return api.get(url);
+    } catch (error) {
+      console.error('[API] Erro ao listar serviços:', error);
+      throw error;
+    }
+  },
   obter: (id) => api.get(`/pricing/${id}`),
   criar: (dados) => api.post('/pricing', dados),
   atualizar: (id, dados) => api.put(`/pricing/${id}`, dados),

@@ -6,6 +6,7 @@
 
 import express from 'express';
 import { clearCache, getCacheStatus } from '../middleware/cache.js';
+import { authenticateJWT } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -35,10 +36,53 @@ router.get('/status', (req, res) => {
 /**
  * @route GET /api/cache/clear
  * @description Limpa o cache da API
+ * @access Privado (requer autenticação)
+ */
+router.get('/clear', authenticateJWT, (req, res) => {
+  try {
+    clearCache();
+    res.status(200).json({ message: 'Cache limpo com sucesso' });
+  } catch (error) {
+    console.error('Erro ao limpar cache:', error);
+    res.status(500).json({ error: 'Erro ao limpar cache' });
+  }
+});
+
+/**
+ * @route GET /api/cache/dev/clear
+ * @description Limpa o cache da API (apenas em ambiente de desenvolvimento)
+ * @access Público
+ * @version 1.0.0 - 2025-03-15 - Adicionado para facilitar testes durante o desenvolvimento
+ */
+router.get('/dev/clear', (req, res) => {
+  try {
+    const env = process.env.NODE_ENV || 'development';
+    if (env !== 'production') {
+      clearCache();
+      console.log('[Cache] Cache limpo via rota de desenvolvimento');
+      res.status(200).json({ 
+        message: 'Cache limpo com sucesso (modo desenvolvimento)',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      console.warn('[Cache] Tentativa de limpar cache em produção via rota de desenvolvimento');
+      res.status(403).json({ 
+        error: 'Esta rota só está disponível em ambiente de desenvolvimento'
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao limpar cache:', error);
+    res.status(500).json({ error: 'Erro ao limpar cache' });
+  }
+});
+
+/**
+ * @route GET /api/cache/clear/key
+ * @description Limpa o cache da API por chave
  * @access Público
  * @query {string} key - Chave específica para limpar (opcional)
  */
-router.get('/clear', (req, res) => {
+router.get('/clear/key', (req, res) => {
   try {
     const { key } = req.query;
     

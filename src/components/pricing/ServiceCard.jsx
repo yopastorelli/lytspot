@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 /**
  * Componente de cartão de serviço para o simulador de preços
- * @version 1.2.0 - 2025-03-14 - Adicionados logs para depuração
+ * @version 1.3.0 - 2025-03-15 - Melhorada a resiliência a diferentes estruturas de dados
  */
 const ServiceCard = ({ servico, selecionado, onClick }) => {
   // Formata valores monetários
@@ -14,12 +14,44 @@ const ServiceCard = ({ servico, selecionado, onClick }) => {
     }).format(value);
   };
 
+  // Função para obter o valor de captura, tratando diferentes estruturas de dados
+  const getCaptura = () => {
+    // Verificar se existe na estrutura aninhada
+    if (servico.detalhes?.captura) {
+      return servico.detalhes.captura;
+    }
+    // Verificar se existe na estrutura plana
+    if (servico.duracao_media_captura) {
+      return servico.duracao_media_captura;
+    }
+    // Fallback
+    return 'Sob consulta';
+  };
+
+  // Função para obter o valor de tratamento, tratando diferentes estruturas de dados
+  const getTratamento = () => {
+    // Verificar se existe na estrutura aninhada
+    if (servico.detalhes?.tratamento) {
+      return servico.detalhes.tratamento;
+    }
+    // Verificar se existe na estrutura plana
+    if (servico.duracao_media_tratamento) {
+      return servico.duracao_media_tratamento;
+    }
+    // Fallback
+    return 'Sob consulta';
+  };
+
   // Log para depuração - será removido após resolução do problema
   useEffect(() => {
     console.log(`[ServiceCard] Renderizando serviço: ${servico.id} - ${servico.nome}`);
-    console.log('[ServiceCard] Detalhes do serviço:', servico.detalhes);
-    console.log('[ServiceCard] Captura:', servico.detalhes?.captura);
-    console.log('[ServiceCard] Tratamento:', servico.detalhes?.tratamento);
+    console.log('[ServiceCard] Estrutura do serviço:', {
+      detalhes: servico.detalhes,
+      duracao_media_captura: servico.duracao_media_captura,
+      duracao_media_tratamento: servico.duracao_media_tratamento,
+      captura_usada: getCaptura(),
+      tratamento_usado: getTratamento()
+    });
   }, [servico]);
 
   return (
@@ -51,11 +83,11 @@ const ServiceCard = ({ servico, selecionado, onClick }) => {
         <div className="text-xs text-gray-500 space-y-1 mb-4 flex-grow">
           <div className="flex justify-between">
             <span>Tempo de captura:</span>
-            <span className="font-medium">{servico.detalhes?.captura || 'Sob consulta'}</span>
+            <span className="font-medium">{getCaptura()}</span>
           </div>
           <div className="flex justify-between">
             <span>Tempo de tratamento:</span>
-            <span className="font-medium">{servico.detalhes?.tratamento || 'Sob consulta'}</span>
+            <span className="font-medium">{getTratamento()}</span>
           </div>
         </div>
         
@@ -86,7 +118,9 @@ ServiceCard.propTypes = {
       entregaveis: PropTypes.string,
       adicionais: PropTypes.string,
       deslocamento: PropTypes.string
-    })
+    }),
+    duracao_media_captura: PropTypes.string,
+    duracao_media_tratamento: PropTypes.string
   }).isRequired,
   selecionado: PropTypes.bool,
   onClick: PropTypes.func.isRequired

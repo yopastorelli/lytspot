@@ -4,7 +4,7 @@
  * Responsável por encapsular o acesso ao banco de dados para operações relacionadas a serviços,
  * incluindo listagem, criação, atualização, exclusão e consultas.
  * 
- * @version 1.6.0 - 2025-03-13 - Implementadas melhorias na persistência de dados e tratamento de erros
+ * @version 1.7.0 - 2025-03-15 - Implementado filtro para serviços do simulador de preços
  * @module repositories/serviceRepository
  */
 
@@ -24,10 +24,29 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..', '..');
 const logDir = path.resolve(rootDir, 'logs');
 
-// Garantir que o diretório de logs exista
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
-}
+// Lista de nomes de serviços que devem aparecer no simulador de preços
+// Estes são os 6 serviços definidos em dadosDemonstracao.js
+const SERVICOS_SIMULADOR = [
+  'Cobertura Fotográfica de Evento Social',
+  'Cobertura Fotográfica de Evento Corporativo',
+  'Ensaio Fotográfico de Família',
+  'Ensaio Fotográfico de Gestante',
+  'VLOG - Aventuras em Família',
+  'VLOG - Viagem em Família'
+];
+
+// Palavras-chave para identificar serviços do simulador no banco de dados
+const PALAVRAS_CHAVE_SIMULADOR = [
+  'VLOG',
+  'Aventuras',
+  'Viagem',
+  'Cobertura Fotográfica',
+  'Evento Social',
+  'Evento Corporativo',
+  'Ensaio Fotográfico',
+  'Família',
+  'Gestante'
+];
 
 // Contador de tentativas de reconexão
 let reconnectAttempts = 0;
@@ -91,18 +110,84 @@ class ServiceRepository {
    * @param {Object} options.where Filtros para a consulta
    * @param {number} options.take Número máximo de registros
    * @param {number} options.skip Número de registros para pular
+   * @param {boolean} options.apenasSimulador Se true, retorna apenas os serviços que devem aparecer no simulador
    * @returns {Promise<Array>} Lista de serviços
    */
   async findAll(options = {}) {
     try {
-      const { orderBy = { nome: 'asc' }, where = {}, take, skip } = options;
+      const { orderBy = { nome: 'asc' }, where = {}, take, skip, apenasSimulador = false } = options;
       
       // Verificar conexão com o banco de dados antes de tentar buscar
       await this.testDatabaseConnection();
       
+      // Se a opção apenasSimulador estiver ativada, adiciona filtro por nome
+      let whereClause = { ...where };
+      if (apenasSimulador) {
+        console.log('[serviceRepository] Filtrando apenas serviços do simulador');
+        
+        // Primeiro tenta buscar pela lista exata de nomes
+        const servicosExatos = await prisma.servico.findMany({
+          where: {
+            ...whereClause,
+            nome: {
+              in: SERVICOS_SIMULADOR
+            }
+          }
+        });
+        
+        console.log(`[serviceRepository] Encontrados ${servicosExatos.length} serviços com correspondência exata: ${servicosExatos.map(s => s.nome).join(', ')}`);
+        
+        // Se não encontrou todos os 6 serviços, busca por palavras-chave
+        if (servicosExatos.length < SERVICOS_SIMULADOR.length) {
+          console.log('[serviceRepository] Buscando serviços por palavras-chave...');
+          
+          try {
+            // Cria uma condição OR para cada palavra-chave
+            const orConditions = PALAVRAS_CHAVE_SIMULADOR.map(keyword => ({
+              nome: {
+                contains: keyword
+              }
+            }));
+            
+            console.log(`[serviceRepository] Condições OR: ${JSON.stringify(orConditions)}`);
+            
+            const servicosPorKeyword = await prisma.servico.findMany({
+              where: {
+                ...whereClause,
+                OR: orConditions
+              }
+            });
+            
+            console.log(`[serviceRepository] Encontrados ${servicosPorKeyword.length} serviços por palavras-chave: ${servicosPorKeyword.map(s => s.nome).join(', ')}`);
+            
+            // Combina os resultados, removendo duplicatas
+            const todosServicos = [...servicosExatos];
+            
+            servicosPorKeyword.forEach(servico => {
+              if (!todosServicos.some(s => s.id === servico.id)) {
+                todosServicos.push(servico);
+              }
+            });
+            
+            // Limita a 6 serviços no máximo
+            const servicosLimitados = todosServicos.slice(0, 6);
+            console.log(`[serviceRepository] Retornando ${servicosLimitados.length} serviços para o simulador: ${servicosLimitados.map(s => s.nome).join(', ')}`);
+            
+            return servicosLimitados;
+          } catch (error) {
+            console.error('[serviceRepository] Erro ao buscar serviços por palavras-chave:', error);
+            console.log('[serviceRepository] Retornando apenas os serviços com correspondência exata');
+            return servicosExatos;
+          }
+        }
+        
+        return servicosExatos;
+      }
+      
+      // Caso contrário, usa as opções padrão
       return prisma.servico.findMany({
         orderBy,
-        where,
+        where: whereClause,
         take,
         skip
       });

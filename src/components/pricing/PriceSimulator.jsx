@@ -7,7 +7,7 @@ import { dadosDemonstracao } from './dadosDemonstracao';
 
 /**
  * Componente de simulação de preços
- * @version 3.0.0 - 2025-03-12 - Adicionado suporte para seleção múltipla de serviços
+ * @version 3.1.0 - 2025-03-15 - Adicionado suporte para identificação de requisições do simulador
  */
 const PriceSimulator = () => {
   const [servicos, setServicos] = useState([]);
@@ -36,17 +36,39 @@ const PriceSimulator = () => {
       console.log(`Carregando serviços da API: ${env.baseUrl}/api/pricing`);
       
       // Usa o serviço de API centralizado com o método específico
-      const response = await servicosAPI.listar();
+      // Passa a opção simulador=true para identificar que a requisição vem do simulador
+      const response = await servicosAPI.listar({ simulador: true });
       
       // Verifica se a resposta contém dados válidos
       if (response && response.data && Array.isArray(response.data)) {
-        console.log(`[PriceSimulator] Serviços carregados: ${JSON.stringify(response.data)}`);
+        console.log(`[PriceSimulator] Serviços carregados: ${response.data.length} itens`);
+        console.log('[PriceSimulator] Primeiro serviço:', response.data[0]);
         
         if (response.data.length > 0) {
-          console.log(`[PriceSimulator] Serviços carregados com sucesso: ${response.data.length} itens`);
-          setServicos(response.data);
-          setUsandoDadosDemonstracao(false);
-          tentativasRef.current = 0; // Reseta contador de tentativas
+          // Verificar se há IDs duplicados e corrigi-los
+          const ids = response.data.map(servico => servico.id);
+          const idsUnicos = [...new Set(ids)];
+          
+          if (ids.length !== idsUnicos.length) {
+            console.warn('[PriceSimulator] Detectados IDs duplicados nos serviços. Removendo duplicatas...');
+            const servicosSemDuplicatas = [];
+            const idsProcessados = new Set();
+            
+            for (const servico of response.data) {
+              if (!idsProcessados.has(servico.id)) {
+                servicosSemDuplicatas.push(servico);
+                idsProcessados.add(servico.id);
+              }
+            }
+            
+            console.log(`[PriceSimulator] Após remoção de duplicatas: ${servicosSemDuplicatas.length} serviços.`);
+            setServicos(servicosSemDuplicatas);
+          } else {
+            // Usar diretamente os dados da API, sem verificar nomes específicos
+            console.log(`[PriceSimulator] Serviços carregados com sucesso: ${response.data.length} itens`);
+            setServicos(response.data);
+            setUsandoDadosDemonstracao(false);
+          }
         } else {
           console.warn('[PriceSimulator] API retornou array vazio. Usando dados de demonstração.');
           setServicos(dadosDemonstracao);
@@ -110,6 +132,14 @@ const PriceSimulator = () => {
       // Nada a limpar aqui, a função de limpeza é retornada pelo carregarServicos
     };
   }, []);
+
+  // Log para monitorar mudanças no estado de serviços
+  useEffect(() => {
+    console.log(`[PriceSimulator] Estado de serviços atualizado: ${servicos.length} serviços`);
+    if (servicos.length > 0) {
+      console.log('[PriceSimulator] Primeiro serviço no estado:', servicos[0]);
+    }
+  }, [servicos]);
 
   // Alterna a seleção de um serviço
   const toggleServico = (servico) => {

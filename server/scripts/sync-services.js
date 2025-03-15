@@ -1,7 +1,7 @@
 /**
  * Script unificado para sincronização de serviços entre ambientes
  * @description Atualiza serviços no banco de dados e nos arquivos estáticos do frontend
- * @version 1.2.0 - 2025-03-15 - Melhorada detecção de ambiente e tratamento de erros
+ * @version 1.3.0 - 2025-03-16 - Melhorada detecção de caminhos e carregamento de definições
  */
 
 // Importações
@@ -92,7 +92,7 @@ async function updateDatabaseServices(serviceDefinitions, prisma) {
  * Atualiza o arquivo de serviços estáticos para o frontend
  * @returns {boolean} Sucesso da operação
  */
-async function updateStaticServicesFile() {
+async function updateStaticServicesFile(serviceDefinitions) {
   try {
     console.log('[sync-services] Atualizando arquivo de serviços estáticos para o frontend...');
     
@@ -113,9 +113,6 @@ async function updateStaticServicesFile() {
     } catch (error) {
       console.log(`[sync-services] Não foi possível criar backup: arquivo original não existe`);
     }
-    
-    // Carregar definições de serviços
-    const serviceDefinitions = await loadServiceDefinitions();
     
     // Transformar as definições para o formato do frontend usando a função utilitária
     const servicosFormatados = serviceDefinitions.map((servico, index) => {
@@ -159,7 +156,7 @@ export const servicos = ${JSON.stringify(servicosFormatados, null, 2)};
  */
 async function main() {
   console.log('='.repeat(80));
-  console.log(`[sync-services] Iniciando sincronização de serviços (v1.2.0) - ${new Date().toISOString()}`);
+  console.log(`[sync-services] Iniciando sincronização de serviços (v1.3.0) - ${new Date().toISOString()}`);
   console.log(`[sync-services] Ambiente: ${isRender ? 'Render (Produção)' : 'Local (Desenvolvimento)'}`);
   console.log('='.repeat(80));
 
@@ -183,17 +180,104 @@ async function main() {
     console.log(`[sync-services] Usando conexão de banco de dados: ${databaseUrl}`);
     
     // Determinar caminho para o arquivo de definições de serviços
-    const definitionsPath = path.join(__dirname, '../models/seeds/serviceDefinitions.js');
-    console.log(`[sync-services] Carregando definições de serviços de: ${definitionsPath}`);
+    // Tenta múltiplos caminhos possíveis para maior robustez
+    const possiblePaths = [
+      path.join(__dirname, '../models/seeds/serviceDefinitions.js'),
+      path.join(rootDir, 'server/models/seeds/serviceDefinitions.js'),
+      isRender ? '/opt/render/project/src/server/models/seeds/serviceDefinitions.js' : null,
+      isRender ? path.join(rootDir, '/opt/render/project/src/server/models/seeds/serviceDefinitions.js') : null
+    ].filter(Boolean); // Remove valores null
     
-    // Carregar definições de serviços
-    const serviceDefinitions = await loadServiceDefinitions(definitionsPath, console.log);
+    console.log(`[sync-services] Tentando carregar definições de serviços...`);
+    console.log(`[sync-services] Diretório atual: ${__dirname}`);
+    console.log(`[sync-services] Diretório raiz: ${rootDir}`);
     
-    if (!serviceDefinitions || !Array.isArray(serviceDefinitions) || serviceDefinitions.length === 0) {
-      throw new Error('[sync-services] Erro: Nenhuma definição de serviço encontrada ou formato inválido');
+    // Verificar quais caminhos existem
+    let existingPaths = [];
+    for (const p of possiblePaths) {
+      try {
+        await fs.access(p);
+        existingPaths.push(p);
+        console.log(`[sync-services] ✅ Caminho encontrado: ${p}`);
+      } catch (e) {
+        console.log(`[sync-services] ❌ Caminho não encontrado: ${p}`);
+      }
     }
     
-    console.log(`[sync-services] Carregadas ${serviceDefinitions.length} definições de serviços`);
+    if (existingPaths.length === 0) {
+      console.error('[sync-services] ERRO CRÍTICO: Nenhum caminho válido encontrado para serviceDefinitions.js');
+      throw new Error('Nenhum caminho válido encontrado para serviceDefinitions.js');
+    }
+    
+    // Usar o primeiro caminho válido encontrado
+    const definitionsPath = existingPaths[0];
+    console.log(`[sync-services] Usando caminho: ${definitionsPath}`);
+    
+    // Tentar carregar as definições de serviços
+    console.log(`[sync-services] Carregando definições de serviços de: ${definitionsPath}`);
+    
+    // Tentar importar diretamente o módulo para obter as definições
+    let serviceDefinitions = [];
+    let loadMethod = '';
+    
+    try {
+      // Importar o módulo diretamente
+      const importPath = `file://${definitionsPath}`;
+      console.log(`[sync-services] Tentando importar diretamente de: ${importPath}`);
+      
+      const serviceDefinitionsModule = await import(importPath);
+      console.log(`[sync-services] Módulo importado com sucesso`);
+      console.log(`[sync-services] Chaves disponíveis: ${Object.keys(serviceDefinitionsModule).join(', ')}`);
+      
+      if (serviceDefinitionsModule.serviceDefinitions) {
+        serviceDefinitions = serviceDefinitionsModule.serviceDefinitions;
+        loadMethod = 'via serviceDefinitions';
+      } else if (serviceDefinitionsModule.default) {
+        serviceDefinitions = serviceDefinitionsModule.default;
+        loadMethod = 'via export default';
+      } else if (serviceDefinitionsModule.getServiceDefinitionsForFrontend) {
+        serviceDefinitions = serviceDefinitionsModule.getServiceDefinitionsForFrontend();
+        loadMethod = 'via getServiceDefinitionsForFrontend()';
+      }
+    } catch (importError) {
+      console.error(`[sync-services] Erro ao importar módulo: ${importError.message}`);
+      console.log(`[sync-services] Tentando método alternativo via loadServiceDefinitions...`);
+      
+      try {
+        // Se falhar, usar o método loadServiceDefinitions
+        serviceDefinitions = await loadServiceDefinitions(definitionsPath, console.log);
+        loadMethod = 'via loadServiceDefinitions';
+      } catch (loaderError) {
+        console.error(`[sync-services] Erro ao carregar definições: ${loaderError.message}`);
+        throw new Error(`Falha ao carregar definições de serviços: ${loaderError.message}`);
+      }
+    }
+    
+    // Verificar se as definições foram carregadas corretamente
+    if (!serviceDefinitions || !Array.isArray(serviceDefinitions)) {
+      throw new Error('[sync-services] Erro: Definições de serviço não são um array válido');
+    }
+    
+    if (serviceDefinitions.length === 0) {
+      throw new Error('[sync-services] Erro: Nenhuma definição de serviço encontrada');
+    }
+    
+    console.log(`[sync-services] ✅ Carregadas ${serviceDefinitions.length} definições de serviços ${loadMethod}`);
+    console.log(`[sync-services] Primeiro serviço: ${serviceDefinitions[0].nome}`);
+    console.log(`[sync-services] Último serviço: ${serviceDefinitions[serviceDefinitions.length - 1].nome}`);
+    
+    // Verificar se os dados têm a estrutura esperada
+    const validationErrors = [];
+    serviceDefinitions.forEach((service, index) => {
+      if (!service.nome) validationErrors.push(`Serviço #${index + 1} não tem nome`);
+      if (!service.preco_base) validationErrors.push(`Serviço "${service.nome || index + 1}" não tem preço base`);
+    });
+    
+    if (validationErrors.length > 0) {
+      console.error('[sync-services] Erros de validação nas definições de serviços:');
+      validationErrors.forEach(err => console.error(`- ${err}`));
+      throw new Error('Definições de serviços inválidas');
+    }
     
     // Inicializar cliente Prisma com configuração explícita
     console.log('[sync-services] Inicializando cliente Prisma com configuração explícita');
@@ -202,49 +286,36 @@ async function main() {
         db: {
           url: databaseUrl
         }
-      },
-      log: ['query', 'info', 'warn', 'error']
+      }
     });
     
-    // Testar conexão com o banco de dados
-    console.log('[sync-services] Testando conexão com o banco de dados...');
     try {
-      await prisma.$queryRaw`SELECT 1 as test`;
-      console.log('[sync-services] Conexão com o banco de dados estabelecida com sucesso!');
-    } catch (dbError) {
-      throw new Error(`[sync-services] ERRO ao conectar ao banco de dados: ${dbError.message}`);
+      // Atualizar serviços no banco de dados
+      console.log('[sync-services] Atualizando serviços no banco de dados...');
+      const dbStats = await updateDatabaseServices(serviceDefinitions, prisma);
+      console.log(`[sync-services] Estatísticas de atualização do banco de dados: ${JSON.stringify(dbStats)}`);
+      
+      if (dbStats.erros > 0) {
+        console.warn(`[sync-services] Atenção: ${dbStats.erros} erros ocorreram durante a atualização do banco de dados`);
+      }
+      
+      // Atualizar arquivo de serviços estáticos
+      console.log('[sync-services] Atualizando arquivo de serviços estáticos...');
+      const staticSuccess = await updateStaticServicesFile(serviceDefinitions);
+      
+      if (!staticSuccess) {
+        throw new Error('[sync-services] Falha ao atualizar arquivo de serviços estáticos');
+      }
+      
+      console.log('[sync-services] ✅ Sincronização concluída com sucesso!');
+    } finally {
+      // Sempre desconectar o cliente Prisma ao final
+      await prisma.$disconnect();
     }
-    
-    // Passo 1: Atualizar serviços no banco de dados
-    const dbStats = await updateDatabaseServices(serviceDefinitions, prisma);
-    
-    // Passo 2: Atualizar arquivo de serviços estáticos
-    const staticFileUpdated = await updateStaticServicesFile();
-    
-    if (!staticFileUpdated) {
-      throw new Error('[sync-services] Falha ao atualizar arquivo de serviços estáticos');
-    }
-    
-    // Resumo da operação
-    console.log('='.repeat(80));
-    console.log('[sync-services] Resumo da sincronização:');
-    console.log(`[sync-services] Banco de dados: ${dbStats.atualizados} serviços atualizados, ${dbStats.criados} serviços criados, ${dbStats.erros} erros`);
-    console.log(`[sync-services] Arquivo estático: ${staticFileUpdated ? 'Atualizado com sucesso' : 'Falha na atualização'}`);
-    console.log('='.repeat(80));
-    
-    // Verificar se houve erros na sincronização
-    if (dbStats.erros > 0) {
-      throw new Error(`[sync-services] ${dbStats.erros} erros ocorreram durante a sincronização do banco de dados`);
-    }
-    
-    // Fechar conexão com o banco de dados
-    await prisma.$disconnect();
-    
-    console.log('[sync-services] Sincronização concluída com sucesso!');
-    process.exit(0);
   } catch (error) {
-    console.error('[sync-services] Erro durante a sincronização:', error);
-    process.exit(1);
+    console.error(`[sync-services] ERRO FATAL: ${error.message}`);
+    console.error(error.stack);
+    process.exit(1); // Sair com código de erro
   }
 }
 

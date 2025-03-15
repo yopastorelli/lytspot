@@ -4,7 +4,7 @@
  * Responsável por implementar a lógica de negócios relacionada a serviços e preços,
  * incluindo listagem, criação, atualização, exclusão e cálculo de preços.
  * 
- * @version 1.6.0 - 2025-03-13 - Implementadas melhorias na persistência de dados e tratamento de erros
+ * @version 1.5.0 - 2025-03-15 - Implementado filtro para serviços do simulador
  * @module services/pricingService
  */
 
@@ -63,14 +63,24 @@ class PricingService {
   /**
    * Obtém todos os serviços disponíveis
    * @param {Object} options Opções de consulta
+   * @param {boolean} options.apenasSimulador Se true, retorna apenas os serviços para o simulador de preços
    * @returns {Promise<Array>} Lista de serviços formatados para o frontend
    */
   async getAllServices(options = {}) {
     try {
       log(`Buscando todos os serviços com opções: ${JSON.stringify(options)}`);
       
+      // Adicionar opção para filtrar apenas serviços do simulador
+      const queryOptions = { ...options };
+      
+      // Por padrão, para o simulador de preços, filtramos apenas os serviços relevantes
+      if (options.apenasSimulador !== false) {
+        queryOptions.apenasSimulador = true;
+        log('Filtrando apenas serviços para o simulador de preços');
+      }
+      
       // Tentar buscar do banco de dados primeiro
-      const services = await serviceRepository.findAll(options);
+      const services = await serviceRepository.findAll(queryOptions);
       
       if (services && services.length > 0) {
         log(`Encontrados ${services.length} serviços no banco de dados`);

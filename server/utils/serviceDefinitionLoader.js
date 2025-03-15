@@ -1,6 +1,6 @@
 /**
  * Módulo para carregamento de definições de serviços
- * @version 1.0.0 - 2025-03-14 - Criado como parte da refatoração do render-update-services.js
+ * @version 1.1.0 - 2025-03-16 - Melhorada robustez e logs detalhados
  */
 
 import fs from 'fs';
@@ -39,7 +39,14 @@ export async function loadServiceDefinitions(filePath, logFunction) {
     
     // Verificar se o arquivo existe
     if (!fs.existsSync(filePath)) {
-      log('WARN', `Arquivo não encontrado: ${filePath}`);
+      log('ERROR', `Arquivo não encontrado: ${filePath}`);
+      
+      // Em ambiente de produção, não usar fallback silenciosamente
+      if (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') {
+        throw new Error(`Arquivo de definições não encontrado: ${filePath}`);
+      }
+      
+      log('WARN', 'Usando definições básicas como fallback (apenas em ambiente de desenvolvimento)');
       return loadBasicServiceDefinitions();
     }
     
@@ -52,14 +59,32 @@ export async function loadServiceDefinitions(filePath, logFunction) {
     
     if (Array.isArray(definitions) && definitions.length > 0) {
       log('INFO', `${definitions.length} definições de serviços carregadas com sucesso`);
+      
+      // Log detalhado para diagnóstico
+      log('DEBUG', `Primeiro serviço: ${JSON.stringify(definitions[0].nome)}`);
+      log('DEBUG', `Último serviço: ${JSON.stringify(definitions[definitions.length - 1].nome)}`);
+      
       return definitions;
     } else {
-      log('WARN', 'Nenhuma definição de serviço encontrada, usando definições básicas');
+      log('ERROR', 'Nenhuma definição de serviço encontrada no arquivo');
+      
+      // Em ambiente de produção, não usar fallback silenciosamente
+      if (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') {
+        throw new Error('Nenhuma definição de serviço encontrada no arquivo');
+      }
+      
+      log('WARN', 'Usando definições básicas como fallback (apenas em ambiente de desenvolvimento)');
       return loadBasicServiceDefinitions();
     }
   } catch (error) {
     log('ERROR', `Erro ao carregar definições de serviços: ${error.message}`);
-    log('WARN', 'Usando definições básicas como fallback');
+    
+    // Em ambiente de produção, propagar o erro
+    if (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') {
+      throw error;
+    }
+    
+    log('WARN', 'Usando definições básicas como fallback (apenas em ambiente de desenvolvimento)');
     return loadBasicServiceDefinitions();
   }
 }
@@ -78,6 +103,7 @@ function extractDefinitionsFromContent(content) {
     
     // Procurar por array de definições (suporta diferentes formatos de exportação)
     const arrayMatches = [
+      cleanContent.match(/export\s+const\s+serviceDefinitions\s*=\s*\[([\s\S]*?)\];/),
       cleanContent.match(/export\s+const\s+(\w+)\s*=\s*\[([\s\S]*?)\];/),
       cleanContent.match(/const\s+(\w+)\s*=\s*\[([\s\S]*?)\];\s*export/),
       cleanContent.match(/export\s+default\s*\[([\s\S]*?)\];/),
@@ -89,10 +115,15 @@ function extractDefinitionsFromContent(content) {
       const match = arrayMatches[0];
       const arrayContent = match[match.length - 1]; // Último grupo de captura contém o conteúdo do array
       
+      log('INFO', `Padrão de array encontrado: ${match[0].substring(0, 50)}...`);
+      
       // Usar Function para avaliar o conteúdo do array (mais seguro que eval)
       try {
         const tempFunction = new Function(`return [${arrayContent}]`);
-        return tempFunction();
+        const result = tempFunction();
+        
+        log('INFO', `Array avaliado com sucesso, contém ${result.length} itens`);
+        return result;
       } catch (evalError) {
         log('WARN', `Erro ao avaliar conteúdo do array: ${evalError.message}`);
         
@@ -104,7 +135,9 @@ function extractDefinitionsFromContent(content) {
             .replace(/'/g, '"')          // Converter aspas simples para duplas
             .replace(/,(\s*[}\]])/g, '$1'); // Remover vírgulas extras
           
-          return JSON.parse(jsonString);
+          const result = JSON.parse(jsonString);
+          log('INFO', `JSON parseado com sucesso, contém ${result.length} itens`);
+          return result;
         } catch (jsonError) {
           log('ERROR', `Erro ao fazer parse do JSON: ${jsonError.message}`);
           throw new Error('Não foi possível extrair definições do conteúdo');
@@ -112,6 +145,29 @@ function extractDefinitionsFromContent(content) {
       }
     } else {
       log('WARN', 'Nenhum padrão de array de definições encontrado no conteúdo');
+      
+      // Tentar encontrar a função getServiceDefinitionsForFrontend
+      const functionMatch = cleanContent.match(/getServiceDefinitionsForFrontend\s*\(\s*\)\s*{\s*.*?return\s+(.*?);\s*}/);
+      if (functionMatch) {
+        log('INFO', 'Encontrada função getServiceDefinitionsForFrontend, tentando extrair dados');
+        
+        // Verificar se retorna demonstrationData
+        if (functionMatch[1].trim() === 'demonstrationData') {
+          // Procurar pela definição de demonstrationData
+          const demoDataMatch = cleanContent.match(/demonstrationData\s*=\s*\[([\s\S]*?)\];/);
+          if (demoDataMatch) {
+            try {
+              const tempFunction = new Function(`return [${demoDataMatch[1]}]`);
+              const result = tempFunction();
+              log('INFO', `Dados de demonstração extraídos com sucesso, contém ${result.length} itens`);
+              return result;
+            } catch (error) {
+              log('ERROR', `Erro ao extrair dados de demonstração: ${error.message}`);
+            }
+          }
+        }
+      }
+      
       return [];
     }
   } catch (error) {

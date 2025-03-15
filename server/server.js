@@ -174,7 +174,7 @@ try {
       }
     },
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
-    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control',
+    allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-Source',
     credentials: true,
     maxAge: 86400 // Cache de preflight por 24 horas (em segundos)
   };

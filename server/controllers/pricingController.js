@@ -15,8 +15,10 @@ import { clearCache } from '../middleware/cache.js';
 import environment from '../config/environment.js';
 
 /**
- * Controlador para o módulo de preços
- * Responsável por gerenciar os serviços e seus preços
+ * Controlador para gerenciamento de preços e serviços
+ * 
+ * @version 1.5.0 - 2025-03-15 - Implementado filtro para serviços do simulador
+ * @module controllers/pricingController
  */
 export const pricingController = {
   /**
@@ -29,12 +31,18 @@ export const pricingController = {
       // Validar e normalizar parâmetros de consulta
       const queryParams = serviceValidator.validateQueryParams(req.query);
       
+      // Verificar se a requisição vem do simulador de preços
+      const isSimulador = req.query.simulador === 'true';
+      
       // Preparar opções para a consulta
       const options = {
         orderBy: { [queryParams.sortBy]: queryParams.sortOrder },
         take: queryParams.limit,
-        skip: (queryParams.page - 1) * queryParams.limit
+        skip: (queryParams.page - 1) * queryParams.limit,
+        apenasSimulador: isSimulador // Passa a flag para filtrar apenas serviços do simulador
       };
+      
+      console.log(`[pricingController] Opções de consulta: ${JSON.stringify(options)}`);
       
       // Adicionar filtros se necessário
       if (queryParams.search) {

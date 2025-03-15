@@ -19,6 +19,12 @@ export const cacheMiddleware = (duration = 30) => {
       return next();
     }
 
+    // Verificar se o cliente está solicitando uma atualização forçada
+    if (req.query.forceRefresh === 'true') {
+      console.log(`[Cache] Ignorando cache para ${req.originalUrl} devido ao parâmetro forceRefresh`);
+      return next();
+    }
+
     // Criar uma chave única para o cache baseada na URL e na versão atual
     const key = `${cacheVersion}:${req.originalUrl}`;
     
