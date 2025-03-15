@@ -35,15 +35,19 @@ const PriceSimulator = () => {
     try {
       console.log(`Carregando definições de serviços da API: ${env.baseUrl}/api/pricing/definitions`);
       
+      // Incrementa o contador de tentativas
+      tentativasRef.current += 1;
+      
       // Usa o novo método para buscar diretamente das definições
       const response = await servicosAPI.listarDefinicoes();
       
       // Verifica se a resposta contém dados válidos
       if (response && response.data && Array.isArray(response.data)) {
         console.log(`[PriceSimulator] Serviços carregados das definições: ${response.data.length} itens`);
-        console.log('[PriceSimulator] Primeiro serviço:', response.data[0]);
         
         if (response.data.length > 0) {
+          console.log('[PriceSimulator] Primeiro serviço:', response.data[0]);
+          
           // Verificar se há IDs duplicados e corrigi-los
           const ids = response.data.map(servico => servico.id);
           const idsUnicos = [...new Set(ids)];
@@ -69,54 +73,38 @@ const PriceSimulator = () => {
             setUsandoDadosDemonstracao(false);
           }
         } else {
-          console.warn('[PriceSimulator] API retornou array vazio. Usando dados de demonstração.');
+          console.warn('[PriceSimulator] API retornou uma lista vazia de serviços. Usando dados de demonstração.');
           setServicos(dadosDemonstracao);
           setUsandoDadosDemonstracao(true);
-          setErro('Nenhum serviço encontrado no servidor. Exibindo dados de demonstração.');
         }
       } else {
-        console.warn('[PriceSimulator] API retornou dados vazios ou inválidos:', response?.data);
-        throw new Error('API retornou dados inválidos ou vazios');
+        console.error('[PriceSimulator] Formato de resposta inválido:', response);
+        throw new Error('Formato de resposta inválido');
       }
     } catch (error) {
-      // Ignora erros de requisição cancelada
-      if (error.name === 'AbortError' || error.name === 'CanceledError') {
-        console.log('[PriceSimulator] Requisição cancelada');
-        return;
-      }
+      console.error('[PriceSimulator] Erro ao carregar serviços:', error);
       
-      console.error('[erro] Erro ao carregar serviços:', error.message);
-      
-      // Incrementa contador de tentativas
-      tentativasRef.current += 1;
-      
-      // Se excedeu o número máximo de tentativas, usa dados de demonstração
+      // Se excedeu o número máximo de tentativas, usar dados de demonstração
       if (tentativasRef.current >= maxTentativas) {
-        console.warn(`[PriceSimulator] Máximo de tentativas (${maxTentativas}) excedido. Usando dados de demonstração.`);
+        console.warn(`[PriceSimulator] Excedido número máximo de tentativas (${maxTentativas}). Usando dados de demonstração.`);
         setServicos(dadosDemonstracao);
         setUsandoDadosDemonstracao(true);
-        setErro(`Não foi possível carregar os dados do servidor após ${maxTentativas} tentativas. Exibindo dados de demonstração.`);
+        setErro('Não foi possível carregar os serviços da API. Usando dados de demonstração.');
       } else {
-        // Define mensagem de erro específica
-        if (error.response) {
-          setErro(`Erro ao carregar dados: ${error.response.status} - ${error.response.data?.message || 'Erro no servidor'}`);
-        } else if (error.request) {
-          setErro('Não foi possível conectar ao servidor. Verifique sua conexão.');
-        } else {
-          setErro(`Erro ao carregar serviços: ${error.message}`);
-        }
+        // Tentar novamente após um breve intervalo (exponential backoff)
+        const tempoEspera = Math.pow(2, tentativasRef.current) * 1000; // 2s, 4s, 8s
+        console.log(`[PriceSimulator] Tentando novamente em ${tempoEspera/1000} segundos...`);
         
-        // Agenda nova tentativa após 3 segundos
         setTimeout(() => {
-          console.log(`[PriceSimulator] Tentando novamente (${tentativasRef.current}/${maxTentativas})...`);
           carregarServicos();
-        }, 3000);
+        }, tempoEspera);
+        
+        setErro(`Erro ao carregar serviços. Tentativa ${tentativasRef.current} de ${maxTentativas}...`);
       }
     } finally {
       setCarregando(false);
     }
     
-    // Função de limpeza para cancelar a requisição se o componente for desmontado
     return () => {
       controller.abort();
     };

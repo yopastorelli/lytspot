@@ -26,7 +26,8 @@ export const getEnvironment = () => {
   
   // Lista de URLs para produção - usando apenas a URL válida do Render
   const prodApiUrls = [
-    'https://lytspot-api.onrender.com'  
+    'https://lytspot-api.onrender.com',
+    'https://lytspot.com.br/api'  
   ];
   
   // Determinar a URL base da API
@@ -37,8 +38,13 @@ export const getEnvironment = () => {
     baseUrl = 'http://localhost:3000';
     console.log('[Environment] Ambiente de desenvolvimento detectado. Usando API local:', baseUrl);
   } else {
-    // Em produção, use a URL do Render com o sufixo -api para a API
-    baseUrl = 'https://lytspot-api.onrender.com';
+    // Em produção, verificar se estamos no domínio principal
+    if (window.location.hostname.includes('lytspot.com.br')) {
+      baseUrl = 'https://lytspot.com.br';
+    } else {
+      // Caso contrário, usar a URL do Render
+      baseUrl = 'https://lytspot-api.onrender.com';
+    }
     console.log('[Environment] Ambiente de produção detectado. Usando API remota:', baseUrl);
   }
   
