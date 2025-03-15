@@ -1,6 +1,6 @@
 /**
  * Script para atualizar os serviços e adicionais no banco de dados
- * @version 1.0.1 - 2025-03-12
+ * @version 1.1.0 - 2025-03-15 - Refatorado para usar serviceDataUtils
  * @description Atualiza os serviços e adicionais conforme as novas definições
  */
 
@@ -9,6 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import fs from 'fs';
+import { prepareServiceDataForDatabase } from '../utils/serviceDataUtils.js';
 
 // Configuração para ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -274,10 +275,23 @@ async function atualizarServicos() {
     await prisma.servico.deleteMany({});
     console.log('✅ Serviços anteriores removidos com sucesso.');
 
-    // Inserir os novos serviços
-    for (const servico of servicosAtualizados) {
+    // Processar e inserir os novos serviços
+    for (const servicoOriginal of servicosAtualizados) {
+      // Preparar os dados do serviço para o banco de dados usando a função utilitária
+      const servicoProcessado = prepareServiceDataForDatabase({
+        ...servicoOriginal,
+        detalhes: {
+          captura: servicoOriginal.duracao_media_captura,
+          tratamento: servicoOriginal.duracao_media_tratamento,
+          entregaveis: servicoOriginal.entregaveis,
+          adicionais: servicoOriginal.possiveis_adicionais,
+          deslocamento: servicoOriginal.valor_deslocamento
+        }
+      });
+      
+      // Inserir o serviço processado no banco de dados
       await prisma.servico.create({
-        data: servico
+        data: servicoProcessado
       });
     }
 

@@ -1,6 +1,6 @@
 /**
  * Script para atualizar os serviços do simulador de preços
- * @version 1.0.0 - 2025-03-12
+ * @version 1.1.0 - 2025-03-15 - Refatorado para usar serviceDataUtils
  * @description Atualiza o arquivo servicos.js do simulador com base nas definições atualizadas
  */
 
@@ -8,7 +8,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { serviceDefinitions, getServiceDefinitionsForFrontend } from '../models/seeds/serviceDefinitions.js';
+import { serviceDefinitions } from '../models/seeds/serviceDefinitions.js';
+import { prepareServiceDataForFrontend } from '../utils/serviceDataUtils.js';
 
 // Configuração para ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -23,10 +24,22 @@ const simulatorServicesPath = path.join(rootDir, 'src', 'data', 'servicos.js');
  */
 function gerarConteudoArquivo() {
   const dataAtual = new Date().toISOString().split('T')[0];
-  const servicosFormatados = getServiceDefinitionsForFrontend();
+  
+  // Transformar as definições para o formato do frontend usando a função utilitária
+  const servicosFormatados = serviceDefinitions.map((servico, index) => {
+    // Usar a função utilitária para preparar os dados de forma consistente
+    const servicoFormatado = prepareServiceDataForFrontend(servico);
+    
+    // Garantir que o ID seja um número sequencial se não existir
+    if (!servicoFormatado.id) {
+      servicoFormatado.id = index + 1;
+    }
+    
+    return servicoFormatado;
+  });
   
   return `/**
- * Dados de serviços para o Simulador de Preços - Versão 2.1
+ * Dados de serviços para o Simulador de Preços - Versão 2.2
  * Este arquivo centraliza os dados para uso consistente entre a API e o fallback
  * Última atualização: ${dataAtual}
  * ATENÇÃO: Este arquivo é gerado automaticamente pelo script updateSimulatorServices.js

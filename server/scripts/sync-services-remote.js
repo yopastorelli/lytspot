@@ -1,7 +1,7 @@
 /**
  * Script para sincronização remota de serviços
  * @description Aciona o endpoint de API para sincronizar serviços em produção
- * @version 1.0.0 - 2025-03-14
+ * @version 1.1.0 - 2025-03-15 - Atualizado para versão consistente com outros scripts
  * @usage node server/scripts/sync-services-remote.js
  */
 
@@ -40,7 +40,7 @@ function confirmar(mensagem) {
  */
 async function main() {
   console.log('='.repeat(80));
-  console.log(`[sync-remote] Iniciando sincronização remota de serviços (v1.0.0) - ${new Date().toISOString()}`);
+  console.log(`[sync-remote] Iniciando sincronização remota de serviços (v1.1.0) - ${new Date().toISOString()}`);
   console.log('='.repeat(80));
   
   // Aviso de segurança

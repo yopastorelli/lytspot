@@ -1,7 +1,7 @@
 /**
  * Script unificado para sincronização de serviços entre ambientes
  * @description Atualiza serviços no banco de dados e nos arquivos estáticos do frontend
- * @version 1.0.0 - 2025-03-14
+ * @version 1.1.0 - 2025-03-15 - Refatorado para usar serviceDataUtils
  */
 
 // Importações
@@ -11,7 +11,7 @@ import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { loadServiceDefinitions } from '../utils/serviceDefinitionLoader.js';
 import { PrismaClient } from '@prisma/client';
-import { getServiceDefinitionsForFrontend } from '../models/seeds/serviceDefinitions.js';
+import { prepareServiceDataForDatabase, prepareServiceDataForFrontend } from '../utils/serviceDataUtils.js';
 import axios from 'axios';
 
 // Configuração de ambiente
@@ -57,57 +57,8 @@ async function updateDatabaseServices(serviceDefinitions, prisma) {
       // Verificar se já existe um serviço com este nome
       const servicoExistente = servicosPorNome[serviceDefinition.nome];
       
-      // Preparar os dados para atualização
-      // Garantir que o campo detalhes seja um objeto JSON válido
-      let detalhesObj = {};
-      
-      // Se o serviço tem campos duracao_media_captura e duracao_media_tratamento, 
-      // mas não tem um campo detalhes estruturado, criar um
-      if (serviceDefinition.duracao_media_captura || serviceDefinition.duracao_media_tratamento) {
-        detalhesObj = {
-          captura: serviceDefinition.duracao_media_captura || '',
-          tratamento: serviceDefinition.duracao_media_tratamento || '',
-          entregaveis: serviceDefinition.entregaveis || '',
-          adicionais: serviceDefinition.possiveis_adicionais || '',
-          deslocamento: serviceDefinition.valor_deslocamento || ''
-        };
-      }
-      
-      // Se já existe um campo detalhes como objeto, usar ele
-      if (typeof serviceDefinition.detalhes === 'object') {
-        detalhesObj = { ...detalhesObj, ...serviceDefinition.detalhes };
-      } 
-      // Se é uma string JSON, fazer parse e mesclar
-      else if (typeof serviceDefinition.detalhes === 'string') {
-        try {
-          const parsedDetails = JSON.parse(serviceDefinition.detalhes);
-          detalhesObj = { ...detalhesObj, ...parsedDetails };
-        } catch (e) {
-          console.error(`[sync-services] Erro ao fazer parse do campo detalhes: ${e.message}`);
-        }
-      }
-      
-      // Garantir que os campos captura e tratamento estejam sempre presentes
-      if (!detalhesObj.captura && serviceDefinition.duracao_media_captura) {
-        detalhesObj.captura = serviceDefinition.duracao_media_captura;
-      }
-      
-      if (!detalhesObj.tratamento && serviceDefinition.duracao_media_tratamento) {
-        detalhesObj.tratamento = serviceDefinition.duracao_media_tratamento;
-      }
-      
-      // Preparar dados para atualização ou criação
-      const dadosServico = {
-        nome: serviceDefinition.nome,
-        descricao: serviceDefinition.descricao,
-        preco_base: serviceDefinition.preco_base,
-        duracao_media_captura: serviceDefinition.duracao_media_captura,
-        duracao_media_tratamento: serviceDefinition.duracao_media_tratamento,
-        entregaveis: serviceDefinition.entregaveis,
-        possiveis_adicionais: serviceDefinition.possiveis_adicionais,
-        valor_deslocamento: serviceDefinition.valor_deslocamento,
-        detalhes: JSON.stringify(detalhesObj)
-      };
+      // Usar a função utilitária para preparar os dados de forma consistente
+      const dadosServico = prepareServiceDataForDatabase(serviceDefinition);
       
       // Se o serviço já existe, atualizar
       if (servicoExistente) {
@@ -162,12 +113,27 @@ async function updateStaticServicesFile() {
       console.log(`[sync-services] Não foi possível criar backup: arquivo original não existe`);
     }
     
+    // Carregar definições de serviços
+    const serviceDefinitions = await loadServiceDefinitions();
+    
+    // Transformar as definições para o formato do frontend usando a função utilitária
+    const servicosFormatados = serviceDefinitions.map((servico, index) => {
+      // Usar a função utilitária para preparar os dados de forma consistente
+      const servicoFormatado = prepareServiceDataForFrontend(servico);
+      
+      // Garantir que o ID seja um número sequencial se não existir
+      if (!servicoFormatado.id) {
+        servicoFormatado.id = index + 1;
+      }
+      
+      return servicoFormatado;
+    });
+    
     // Gerar e escrever o novo conteúdo
     const dataAtual = new Date().toISOString().split('T')[0];
-    const servicosFormatados = getServiceDefinitionsForFrontend();
     
     const novoConteudo = `/**
- * Dados de serviços para o Simulador de Preços - Versão 2.1
+ * Dados de serviços para o Simulador de Preços - Versão 2.2
  * Este arquivo centraliza os dados para uso consistente entre a API e o fallback
  * Última atualização: ${dataAtual}
  * ATENÇÃO: Este arquivo é gerado automaticamente pelo script sync-services.js
@@ -192,7 +158,7 @@ export const servicos = ${JSON.stringify(servicosFormatados, null, 2)};
  */
 async function main() {
   console.log('='.repeat(80));
-  console.log(`[sync-services] Iniciando sincronização de serviços (v1.0.0) - ${new Date().toISOString()}`);
+  console.log(`[sync-services] Iniciando sincronização de serviços (v1.1.0) - ${new Date().toISOString()}`);
   console.log(`[sync-services] Ambiente: ${isRender ? 'Render (Produção)' : 'Local (Desenvolvimento)'}`);
   console.log('='.repeat(80));
 

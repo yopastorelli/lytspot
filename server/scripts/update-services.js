@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+import { prepareServiceDataForDatabase } from '../utils/serviceDataUtils.js';
 
 dotenv.config();
 
@@ -8,6 +9,7 @@ const prisma = new PrismaClient();
 /**
  * Script para atualizar os serviços no banco de dados
  * Baseado no catálogo completo da Lytspot
+ * @version 1.1.0 - 2025-03-15 - Atualizado para usar prepareServiceDataForDatabase
  */
 async function main() {
   try {
@@ -301,6 +303,29 @@ async function main() {
     // Limpar todos os serviços existentes
     await prisma.servico.deleteMany({});
     console.log('Serviços existentes removidos com sucesso.');
+    
+    // Processar e criar os novos serviços
+    const servicosAtualizados = [];
+    
+    for (const servicoPrecificado of servicosPrecificados) {
+      // Preparar os dados do serviço para o banco de dados usando a função utilitária
+      const servicoProcessado = prepareServiceDataForDatabase({
+        nome: servicoPrecificado.nome,
+        descricao: servicoPrecificado.versoes[0].descricao,
+        preco_base: servicoPrecificado.versoes[0].preco,
+        duracao_media_captura: servicoPrecificado.versoes[0].duracao_media_captura,
+        duracao_media_tratamento: servicoPrecificado.versoes[2]?.opcoes?.[1]?.duracao_media_tratamento || 'Sob consulta',
+        entregaveis: servicoPrecificado.entregaveis,
+        valor_deslocamento: servicoPrecificado.valor_deslocamento,
+        detalhes: {
+          versoes: servicoPrecificado.versoes,
+          captura: servicoPrecificado.versoes[0].duracao_media_captura,
+          tratamento: servicoPrecificado.versoes[2]?.opcoes?.[1]?.duracao_media_tratamento || 'Sob consulta'
+        }
+      });
+      
+      servicosAtualizados.push(servicoProcessado);
+    }
     
     // Criar os novos serviços
     for (const servico of servicosAtualizados) {
