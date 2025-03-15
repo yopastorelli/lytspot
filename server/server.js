@@ -29,6 +29,15 @@ process.env.RECIPIENT_EMAIL = 'contato@lytspot.com.br';
 process.env.BASE_URL = 'http://localhost:3000';
 process.env.API_URL = 'http://localhost:3000/api';
 
+// Configurações SMTP padrão para desenvolvimento
+if (process.env.NODE_ENV !== 'production') {
+  process.env.SMTP_HOST = process.env.SMTP_HOST || 'smtppro.zoho.com';
+  process.env.SMTP_PORT = process.env.SMTP_PORT || '465';
+  process.env.SMTP_USER = process.env.SMTP_USER || 'daniel@lytspot.com.br';
+  process.env.SMTP_PASS = process.env.SMTP_PASS || 'RG02AJwZgA7w';
+  process.env.SMTP_SECURE = process.env.SMTP_SECURE || 'true';
+}
+
 // Identificar se estamos no ambiente Render
 if (process.env.RENDER) {
   console.log("Detectado ambiente Render. Configurando variáveis específicas...");
@@ -50,7 +59,7 @@ if (process.env.NODE_ENV === 'production') {
     // Obter o diretório raiz do projeto (um nível acima do diretório server)
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    const rootDir = path.resolve(__dirname, '..');
+    const rootDir = __dirname; // Usar o diretório do servidor diretamente
     
     // Caminho completo para o arquivo .env.development
     const envPath = path.resolve(rootDir, '.env.development');
@@ -146,6 +155,8 @@ try {
   const allowedOrigins = [
     'https://lytspot.com.br',
     'https://www.lytspot.com.br',
+    'http://lytspot.com.br',
+    'http://www.lytspot.com.br',
     'https://lytspot.onrender.com',
     'https://lytspot.netlify.app',
     'http://localhost:4321',
@@ -158,14 +169,21 @@ try {
     origin: function (origin, callback) {
       // Permitir requisições sem origem (como apps mobile ou curl)
       if (!origin) {
+        console.log('[CORS] Permitindo requisição sem origem');
         return callback(null, true);
       }
       
       // Em desenvolvimento, aceitar qualquer origem
       if (isDevelopment) {
+        console.log(`[CORS] Modo desenvolvimento: permitindo origem ${origin}`);
         return callback(null, true);
       }
       
+      // Em produção, temporariamente permitir qualquer origem para diagnóstico
+      console.log(`[CORS] Permitindo origem em produção: ${origin}`);
+      return callback(null, true);
+      
+      /* Código original comentado para diagnóstico
       // Em produção, verificar se a origem está na lista de origens permitidas
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
@@ -173,6 +191,7 @@ try {
         console.warn(`[CORS] Origem bloqueada: ${origin}`);
         return callback(new Error('Origem não permitida pelo CORS'), false);
       }
+      */
     },
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-Source',
@@ -193,10 +212,15 @@ try {
     // Em desenvolvimento, aceitar a origem da requisição
     if (isDevelopment && req.headers.origin) {
       allowedOrigin = req.headers.origin;
+      console.log(`[CORS] Modo desenvolvimento: permitindo origem ${allowedOrigin}`);
     } 
     // Em produção, verificar se a origem está na lista de origens permitidas
     else if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
       allowedOrigin = req.headers.origin;
+      console.log(`[CORS] Origem permitida: ${allowedOrigin}`);
+    } else if (req.headers.origin) {
+      console.log(`[CORS] Aviso: Origem não listada: ${req.headers.origin}, mas permitindo acesso`);
+      allowedOrigin = req.headers.origin; // Permitir qualquer origem em produção temporariamente
     }
     
     // Adicionar cabeçalhos CORS manualmente para garantir que eles sejam aplicados

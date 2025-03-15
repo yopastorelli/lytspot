@@ -20,15 +20,20 @@ const logger = winston.createLogger({
  * @returns {Object} - Transportador SMTP configurado.
  */
 function createTransporter() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE } = process.env;
+  // Usar diretamente as configurações que funcionaram no teste
+  const SMTP_HOST = 'smtppro.zoho.com';
+  const SMTP_PORT = '465';
+  const SMTP_USER = 'daniel@lytspot.com.br';
+  const SMTP_PASS = 'RG02AJwZgA7w';
+  const SMTP_SECURE = 'true';
 
   // Registrar as configurações SMTP para debug
-  logger.info('Configurações SMTP detalhadas:', {
-    host: SMTP_HOST || 'não definido',
-    port: SMTP_PORT || 'não definido',
+  logger.info('Usando configurações SMTP fixas:', {
+    host: SMTP_HOST,
+    port: SMTP_PORT,
     user: SMTP_USER ? 'definido' : 'não definido',
     pass: SMTP_PASS ? 'definido' : 'não definido',
-    secure: SMTP_SECURE || 'não definido'
+    secure: SMTP_SECURE
   });
 
   // Verificar se devemos usar Gmail diretamente
@@ -47,17 +52,7 @@ function createTransporter() {
     });
   }
 
-  // Verificar se temos as configurações SMTP necessárias
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    logger.error('Configurações SMTP ausentes');
-    throw new Error('Configurações SMTP ausentes. Verifique as variáveis de ambiente.');
-  }
-
-  logger.info('Criando transportador SMTP', {
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_SECURE === 'true',
-  });
+  logger.info('Criando transportador SMTP com configurações fixas');
 
   // Converter string 'true'/'false' para boolean
   const secure = SMTP_SECURE === 'true';
@@ -97,36 +92,28 @@ function createTransporter() {
  * @returns {Promise<Object>} - Resultado do envio.
  */
 export async function sendEmail(options) {
-  logger.info('Iniciando envio de e-mail', { to: options.to, subject: options.subject });
+  logger.info('Iniciando envio de e-mail', { 
+    to: options.to, 
+    subject: options.subject,
+    env: process.env.NODE_ENV
+  });
+  
+  // Log detalhado das configurações SMTP no início da função
+  logger.info('Configurações SMTP no início do envio:', {
+    host: 'smtppro.zoho.com',
+    port: '465',
+    user: 'daniel@lytspot.com.br',
+    pass: 'definido',
+    secure: 'true'
+  });
   
   try {
-    // Verificar se as configurações SMTP estão disponíveis
-    const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
-    
-    // Log para debug das configurações SMTP
-    logger.info('Configurações SMTP:', {
-      host: SMTP_HOST || 'não definido',
-      user: SMTP_USER ? 'definido' : 'não definido',
-      pass: SMTP_PASS ? 'definido' : 'não definido'
-    });
-    
-    // Se não temos configurações SMTP, usar valores padrão para desenvolvimento
-    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-      logger.info('Usando configurações SMTP padrão para desenvolvimento');
-      // Usar as configurações conforme especificado no arquivo .env
-      process.env.SMTP_HOST = 'smtppro.zoho.com';
-      process.env.SMTP_PORT = '465';
-      process.env.SMTP_USER = 'daniel@lytspot.com.br';
-      process.env.SMTP_PASS = 'RG02AJwZgA7w';
-      process.env.SMTP_SECURE = 'true';
-    }
-    
     // Criar transportador SMTP com as configurações atualizadas
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: options.from || `"Lytspot Contato" <${process.env.SMTP_USER}>`,
-      to: options.to || process.env.RECIPIENT_EMAIL || 'contato@lytspot.com.br',
+      from: options.from || `"Lytspot Contato" <daniel@lytspot.com.br>`,
+      to: options.to || 'contato@lytspot.com.br',
       subject: options.subject,
       text: options.text,
       html: options.html,
@@ -182,8 +169,8 @@ export async function sendEmail(options) {
       try {
         logger.info('Tentando salvar mensagem localmente como último recurso');
         const mailOptions = {
-          from: options.from || `"Lytspot Contato" <${process.env.SMTP_USER || 'contato@lytspot.com.br'}>`,
-          to: options.to || process.env.RECIPIENT_EMAIL || 'contato@lytspot.com.br',
+          from: options.from || `"Lytspot Contato" <daniel@lytspot.com.br>`,
+          to: options.to || 'contato@lytspot.com.br',
           subject: options.subject,
           text: options.text,
           html: options.html,
