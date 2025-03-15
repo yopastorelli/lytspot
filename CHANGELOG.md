@@ -22,6 +22,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/spec/v2.0.
   - Mecanismo de recuperação automática com dados de demonstração em caso de falha.
 - Método `prepareServiceData` no `pricingService.js` para centralizar a sanitização de dados de serviços.
 - Validação mais rigorosa no componente `ServicoForm.jsx` para garantir que todos os campos obrigatórios sejam preenchidos corretamente.
+- Implementação da função `getApiUrl` no módulo `environment.js` para centralizar a construção de URLs da API
+- Sistema de retry com exponential backoff (2s, 4s, 8s) para requisições à API nos componentes de preço
+- Mecanismo de fallback para dados locais quando a API não está disponível
+- Logs detalhados para diagnóstico de problemas de CORS e comunicação com a API
+- Configuração de proxy no Vite com logs detalhados para facilitar o diagnóstico de problemas
 
 ### Modificado
 - Refatoração do `pricingService.js` com melhorias significativas:
@@ -30,6 +35,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/spec/v2.0.
   - Estratégia de fallback para dados de demonstração em caso de falha.
   - Sincronização automática entre dados de demonstração e banco de dados.
   - Melhorado o tratamento de dados e validação nos métodos `createService` e `updateService`.
+- Refatoração do serviço de API (`api.js`) para utilizar a função `getApiUrl` e melhorar o tratamento de erros:
+  - Implementação de interceptors para autenticação e tratamento de erros
+  - Configuração adaptativa baseada no ambiente (desenvolvimento vs. produção)
+  - Tratamento consistente de erros com mensagens detalhadas
+- Atualização dos componentes `PriceSimulator` e `PricingCalculator` para utilizar a nova função `getApiUrl`
+- Melhorias no componente `ServiceCard` para maior compatibilidade e melhor tratamento de erros
+- Configuração CORS no servidor mais robusta:
+  - Adicionadas novas origens permitidas, incluindo `lytspot-api.onrender.com`
+  - Implementado tratamento especial para requisições OPTIONS (preflight)
+  - Adicionado cache de preflight para melhorar o desempenho
+  - Logs detalhados para facilitar o diagnóstico de problemas CORS
+- Configuração de proxy no Vite atualizada para usar a URL correta da API (`lytspot-api.onrender.com`)
 
 ### Corrigido
 - Problema de persistência de dados no ambiente de produção (Render).
@@ -53,6 +70,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/spec/v2.0.
   - Corrigido o tratamento de campos de texto para garantir que valores vazios sejam tratados corretamente.
   - Melhorada a conversão de tipos para campos numéricos.
   - Aprimorada a validação no componente `ServicoForm.jsx` com feedback visual mais claro para o usuário.
+- Problema crítico de CORS no ambiente de produção que impedia o acesso à API
+- Inconsistência nas URLs da API entre desenvolvimento e produção
+- Tratamento inadequado de erros nas requisições à API
+- Problema de duplicação de código para construção de URLs da API
+- Problema de compatibilidade entre o componente `ServiceCard` e os outros componentes de preço
 
 ## [1.6.0] - 2025-03-13
 
