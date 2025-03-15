@@ -5,6 +5,7 @@
  */
 import axios from 'axios';
 import { getEnvironment } from '../utils/environment';
+import { servicos } from '../data/servicos';
 
 /**
  * Cria uma instância do axios configurada com a URL base correta
@@ -130,130 +131,18 @@ const servicosAPI = {
    */
   listarDefinicoes: async () => {
     try {
-      console.log('[API] Buscando definições de serviços da API...');
+      console.log('[API] Buscando definições de serviços...');
       
       // Verificar se estamos em ambiente de desenvolvimento
       const env = getEnvironment();
       const isDev = env.isDev;
       
-      // Em desenvolvimento, tentar acessar diretamente a API local
-      if (isDev) {
-        console.log('[API] Ambiente de desenvolvimento detectado, usando URL local');
-        try {
-          // Removendo os cabeçalhos problemáticos para desenvolvimento
-          const response = await api.get('/pricing/definitions');
-          
-          if (response && response.data && Array.isArray(response.data)) {
-            console.log(`[API] Dados obtidos com sucesso da API local: ${response.data.length} itens`);
-            return response;
-          }
-        } catch (devError) {
-          console.warn('[API] Erro ao acessar API local:', devError);
-          // Continuar para o fallback
-        }
-      }
+      // Usar diretamente os dados locais, já que eles raramente mudam
+      console.log(`[API] Usando dados locais para definições de serviços: ${servicos.length} itens`);
+      return { data: servicos };
       
-      // Tentativa padrão ou fallback para desenvolvimento
-      return api.get('/pricing/definitions');
     } catch (error) {
-      console.error('[API] Erro ao listar definições de serviços:', error);
-      
-      // Se o erro for de conexão ou timeout, tentar usar dados de fallback
-      if (!error.response || error.code === 'ECONNABORTED') {
-        console.warn('[API] Usando dados de fallback para definições de serviços');
-        
-        // Dados de fallback para serviços (cópia dos dados do backend)
-        const fallbackData = [
-          {
-            id: 1,
-            nome: 'VLOG - Aventuras em Família',
-            descricao: 'Documentação em vídeo e foto da sua viagem em família. Um dia na praia, no campo, na montanha ou em pontos turísticos nos arredores da Grande Curitiba.',
-            preco_base: 1500.00,
-            duracao_media: 14,
-            detalhes: {
-              captura: '6 a 8 horas',
-              tratamento: 'até 30 dias',
-              entregaveis: 'Vídeo editado de até 15 minutos + Vídeo Highlights (melhores momentos) de 1 minuto + 70 fotos em alta resolução. Entrega digital via link seguro e exclusivo.',
-              adicionais: 'Horas Adicionais, Dia adicional, Versão Estendida, Versão para Redes Sociais, Edição Avançada, Arquivos Originais',
-              deslocamento: 'Sob consulta, dependendo da localidade'
-            }
-          },
-          {
-            id: 2,
-            nome: 'VLOG - Amigos e Comunidade',
-            descricao: 'Documentação em vídeo e foto de eventos comunitários, encontros de amigos, festas de rua e celebrações locais.',
-            preco_base: 900.00,
-            duracao_media: 7,
-            detalhes: {
-              captura: '3 a 4 horas',
-              tratamento: 'até 15 dias',
-              entregaveis: 'Vídeo editado de até 5 minutos + 50 fotos em alta resolução. Entrega digital via link seguro e exclusivo.',
-              adicionais: 'Horas Adicionais, Versão Estendida, Versão para Redes Sociais',
-              deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
-            }
-          },
-          {
-            id: 3,
-            nome: 'Cobertura Fotográfica de Evento Social',
-            descricao: 'Registro fotográfico profissional para aniversários, confraternizações, formaturas e eventos corporativos.',
-            preco_base: 600.00,
-            duracao_media: 5,
-            detalhes: {
-              captura: '3 a 4 horas',
-              tratamento: 'até 10 dias',
-              entregaveis: '100 fotos em alta resolução, selecionadas, organizadas e com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
-              adicionais: 'Horas Adicionais, Álbum Impresso, Pendrive personalizado',
-              deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
-            }
-          },
-          {
-            id: 4,
-            nome: 'Filmagem de Evento Social',
-            descricao: 'Registro em vídeo profissional para aniversários, confraternizações, formaturas e eventos corporativos.',
-            preco_base: 800.00,
-            duracao_media: 10,
-            detalhes: {
-              captura: '3 a 4 horas',
-              tratamento: 'até 20 dias',
-              entregaveis: 'Vídeo editado de até 5 minutos em 4K ou Full HD com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
-              adicionais: 'Horas Adicionais, Versão Estendida, Versão para Redes Sociais, Drone',
-              deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
-            }
-          },
-          {
-            id: 5,
-            nome: 'Ensaio Fotográfico de Família',
-            descricao: 'Sessão fotográfica em ambiente externo para famílias. Foco em momentos espontâneos e com luz natural. Inclui direção de poses de fotos em grupo ou individuais.',
-            preco_base: 450.00,
-            duracao_media: 5,
-            detalhes: {
-              captura: '1 a 2 horas',
-              tratamento: 'até 10 dias',
-              entregaveis: '70 fotos em alta resolução, selecionadas, organizadas e com tratamento básico de cores. Entrega digital via link seguro e exclusivo.',
-              adicionais: 'Horas Adicionais ou Redução de horas, Vídeo Slideshow, Pendrive personalizado, Álbum Impresso',
-              deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
-            }
-          },
-          {
-            id: 6,
-            nome: 'Fotografia e Filmagem Aérea',
-            descricao: 'Registro profissional de imagens e vídeos aéreos para eventos, imóveis, arquitetura e paisagens.',
-            preco_base: 750.00,
-            duracao_media: 5,
-            detalhes: {
-              captura: '1 a 2 horas',
-              tratamento: 'até 10 dias',
-              entregaveis: '30 fotos em alta resolução + Vídeo editado de até 2 minutos em 4K. Entrega digital via link seguro e exclusivo.',
-              adicionais: 'Horas Adicionais, Versão Estendida, Edição Avançada',
-              deslocamento: 'Gratuito até 20 km do centro de Curitiba, excedente R$1,20/km'
-            }
-          }
-        ];
-        
-        // Retornar os dados de fallback no mesmo formato que a API retornaria
-        return { data: fallbackData };
-      }
-      
+      console.error('[API] Erro ao obter definições de serviços:', error);
       throw error;
     }
   },

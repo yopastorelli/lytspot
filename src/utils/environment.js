@@ -1,6 +1,6 @@
 /**
  * Módulo centralizado para detecção e configuração de ambiente
- * @version 1.4.0 - 2025-03-14 - Corrigida a configuração da URL base para garantir consistência
+ * @version 1.5.0 - 2025-03-15 - Corrigida a configuração da URL base para garantir consistência em produção
  * @description Fornece informações consistentes sobre o ambiente atual e URLs da API
  */
 
@@ -24,11 +24,8 @@ export const getEnvironment = () => {
                      window.location.hostname.startsWith('192.168.') ||
                      window.location.hostname.startsWith('10.');
   
-  // Lista de URLs para produção - usando apenas a URL válida do Render
-  const prodApiUrls = [
-    'https://lytspot-api.onrender.com',
-    'https://lytspot.com.br/api'  
-  ];
+  // URL da API em produção - sempre usar a URL do Render para a API
+  const prodApiUrl = 'https://lytspot-api.onrender.com';
   
   // Determinar a URL base da API
   let baseUrl;
@@ -38,13 +35,8 @@ export const getEnvironment = () => {
     baseUrl = 'http://localhost:3000';
     console.log('[Environment] Ambiente de desenvolvimento detectado. Usando API local:', baseUrl);
   } else {
-    // Em produção, verificar se estamos no domínio principal
-    if (window.location.hostname.includes('lytspot.com.br')) {
-      baseUrl = 'https://lytspot.com.br';
-    } else {
-      // Caso contrário, usar a URL do Render
-      baseUrl = 'https://lytspot-api.onrender.com';
-    }
+    // Em produção, sempre usar a URL do Render para a API
+    baseUrl = prodApiUrl;
     console.log('[Environment] Ambiente de produção detectado. Usando API remota:', baseUrl);
   }
   
@@ -52,7 +44,7 @@ export const getEnvironment = () => {
     type: 'browser',
     isDev: isLocalhost,
     baseUrl: baseUrl,
-    prodApiUrls: isLocalhost ? [] : prodApiUrls, 
+    prodApiUrl: prodApiUrl,
     hostname: window.location.hostname,
     href: window.location.href
   };
