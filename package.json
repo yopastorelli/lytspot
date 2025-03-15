@@ -58,6 +58,7 @@
     "@types/react-dom": "^18.3.5",
     "chalk": "^5.4.1",
     "nodemon": "^2.0.15",
+    "terser": "^5.39.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.1.6",
     "vitest": "^0.30.0"
