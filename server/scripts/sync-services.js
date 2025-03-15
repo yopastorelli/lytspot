@@ -1,7 +1,7 @@
 /**
  * Script unificado para sincronização de serviços entre ambientes
  * @description Atualiza serviços no banco de dados e nos arquivos estáticos do frontend
- * @version 1.1.0 - 2025-03-15 - Refatorado para usar serviceDataUtils
+ * @version 1.2.0 - 2025-03-15 - Melhorada detecção de ambiente e tratamento de erros
  */
 
 // Importações
@@ -20,8 +20,9 @@ const isRender = process.env.RENDER === 'true';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '../..');
 
-// Caminho do banco de dados SQLite no Render
-const RENDER_DB_PATH = 'file:/opt/render/project/src/database.sqlite';
+// Caminhos do banco de dados SQLite
+const LOCAL_DB_PATH = 'file:./server/database.sqlite';
+const RENDER_DB_PATH = process.env.DATABASE_URL || 'file:/opt/render/project/src/database.sqlite';
 
 // Caminho para o arquivo de serviços do simulador
 const simulatorServicesPath = path.join(rootDir, 'src', 'data', 'servicos.js');
@@ -158,7 +159,7 @@ export const servicos = ${JSON.stringify(servicosFormatados, null, 2)};
  */
 async function main() {
   console.log('='.repeat(80));
-  console.log(`[sync-services] Iniciando sincronização de serviços (v1.1.0) - ${new Date().toISOString()}`);
+  console.log(`[sync-services] Iniciando sincronização de serviços (v1.2.0) - ${new Date().toISOString()}`);
   console.log(`[sync-services] Ambiente: ${isRender ? 'Render (Produção)' : 'Local (Desenvolvimento)'}`);
   console.log('='.repeat(80));
 
@@ -168,12 +169,15 @@ async function main() {
     
     // Se estiver no Render, usar o caminho específico do SQLite no Render
     if (isRender) {
-      databaseUrl = RENDER_DB_PATH;
-      console.log(`[sync-services] Ambiente Render detectado, usando caminho específico do SQLite: ${databaseUrl}`);
+      if (!databaseUrl) {
+        databaseUrl = RENDER_DB_PATH;
+        console.log(`[sync-services] Ambiente Render detectado, usando caminho padrão do SQLite: ${databaseUrl}`);
+      } else {
+        console.log(`[sync-services] Ambiente Render detectado, usando DATABASE_URL: ${databaseUrl}`);
+      }
     } else if (!databaseUrl) {
-      console.error('[sync-services] ERRO: Variável DATABASE_URL não definida em ambiente local!');
-      console.error('[sync-services] Por favor, defina a variável DATABASE_URL com a URL de conexão do banco de dados.');
-      process.exit(1);
+      databaseUrl = LOCAL_DB_PATH;
+      console.log(`[sync-services] Ambiente local detectado, usando caminho padrão do SQLite: ${databaseUrl}`);
     }
     
     console.log(`[sync-services] Usando conexão de banco de dados: ${databaseUrl}`);
@@ -186,8 +190,7 @@ async function main() {
     const serviceDefinitions = await loadServiceDefinitions(definitionsPath, console.log);
     
     if (!serviceDefinitions || !Array.isArray(serviceDefinitions) || serviceDefinitions.length === 0) {
-      console.error('[sync-services] Erro: Nenhuma definição de serviço encontrada ou formato inválido');
-      process.exit(1);
+      throw new Error('[sync-services] Erro: Nenhuma definição de serviço encontrada ou formato inválido');
     }
     
     console.log(`[sync-services] Carregadas ${serviceDefinitions.length} definições de serviços`);
@@ -209,9 +212,7 @@ async function main() {
       await prisma.$queryRaw`SELECT 1 as test`;
       console.log('[sync-services] Conexão com o banco de dados estabelecida com sucesso!');
     } catch (dbError) {
-      console.error(`[sync-services] ERRO ao conectar ao banco de dados: ${dbError.message}`);
-      console.error('[sync-services] Verifique se a URL de conexão está correta e se o banco de dados está acessível.');
-      process.exit(1);
+      throw new Error(`[sync-services] ERRO ao conectar ao banco de dados: ${dbError.message}`);
     }
     
     // Passo 1: Atualizar serviços no banco de dados
@@ -220,12 +221,21 @@ async function main() {
     // Passo 2: Atualizar arquivo de serviços estáticos
     const staticFileUpdated = await updateStaticServicesFile();
     
+    if (!staticFileUpdated) {
+      throw new Error('[sync-services] Falha ao atualizar arquivo de serviços estáticos');
+    }
+    
     // Resumo da operação
     console.log('='.repeat(80));
     console.log('[sync-services] Resumo da sincronização:');
     console.log(`[sync-services] Banco de dados: ${dbStats.atualizados} serviços atualizados, ${dbStats.criados} serviços criados, ${dbStats.erros} erros`);
     console.log(`[sync-services] Arquivo estático: ${staticFileUpdated ? 'Atualizado com sucesso' : 'Falha na atualização'}`);
     console.log('='.repeat(80));
+    
+    // Verificar se houve erros na sincronização
+    if (dbStats.erros > 0) {
+      throw new Error(`[sync-services] ${dbStats.erros} erros ocorreram durante a sincronização do banco de dados`);
+    }
     
     // Fechar conexão com o banco de dados
     await prisma.$disconnect();

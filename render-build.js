@@ -1,6 +1,6 @@
 /**
  * Script de build específico para o ambiente Render
- * @version 1.1.0 - 2025-03-14 - Adicionada sincronização de serviços ao processo de build
+ * @version 1.2.0 - 2025-03-15 - Corrigida ordem de execução da sincronização de serviços
  */
 import { execSync } from 'child_process';
 import fs from 'fs';
@@ -65,10 +65,20 @@ try {
     console.log("Cliente Prisma gerado com sucesso!");
   } catch (error) {
     console.error("Erro ao gerar cliente Prisma:", error.message);
-    console.log("Tentando continuar mesmo com o erro...");
+    throw new Error("Falha ao gerar cliente Prisma. Abortando build.");
   }
   
-  // Executar o build do Astro
+  // Executar o script de sincronização de serviços ANTES do build do Astro
+  console.log("Executando sincronização de serviços...");
+  try {
+    execSync('node server/scripts/sync-services.js', { stdio: 'inherit' });
+    console.log("Sincronização de serviços executada com sucesso!");
+  } catch (error) {
+    console.error("Erro ao executar sincronização de serviços:", error.message);
+    throw new Error("Falha na sincronização de serviços. Abortando build para evitar deploy com dados desatualizados.");
+  }
+  
+  // Executar o build do Astro DEPOIS da sincronização
   console.log("Executando build do Astro...");
   try {
     execSync('npx astro build', { stdio: 'inherit' });
@@ -113,16 +123,6 @@ try {
 </html>
     `);
     console.log("Arquivo index.html de fallback criado com sucesso!");
-  }
-  
-  // Executar o script de sincronização de serviços
-  console.log("Executando sincronização de serviços...");
-  try {
-    execSync('node server/scripts/sync-services.js', { stdio: 'inherit' });
-    console.log("Sincronização de serviços executada com sucesso!");
-  } catch (error) {
-    console.error("Erro ao executar sincronização de serviços:", error.message);
-    console.log("Continuando mesmo com o erro...");
   }
   
   console.log("Script render-build.js concluído!");
