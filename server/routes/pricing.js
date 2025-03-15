@@ -4,6 +4,7 @@ import { pricingController } from '../controllers/pricingController.js';
 import { authenticateJWT } from '../middleware/auth.js';
 import { validate } from '../middleware/validator.js';
 import { cacheMiddleware } from '../middleware/cache.js';
+import { getServiceDefinitionsForFrontend } from '../models/seeds/serviceDefinitions.js';
 
 const router = express.Router();
 
@@ -51,6 +52,15 @@ const idValidation = [
 
 // Rotas públicas
 router.get('/', cacheMiddleware(300), pricingController.getAllServices);
+router.get('/definitions', cacheMiddleware(300), (req, res) => {
+  try {
+    const services = getServiceDefinitionsForFrontend();
+    return res.json(services);
+  } catch (error) {
+    console.error('[API] Erro ao obter definições de serviços:', error);
+    return res.status(500).json({ error: 'Erro ao obter definições de serviços' });
+  }
+});
 router.get('/:id', cacheMiddleware(300), idValidation, validate, pricingController.getServiceById);
 
 // Rotas protegidas (requerem autenticação)

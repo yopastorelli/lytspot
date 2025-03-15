@@ -11,7 +11,7 @@
     "prestart": "node server/scripts/prestart.js",
     "start": "node server/server.js",
     "postinstall": "node render-setup.js",
-    "render-build": "node render-build.js",
+    "render-build": "node render-build.js && npm run seed-services",
     "verificar-persistencia": "node server/scripts/verificarPersistencia.js",
     "inicializar-sistema": "node server/scripts/inicializarSistema.js",
     "monitor-db": "node server/scripts/monitorBancoDados.js",
@@ -19,7 +19,9 @@
     "atualizar-servicos-force": "node server/scripts/popularServicos.js --update --force",
     "sync-services": "node server/scripts/sync-services.js",
     "atualizar-producao": "node server/scripts/atualizar-servicos-producao.js",
-    "sync-services-remote": "node server/scripts/sync-services-remote.js"
+    "sync-services-remote": "node server/scripts/sync-services-remote.js",
+    "seed-services": "node server/scripts/seed-services.js",
+    "build:with-seed": "npm run build && npm run seed-services"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",

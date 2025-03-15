@@ -127,24 +127,82 @@ async function updateLocalDatabase(services) {
 }
 
 /**
+ * Autentica na API de produção e obtém um token JWT
+ * @returns {Promise<string|null>} Token JWT ou null em caso de erro
+ * @version 1.0.0 - 2025-03-15
+ */
+async function authenticateProductionAPI() {
+  console.log('[update-services] Autenticando na API de produção...');
+  
+  // Verificar se a URL da API está configurada
+  const apiUrl = process.env.PRODUCTION_API_URL;
+  const apiEmail = process.env.PRODUCTION_API_EMAIL;
+  const apiPassword = process.env.PRODUCTION_API_PASSWORD;
+  
+  if (!apiUrl) {
+    console.error('[update-services] URL da API de produção não configurada. Defina PRODUCTION_API_URL no arquivo .env');
+    return null;
+  }
+  
+  if (!apiEmail || !apiPassword) {
+    console.error('[update-services] Credenciais da API de produção não configuradas. Defina PRODUCTION_API_EMAIL e PRODUCTION_API_PASSWORD no arquivo .env');
+    return null;
+  }
+  
+  try {
+    // Fazer login na API
+    console.log(`[update-services] Tentando login com email: ${apiEmail}`);
+    const loginResponse = await axios.post(`${apiUrl}/api/auth/login`, {
+      email: apiEmail,
+      password: apiPassword
+    });
+    
+    // Verificar resposta
+    if (loginResponse.status === 200 && loginResponse.data && loginResponse.data.token) {
+      console.log('[update-services] Autenticação bem-sucedida!');
+      return loginResponse.data.token;
+    } else {
+      console.error('[update-services] Erro na resposta de autenticação:', loginResponse.status);
+      console.error(loginResponse.data);
+      return null;
+    }
+  } catch (error) {
+    console.error('[update-services] Erro ao autenticar na API de produção:', error.message);
+    if (error.response) {
+      console.error(`[update-services] Detalhes do erro: Status ${error.response.status} - ${error.response.statusText}`);
+      console.error(`[update-services] Corpo da resposta: ${JSON.stringify(error.response.data)}`);
+    } else if (error.request) {
+      console.error('[update-services] Não houve resposta do servidor. Verifique se a URL está correta e se o servidor está online.');
+    } else {
+      console.error('[update-services] Erro ao configurar a requisição:', error.stack);
+    }
+    return null;
+  }
+}
+
+/**
  * Atualiza os serviços no banco de dados de produção via API
  * @param {Array} services Array de definições de serviços
  * @returns {Promise<Object>} Estatísticas de atualização
+ * @version 1.3.0 - 2025-03-15 - Adicionado suporte para autenticação JWT
  */
 async function updateProductionDatabase(services) {
   console.log('[update-services] Atualizando serviços no banco de dados de produção...');
   
   // Verificar se a URL da API está configurada
   const apiUrl = process.env.PRODUCTION_API_URL;
-  const apiKey = process.env.PRODUCTION_API_KEY;
   
   if (!apiUrl) {
     console.error('[update-services] URL da API de produção não configurada. Defina PRODUCTION_API_URL no arquivo .env');
     return { atualizados: 0, criados: 0, erros: services.length };
   }
   
-  if (!apiKey) {
-    console.warn('[update-services] Chave da API de produção não configurada. Defina PRODUCTION_API_KEY no arquivo .env');
+  // Autenticar na API
+  const token = await authenticateProductionAPI();
+  
+  if (!token) {
+    console.error('[update-services] Não foi possível autenticar na API de produção. Verifique as credenciais.');
+    return { atualizados: 0, criados: 0, erros: services.length };
   }
   
   let stats = {
@@ -154,41 +212,108 @@ async function updateProductionDatabase(services) {
   };
   
   try {
-    // Preparar serviços para envio
-    const preparedServices = services.map(service => prepareServiceForDatabase(service));
-    
-    // Configurar cabeçalhos
+    // Configurar cabeçalhos com o token JWT
     const headers = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
     };
     
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
+    console.log('[update-services] Estratégia de atualização: usando endpoints CRUD individuais');
+    
+    // 1. Primeiro, obter os serviços existentes na API
+    console.log('[update-services] Obtendo serviços existentes da API...');
+    const getResponse = await axios.get(`${apiUrl}/api/pricing`, { headers });
+    const existingServices = getResponse.data || [];
+    
+    console.log(`[update-services] Encontrados ${existingServices.length} serviços na API`);
+    
+    // Mapear serviços existentes por nome para facilitar a busca
+    const servicesByName = {};
+    existingServices.forEach(service => {
+      servicesByName[service.nome] = service;
+    });
+    
+    // 2. Para cada serviço nas definições, criar ou atualizar na API
+    for (const service of services) {
+      try {
+        const serviceData = prepareServiceForDatabase(service);
+        const existingService = servicesByName[service.nome];
+        
+        if (existingService) {
+          // Atualizar serviço existente
+          console.log(`[update-services] Atualizando serviço na API: ${service.nome}`);
+          await axios.put(
+            `${apiUrl}/api/pricing/${existingService.id}`,
+            serviceData,
+            { headers }
+          );
+          stats.atualizados++;
+        } else {
+          // Criar novo serviço
+          console.log(`[update-services] Criando serviço na API: ${service.nome}`);
+          await axios.post(
+            `${apiUrl}/api/pricing`,
+            serviceData,
+            { headers }
+          );
+          stats.criados++;
+        }
+      } catch (serviceError) {
+        console.error(`[update-services] Erro ao processar serviço ${service.nome}:`, serviceError.message);
+        if (serviceError.response) {
+          console.error(`Detalhes: ${serviceError.response.status} - ${serviceError.response.statusText}`);
+          console.error(JSON.stringify(serviceError.response.data));
+        }
+        stats.erros++;
+      }
     }
     
-    // Enviar requisição para a API
-    const response = await axios.post(
-      `${apiUrl}/api/admin/services/sync`,
-      { services: preparedServices },
-      { headers }
-    );
-    
-    // Verificar resposta
-    if (response.status === 200 && response.data) {
-      stats = response.data;
-      console.log(`[update-services] Atualização do banco de produção concluída: ${stats.atualizados} atualizados, ${stats.criados} criados, ${stats.erros} erros`);
-    } else {
-      console.error(`[update-services] Erro na resposta da API: ${response.status} - ${response.statusText}`);
-      stats.erros = services.length;
+    // 3. Após atualizar todos os serviços, sincronizar os dados de demonstração
+    console.log('[update-services] Sincronizando dados de demonstração...');
+    try {
+      const syncResponse = await axios.post(
+        `${apiUrl}/api/sync/demo-data`,
+        {},
+        { headers }
+      );
+      
+      if (syncResponse.status === 200 && syncResponse.data.sucesso) {
+        console.log(`[update-services] Dados de demonstração sincronizados com sucesso: ${syncResponse.data.mensagem}`);
+      } else {
+        console.warn(`[update-services] Aviso na sincronização de dados de demonstração: ${syncResponse.data.mensagem}`);
+      }
+    } catch (syncError) {
+      console.error('[update-services] Erro ao sincronizar dados de demonstração:', syncError.message);
+      if (syncError.response) {
+        console.error(`Detalhes: ${syncError.response.status} - ${syncError.response.statusText}`);
+        console.error(JSON.stringify(syncError.response.data));
+      }
+      // Não contabilizar como erro, pois os serviços já foram atualizados
     }
     
+    console.log(`[update-services] Atualização do banco de produção concluída: ${stats.atualizados} atualizados, ${stats.criados} criados, ${stats.erros} erros`);
     return stats;
   } catch (error) {
     console.error('[update-services] Erro ao atualizar banco de dados de produção:', error.message);
     if (error.response) {
-      console.error(`Detalhes: ${error.response.status} - ${error.response.statusText}`);
-      console.error(error.response.data);
+      console.error(`[update-services] Detalhes do erro: Status ${error.response.status} - ${error.response.statusText}`);
+      console.error(`[update-services] Corpo da resposta: ${JSON.stringify(error.response.data)}`);
+    } else if (error.request) {
+      console.error('[update-services] Não houve resposta do servidor. Verifique se a URL está correta e se o servidor está online.');
+      console.error(`[update-services] Detalhes da requisição: ${JSON.stringify(error.request)}`);
+    } else {
+      console.error('[update-services] Erro ao configurar a requisição:', error.stack);
     }
+    
+    // Verificar se o endpoint existe
+    console.log('[update-services] Verificando se o endpoint da API existe...');
+    try {
+      const checkResponse = await axios.get(`${apiUrl}/api/health`, { timeout: 5000 });
+      console.log(`[update-services] Servidor respondeu com status: ${checkResponse.status}`);
+    } catch (checkError) {
+      console.error('[update-services] Não foi possível verificar o servidor:', checkError.message);
+    }
+    
     return { atualizados: 0, criados: 0, erros: services.length };
   }
 }
@@ -197,6 +322,7 @@ async function updateProductionDatabase(services) {
  * Prepara um serviço para armazenamento no banco de dados
  * @param {Object} service Definição do serviço
  * @returns {Object} Dados formatados para o banco de dados
+ * @version 1.1.0 - 2025-03-15 - Corrigido o tipo dos campos de duração para garantir que sejam sempre strings
  */
 function prepareServiceForDatabase(service) {
   // Garantir que os detalhes estejam no formato correto
@@ -208,16 +334,25 @@ function prepareServiceForDatabase(service) {
     deslocamento: service.valor_deslocamento || service.detalhes?.deslocamento || 'Sob consulta'
   };
   
+  // Garantir que os campos de duração sejam sempre strings
+  const duracao_media_captura = typeof detalhes.captura === 'number' 
+    ? String(detalhes.captura) + ' horas' 
+    : String(detalhes.captura);
+    
+  const duracao_media_tratamento = typeof detalhes.tratamento === 'number' 
+    ? String(detalhes.tratamento) + ' dias' 
+    : String(detalhes.tratamento);
+  
   // Criar objeto para o banco de dados
   return {
     nome: service.nome,
     descricao: service.descricao,
     preco_base: parseFloat(service.preco_base) || 0,
-    duracao_media_captura: detalhes.captura,
-    duracao_media_tratamento: detalhes.tratamento,
-    entregaveis: detalhes.entregaveis,
-    possiveis_adicionais: detalhes.adicionais,
-    valor_deslocamento: detalhes.deslocamento,
+    duracao_media_captura: duracao_media_captura,
+    duracao_media_tratamento: duracao_media_tratamento,
+    entregaveis: String(detalhes.entregaveis),
+    possiveis_adicionais: String(detalhes.adicionais),
+    valor_deslocamento: String(detalhes.deslocamento),
     detalhes: JSON.stringify(detalhes)
   };
 }

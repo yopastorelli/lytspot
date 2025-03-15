@@ -1,7 +1,7 @@
 /**
  * Definições centralizadas de serviços para o Lytspot
  * @description Este arquivo serve como a fonte única de verdade (Single Source of Truth) para todos os serviços
- * @version 1.1.0 - 2025-03-15 - Atualizado catálogo de serviços
+ * @version 1.2.0 - 2025-03-15 - Atualizado nomes dos serviços para corresponder ao frontend
  * 
  * IMPORTANTE: NÃO MODIFIQUE ESTE ARQUIVO DIRETAMENTE
  * Para atualizar os serviços, utilize o painel administrativo ou os scripts de atualização

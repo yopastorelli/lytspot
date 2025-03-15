@@ -7,7 +7,7 @@ import { dadosDemonstracao } from './dadosDemonstracao';
 
 /**
  * Componente de simulação de preços
- * @version 3.1.0 - 2025-03-15 - Adicionado suporte para identificação de requisições do simulador
+ * @version 3.2.0 - 2025-03-15 - Adicionado suporte para buscar serviços diretamente das definições
  */
 const PriceSimulator = () => {
   const [servicos, setServicos] = useState([]);
@@ -33,15 +33,14 @@ const PriceSimulator = () => {
     const controller = new AbortController();
     
     try {
-      console.log(`Carregando serviços da API: ${env.baseUrl}/api/pricing`);
+      console.log(`Carregando definições de serviços da API: ${env.baseUrl}/api/pricing/definitions`);
       
-      // Usa o serviço de API centralizado com o método específico
-      // Passa a opção simulador=true para identificar que a requisição vem do simulador
-      const response = await servicosAPI.listar({ simulador: true });
+      // Usa o novo método para buscar diretamente das definições
+      const response = await servicosAPI.listarDefinicoes();
       
       // Verifica se a resposta contém dados válidos
       if (response && response.data && Array.isArray(response.data)) {
-        console.log(`[PriceSimulator] Serviços carregados: ${response.data.length} itens`);
+        console.log(`[PriceSimulator] Serviços carregados das definições: ${response.data.length} itens`);
         console.log('[PriceSimulator] Primeiro serviço:', response.data[0]);
         
         if (response.data.length > 0) {

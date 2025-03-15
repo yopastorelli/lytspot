@@ -119,6 +119,18 @@ const servicosAPI = {
       throw error;
     }
   },
+  /**
+   * Lista todos os serviços diretamente do arquivo de definições
+   * @returns {Promise} Promessa com a resposta da API contendo as definições de serviços
+   */
+  listarDefinicoes: async () => {
+    try {
+      return api.get('/pricing/definitions');
+    } catch (error) {
+      console.error('[API] Erro ao listar definições de serviços:', error);
+      throw error;
+    }
+  },
   obter: (id) => api.get(`/pricing/${id}`),
   criar: (dados) => api.post('/pricing', dados),
   atualizar: (id, dados) => api.put(`/pricing/${id}`, dados),

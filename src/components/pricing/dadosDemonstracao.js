@@ -1,7 +1,7 @@
 /**
  * Dados de demonstração para o simulador de preços
  * @description Este arquivo contém dados de demonstração para o simulador de preços
- * @version 1.1.0 - 2025-03-15 - Atualizado catálogo de serviços
+ * @version 1.3.0 - 2025-03-15 - Atualizado catálogo de serviços para corresponder aos nomes originais
  */
 
 export const servicos = [
@@ -184,7 +184,7 @@ export const opcoesDeslocamento = [
 
 /**
  * @deprecated Mantido para compatibilidade retroativa. Use 'servicos' em novos componentes.
- * @version 1.1.0 - 2025-03-15
+ * @version 1.2.0 - 2025-03-15
  */
 export const dadosDemonstracao = servicos;
 
