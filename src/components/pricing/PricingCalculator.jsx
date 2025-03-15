@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { getEnvironment } from '../../utils/environment';
+import { servicosAPI } from '../../services/api';
 
 /**
  * Componente de calculadora de preços para o simulador
@@ -176,8 +177,9 @@ const PricingCalculator = ({ servicos }) => {
         dados: dadosOrcamento
       });
       
-      // Enviar para o mesmo endpoint de contato
-      const response = await axios.post(`${env.baseUrl}/api/contact`, dadosOrcamento);
+      // Usar o método específico da API para enviar orçamentos
+      // Isso garante que todas as configurações CORS sejam aplicadas corretamente
+      const response = await servicosAPI.enviarOrcamento(dadosOrcamento);
       
       if (response.status === 200 || response.status === 201) {
         console.info("Orçamento enviado com sucesso", response.data);

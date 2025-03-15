@@ -149,7 +149,50 @@ const servicosAPI = {
   obter: (id) => api.get(`/pricing/${id}`),
   criar: (dados) => api.post('/pricing', dados),
   atualizar: (id, dados) => api.put(`/pricing/${id}`, dados),
-  excluir: (id) => api.delete(`/pricing/${id}`)
+  excluir: (id) => api.delete(`/pricing/${id}`),
+  
+  /**
+   * Envia um orçamento para o endpoint de contato
+   * @param {Object} dadosOrcamento Dados do orçamento a ser enviado
+   * @returns {Promise} Promessa com a resposta da API
+   */
+  enviarOrcamento: async (dadosOrcamento) => {
+    try {
+      console.log('[API] Enviando orçamento para o endpoint de contato');
+      
+      // Criar uma instância específica para garantir que as configurações CORS sejam aplicadas
+      const env = getEnvironment();
+      const instance = axios.create({
+        baseURL: env.baseUrl,
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Source': 'lytspot-simulator',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        withCredentials: true
+      });
+      
+      // Adicionar interceptor para diagnóstico
+      instance.interceptors.request.use(
+        (config) => {
+          console.log(`[API] Enviando requisição para ${config.url} com origem ${window.location.origin}`);
+          return config;
+        },
+        (error) => {
+          console.error('[API] Erro na requisição:', error);
+          return Promise.reject(error);
+        }
+      );
+      
+      // Fazer a requisição
+      return await instance.post('/api/contact', dadosOrcamento);
+    } catch (error) {
+      console.error('[API] Erro ao enviar orçamento:', error);
+      throw error;
+    }
+  }
 };
 
 const authAPI = {

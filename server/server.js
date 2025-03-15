@@ -179,22 +179,19 @@ try {
         return callback(null, true);
       }
       
-      // Em produção, temporariamente permitir qualquer origem para diagnóstico
-      console.log(`[CORS] Permitindo origem em produção: ${origin}`);
-      return callback(null, true);
-      
-      /* Código original comentado para diagnóstico
       // Em produção, verificar se a origem está na lista de origens permitidas
       if (allowedOrigins.includes(origin)) {
+        console.log(`[CORS] Origem permitida: ${origin}`);
         return callback(null, true);
       } else {
-        console.warn(`[CORS] Origem bloqueada: ${origin}`);
-        return callback(new Error('Origem não permitida pelo CORS'), false);
+        // Para diagnóstico, permitir temporariamente qualquer origem em produção
+        console.log(`[CORS] Origem não listada, mas permitindo para diagnóstico: ${origin}`);
+        return callback(null, true);
       }
-      */
     },
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-Source, Pragma',
+    exposedHeaders: 'Content-Length, X-Requested-With, Content-Type, Accept, Authorization',
     credentials: true,
     maxAge: 86400 // Cache de preflight por 24 horas (em segundos)
   };
@@ -212,25 +209,27 @@ try {
     // Em desenvolvimento, aceitar a origem da requisição
     if (isDevelopment && req.headers.origin) {
       allowedOrigin = req.headers.origin;
-      console.log(`[CORS] Modo desenvolvimento: permitindo origem ${allowedOrigin}`);
     } 
     // Em produção, verificar se a origem está na lista de origens permitidas
     else if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
       allowedOrigin = req.headers.origin;
-      console.log(`[CORS] Origem permitida: ${allowedOrigin}`);
     } else if (req.headers.origin) {
-      console.log(`[CORS] Aviso: Origem não listada: ${req.headers.origin}, mas permitindo acesso`);
-      allowedOrigin = req.headers.origin; // Permitir qualquer origem em produção temporariamente
+      // Para diagnóstico, permitir temporariamente qualquer origem em produção
+      allowedOrigin = req.headers.origin;
     }
+    
+    console.log(`[CORS] Definindo Access-Control-Allow-Origin: ${allowedOrigin}`);
     
     // Adicionar cabeçalhos CORS manualmente para garantir que eles sejam aplicados
     res.header('Access-Control-Allow-Origin', allowedOrigin);
     res.header('Access-Control-Allow-Methods', corsOptions.methods);
     res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders);
     res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Expose-Headers', corsOptions.exposedHeaders);
     
     // Responder imediatamente a requisições OPTIONS (preflight)
     if (req.method === 'OPTIONS') {
+      console.log('[CORS] Respondendo a requisição OPTIONS com 200');
       return res.status(200).end();
     }
     
