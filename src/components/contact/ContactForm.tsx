@@ -96,9 +96,14 @@ const ContactForm: React.FC = () => {
       // Obter a URL base do ambiente
       const env = getEnvironment() as Environment;
       
+      // Log para debug da URL da API
+      console.info("Enviando formulário para API", {
+        baseUrl: env.baseUrl,
+        endpoint: `${env.baseUrl}/api/contact`
+      });
+      
       // Usando o axios diretamente para evitar problemas de tipagem
-      // A rota no servidor está definida como /api/contact (linha 172 do server.js)
-      const response = await axios.post(`${env.baseUrl.includes('/api') ? env.baseUrl.replace('/api', '') : env.baseUrl}/api/contact`, formData);
+      const response = await axios.post(`${env.baseUrl}/api/contact`, formData);
       
       if (response.status === 200 || response.status === 201) {
         console.info("Mensagem enviada com sucesso", response.data);
@@ -249,10 +254,10 @@ const ContactForm: React.FC = () => {
       {/* Botão Enviar */}
       <button
         type="submit"
-        className="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors"
+        className="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors font-bold shadow-lg"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Enviando..." : "Enviar Mensagem"}
+        {isSubmitting ? "ENVIANDO..." : "ENVIAR MENSAGEM"}
       </button>
 
       {successMessage && <p className="text-green-500 text-sm mt-4">{successMessage}</p>}

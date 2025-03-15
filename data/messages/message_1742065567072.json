@@ -1,0 +1,9 @@
+{
+  "to": "contato@lytspot.com.br",
+  "from": "contato@lytspot.com",
+  "subject": "Novo contato de iuhiuhui",
+  "text": "Nome: iuhiuhui\nE-mail: admin@lytspot.com.br\nTelefone: 4243453543453\nServiço: Serviço 1\nMensagem:\nfddtsesers",
+  "html": "\n          <h2>Novo contato recebido</h2>\n          <p><strong>Nome:</strong> iuhiuhui</p>\n          <p><strong>E-mail:</strong> admin@lytspot.com.br</p>\n          <p><strong>Telefone:</strong> 4243453543453</p>\n          <p><strong>Serviço de interesse:</strong> Serviço 1</p>\n          <p><strong>Mensagem:</strong></p>\n          <p>fddtsesers</p>\n        ",
+  "timestamp": "2025-03-15T19:06:07.071Z",
+  "error": "Invalid login: 535 Authentication Failed"
+}

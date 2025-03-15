@@ -17,7 +17,7 @@ export const SITE_CONFIG = {
 export const SERVICES = [
   {
     id: 'drone',
-    title: 'Filmagem com Drones',
+    title: 'FILMAGEM COM DRONE',
     description: 'Captação aérea profissional para eventos, publicidade, programas e projetos únicos.',
     image: '/images/drone.png',
     features: [
@@ -30,7 +30,7 @@ export const SERVICES = [
   },
   {
     id: 'photo',
-    title: 'Fotografia Profissional',
+    title: 'FOTOGRAFIA PROFISSIONAL',
     description: 'Ensaios fotográficos, eventos corporativos e campanhas publicitárias.',
     image: '/images/photo.png',
     features: [
@@ -42,7 +42,7 @@ export const SERVICES = [
   },
   {
     id: 'video',
-    title: 'Projetos especiais',
+    title: 'PROJETOS ESPECIAIS',
     description: 'Produção audiovisual para projetos personalizados',
     image: '/images/project.png',
     features: [
@@ -73,7 +73,6 @@ export const TEAM_MEMBERS = [
     image: "/images/black.PNG",
     bio: "Especialista em fotografia profissional com mais de 18 anos de experiência.",
     social: [
-      { platform: "LinkedIn", url: "https://www.linkedin.com/in/lucas-ferreira-3a15039b/" },
       { platform: "Instagram", url: "https://www.instagram.com/lucasferreirafotografo" }
     ]
   },
@@ -83,7 +82,6 @@ export const TEAM_MEMBERS = [
     image: "/images/red.PNG",
     bio: "Especialista em tecnologia e apaixonado por imagens e máquinas aéreas.",
     social: [
-      { platform: "LinkedIn", url: "https://www.linkedin.com/in/dfdelgado/" },
       { platform: "Instagram", url: "https://www.instagram.com/dfdelgado" }
     ]
   }

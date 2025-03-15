@@ -7,8 +7,14 @@ const contactInfo = [
   {
     icon: PhoneIcon,
     title: 'Telefone',
-    content: '+55 (41) 99888-0303',
+    content: '+55 (41) 99888-0303 (Daniel)',
     link: 'https://wa.me/5541998880303'
+  },
+  {
+    icon: PhoneIcon,
+    title: 'Telefone',
+    content: '+55 (41) 99930-4700 (Lucas)',
+    link: 'https://wa.me/5541999304700'
   },
   {
     icon: EnvelopeIcon,
@@ -28,18 +34,18 @@ const contactInfo = [
 <section class="pt-10 pb-20">
   <div class="container">
     <SectionTitle
-      title="Entre em Contato"
+      title="ENTRE EM CONTATO"
       subtitle="Estamos prontos para atender seu projeto"
     />
 
-    <div class="grid md:grid-cols-2 gap-6"> 
+    <div class="grid md:grid-cols-2 gap-6 mt-10"> 
       <div>
-        <h3 class="text-2xl font-bold mb-4">Fale Conosco</h3> 
+        <h3 class="text-2xl font-bold mb-4">FALE CONOSCO</h3> 
         <ContactForm client:load />
       </div>
 
       <div>
-        <h3 class="text-2xl font-bold mb-4">Informações de Contato</h3> 
+        <h3 class="text-2xl font-bold mb-4">INFORMAÇÕES DE CONTATO</h3> 
         <div class="space-y-6">
           {contactInfo.map(item => (
             <div class="flex items-start gap-4">

@@ -14,7 +14,7 @@ export const getEnvironment = () => {
     return { 
       type: 'server', 
       isDev: true,
-      baseUrl: 'http://localhost:3000'  // Removido o prefixo /api para consistência
+      baseUrl: 'http://localhost:3000'  
     };
   }
   
@@ -26,19 +26,19 @@ export const getEnvironment = () => {
   
   // Lista de URLs para produção - usando apenas a URL válida do Render
   const prodApiUrls = [
-    'https://lytspot.onrender.com'  // URL principal do Render sem prefixo /api
+    'https://lytspot-api.onrender.com'  
   ];
   
   // Determinar a URL base da API
   let baseUrl;
   
   if (isLocalhost) {
-    // Em desenvolvimento, use localhost:3000 sem prefixo /api
+    // Em desenvolvimento, use localhost:3000
     baseUrl = 'http://localhost:3000';
     console.log('[Environment] Ambiente de desenvolvimento detectado. Usando API local:', baseUrl);
   } else {
-    // Em produção, use a URL do Render sem prefixo /api
-    baseUrl = prodApiUrls[0];
+    // Em produção, use a URL do Render com o sufixo -api para a API
+    baseUrl = 'https://lytspot-api.onrender.com';
     console.log('[Environment] Ambiente de produção detectado. Usando API remota:', baseUrl);
   }
   
@@ -46,7 +46,7 @@ export const getEnvironment = () => {
     type: 'browser',
     isDev: isLocalhost,
     baseUrl: baseUrl,
-    prodApiUrls: isLocalhost ? [] : prodApiUrls, // Lista de URLs alternativas para fallback
+    prodApiUrls: isLocalhost ? [] : prodApiUrls, 
     hostname: window.location.hostname,
     href: window.location.href
   };

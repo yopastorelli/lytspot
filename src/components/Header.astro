@@ -4,10 +4,10 @@ import Button from './common/Button';
 
 // Define os itens do menu
 const menuItems = [
-  { href: '/portfolio', text: 'Portfolio' },
-  { href: '/sobre', text: 'Sobre' },
-  { href: '/servicos', text: 'Serviços' },
-  { href: '/precos', text: 'Simulador de Preços' },
+  { href: '/portfolio', text: 'PORTFOLIO' },
+  { href: '/sobre', text: 'SOBRE' },
+  { href: '/servicos', text: 'SERVIÇOS' },
+  { href: '/precos', text: 'ORÇAMENTO' },
 ];
 
 // Acessa o pathname da URL atual corretamente
@@ -48,8 +48,12 @@ const currentPath = new URL(Astro.request.url).pathname;
             {item.text}
           </a>
         ))}
-        <Button variant="primary" href="/contato" className="text-center w-full justify-center">
-          Contato
+        <Button 
+          variant="dark-blue" 
+          href="/contato" 
+          className="text-center w-full justify-center bg-[#0a1e4d] hover:bg-[#0a1e4d]/90"
+        >
+          CONTATO
         </Button>
       </div>
     </nav>
@@ -93,8 +97,13 @@ const currentPath = new URL(Astro.request.url).pathname;
           </a>
         ))}
         <div class="pt-4">
-          <Button variant="primary" href="/contato" size="lg" className="w-full justify-center">
-            Contato
+          <Button 
+            variant="dark-blue" 
+            href="/contato" 
+            size="lg" 
+            className="w-full justify-center bg-[#0a1e4d] hover:bg-[#0a1e4d]/90"
+          >
+            CONTATO
           </Button>
         </div>
       </div>
