@@ -155,13 +155,21 @@ const servicosAPI = {
    * Envia um orçamento para o endpoint de contato
    * @param {Object} dadosOrcamento Dados do orçamento a ser enviado
    * @returns {Promise} Promessa com a resposta da API
+   * @version 1.3.0 - 2025-03-15 - Implementado mecanismo de retry com exponential backoff
    */
   enviarOrcamento: async (dadosOrcamento) => {
-    try {
-      console.log('[API] Enviando orçamento para o endpoint de contato');
-      
-      // Criar uma instância específica para garantir que as configurações CORS sejam aplicadas
-      const env = getEnvironment();
+    console.log('[API] Enviando orçamento para o endpoint de contato');
+    
+    // Configurações para o mecanismo de retry
+    const maxRetries = 3;
+    let tentativa = 0;
+    let ultimoErro = null;
+    
+    // Criar uma instância específica para garantir que as configurações CORS sejam aplicadas
+    const env = getEnvironment();
+    
+    // Função para criar a instância do axios com configurações consistentes
+    const criarInstancia = () => {
       const instance = axios.create({
         baseURL: env.baseUrl,
         timeout: 15000,
@@ -186,12 +194,51 @@ const servicosAPI = {
         }
       );
       
-      // Fazer a requisição
-      return await instance.post('/api/contact', dadosOrcamento);
-    } catch (error) {
-      console.error('[API] Erro ao enviar orçamento:', error);
-      throw error;
+      return instance;
+    };
+    
+    // Implementar mecanismo de retry com exponential backoff
+    while (tentativa < maxRetries) {
+      try {
+        const instance = criarInstancia();
+        
+        // Registrar a tentativa atual
+        tentativa++;
+        console.log(`[API] Tentativa ${tentativa}/${maxRetries} de enviar orçamento`);
+        
+        // Fazer a requisição
+        const response = await instance.post('/api/contact', dadosOrcamento);
+        
+        // Se chegou aqui, a requisição foi bem-sucedida
+        console.log(`[API] Orçamento enviado com sucesso na tentativa ${tentativa}`);
+        return response;
+      } catch (error) {
+        // Registrar o erro
+        ultimoErro = error;
+        console.error(`[API] Erro ao enviar orçamento (tentativa ${tentativa}/${maxRetries}):`, error);
+        
+        // Verificar se é um erro de CORS
+        if (error.message && error.message.includes('Network Error')) {
+          console.warn('[API] Possível erro de CORS detectado');
+        }
+        
+        // Se já tentou o número máximo de vezes, lançar o erro
+        if (tentativa >= maxRetries) {
+          console.error(`[API] Número máximo de tentativas (${maxRetries}) excedido. Desistindo.`);
+          throw ultimoErro;
+        }
+        
+        // Calcular tempo de espera com exponential backoff
+        const tempoEspera = Math.pow(2, tentativa) * 1000; // 2s, 4s, 8s
+        console.log(`[API] Aguardando ${tempoEspera/1000}s antes da próxima tentativa...`);
+        
+        // Esperar antes da próxima tentativa
+        await new Promise(resolve => setTimeout(resolve, tempoEspera));
+      }
     }
+    
+    // Se chegou aqui, todas as tentativas falharam
+    throw ultimoErro;
   }
 };
 

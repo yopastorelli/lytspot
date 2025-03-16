@@ -144,10 +144,6 @@ try {
   logger.info('Todas as variáveis de ambiente estão configuradas.');
   console.log('Todas as variáveis de ambiente estão configuradas.');
 
-  // Middleware
-  logger.info('Configurando middleware...');
-  console.log('Configurando middleware...');
-  
   // Configuração de CORS adaptativa baseada no ambiente
   const isDevelopment = process.env.NODE_ENV !== 'production';
   
@@ -165,8 +161,12 @@ try {
     'http://192.168.1.189:4321'  // Adicionando IP local
   ];
   
+  // Configuração CORS unificada e robusta
   const corsOptions = {
     origin: function (origin, callback) {
+      // Log detalhado para diagnóstico
+      console.log(`[CORS] Requisição de origem: ${origin || 'desconhecida'}`);
+      
       // Permitir requisições sem origem (como apps mobile ou curl)
       if (!origin) {
         console.log('[CORS] Permitindo requisição sem origem');
@@ -185,20 +185,32 @@ try {
         return callback(null, true);
       } else {
         // Para diagnóstico, permitir temporariamente qualquer origem em produção
+        // Em um ambiente de produção real, você pode querer remover esta permissão
         console.log(`[CORS] Origem não listada, mas permitindo para diagnóstico: ${origin}`);
         return callback(null, true);
+        
+        // Versão restritiva (descomentada quando necessário):
+        // console.log(`[CORS] Origem não permitida: ${origin}`);
+        // return callback(new Error('Origem não permitida pelo CORS'), false);
       }
     },
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-Source, Pragma',
     exposedHeaders: 'Content-Length, X-Requested-With, Content-Type, Accept, Authorization',
     credentials: true,
-    maxAge: 86400 // Cache de preflight por 24 horas (em segundos)
+    maxAge: 86400, // Cache de preflight por 24 horas (em segundos)
+    preflightContinue: false // Importante: não continuar após preflight
   };
   
-  // Aplicar middleware CORS
+  // Aplicar middleware CORS antes de outros middlewares
   app.use(cors(corsOptions));
   
+  // Adicionar middleware específico para OPTIONS para garantir resposta imediata
+  app.options('*', (req, res) => {
+    console.log(`[CORS] Respondendo a requisição OPTIONS de ${req.headers.origin || 'origem desconhecida'} para ${req.path}`);
+    res.status(200).end();
+  });
+
   // Middleware para JSON e URL encoded
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -222,43 +234,6 @@ try {
     
     // Registrar requisições para diagnóstico
     logger.info(`${req.method} ${req.url}`);
-    next();
-  });
-
-  // Adicionar logging de diagnóstico para CORS e garantir que os cabeçalhos sejam aplicados corretamente
-  app.use((req, res, next) => {
-    console.log(`[CORS] Requisição de origem: ${req.headers.origin || 'desconhecida'} para ${req.method} ${req.path}`);
-    
-    // Determinar a origem permitida
-    let allowedOrigin = '*';
-    
-    // Em desenvolvimento, aceitar a origem da requisição
-    if (isDevelopment && req.headers.origin) {
-      allowedOrigin = req.headers.origin;
-    } 
-    // Em produção, verificar se a origem está na lista de origens permitidas
-    else if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
-      allowedOrigin = req.headers.origin;
-    } else if (req.headers.origin) {
-      // Para diagnóstico, permitir temporariamente qualquer origem em produção
-      allowedOrigin = req.headers.origin;
-    }
-    
-    console.log(`[CORS] Definindo Access-Control-Allow-Origin: ${allowedOrigin}`);
-    
-    // Adicionar cabeçalhos CORS manualmente para garantir que eles sejam aplicados
-    res.header('Access-Control-Allow-Origin', allowedOrigin);
-    res.header('Access-Control-Allow-Methods', corsOptions.methods);
-    res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Expose-Headers', corsOptions.exposedHeaders);
-    
-    // Responder imediatamente a requisições OPTIONS (preflight)
-    if (req.method === 'OPTIONS') {
-      console.log('[CORS] Respondendo a requisição OPTIONS com 200');
-      return res.status(200).end();
-    }
-    
     next();
   });
 
