@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.js';
 import syncRoutes from './routes/sync.js';
 import setupRoutes from './routes/setup.js';
 import cacheRoutes from './routes/cache.js';
+import analyticsRoutes from './routes/analytics.js';
 import cors from 'cors';
 import fs from 'fs';
 import { ensureAdminUser } from './scripts/ensureAdminUser.js';
@@ -186,13 +187,8 @@ try {
         return callback(null, true);
       } else {
         // Para diagnóstico, permitir temporariamente qualquer origem em produção
-        // Em um ambiente de produção real, você pode querer remover esta permissão
         console.log(`[CORS] Origem não listada, mas permitindo para diagnóstico: ${origin}`);
         return callback(null, true);
-        
-        // Versão restritiva (descomentada quando necessário):
-        // console.log(`[CORS] Origem não permitida: ${origin}`);
-        // return callback(new Error('Origem não permitida pelo CORS'), false);
       }
     },
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
@@ -200,7 +196,8 @@ try {
     exposedHeaders: 'Content-Length, X-Requested-With, Content-Type, Accept, Authorization',
     credentials: true,
     maxAge: 86400, // Cache de preflight por 24 horas (em segundos)
-    preflightContinue: false // Importante: não continuar após preflight
+    preflightContinue: false, // Importante: não continuar após preflight
+    optionsSuccessStatus: 204 // Alguns navegadores legados (IE11) não aceitam 204
   };
   
   // Aplicar middleware CORS antes de outros middlewares
@@ -224,7 +221,23 @@ try {
     res.header('Access-Control-Max-Age', '86400');
     
     console.log(`[CORS] Respondendo a requisição OPTIONS de ${req.headers.origin || 'origem desconhecida'} para ${req.path}`);
-    res.status(200).end();
+    res.status(204).end();
+  });
+
+  // Middleware para adicionar cabeçalhos CORS em todas as respostas (redundância intencional)
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && (allowedOrigins.includes(origin) || isDevelopment)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+    } else {
+      // Para diagnóstico em produção, permitir temporariamente qualquer origem
+      res.header('Access-Control-Allow-Origin', origin || '*');
+      if (origin) {
+        res.header('Access-Control-Allow-Credentials', 'true');
+      }
+    }
+    next();
   });
 
   // Middleware para JSON e URL encoded
@@ -286,6 +299,11 @@ try {
   app.use('/api/cache', cacheRoutes);
   logger.info('Rotas de gerenciamento de cache registradas.');
   console.log('Rotas de gerenciamento de cache registradas.');
+  
+  // Rotas de analytics
+  app.use('/api/analytics', analyticsRoutes);
+  logger.info('Rotas de analytics registradas.');
+  console.log('Rotas de analytics registradas.');
 
   // Endpoint de health check para verificar se a API está funcionando
   app.get('/api/health', (req, res) => {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { validateEmail, validatePhone, validateRequired } from '../../utils/validation';
 import axios from 'axios';
-import { getEnvironment, getApiUrl } from '../../utils/environment';
+import { getEnvironment, getApiUrl, apiRequestWithRetry } from '../../utils/environment';
 
 // Definição da interface do ambiente para tipagem
 interface Environment {
@@ -34,7 +34,7 @@ interface FormErrors {
 
 /**
  * Componente de formulário de contato
- * @version 1.0.4 - 2025-03-12 - Corrigido o endpoint da API e problemas de tipagem
+ * @version 1.0.5 - 2025-03-15 - Implementado sistema de retry e fallback para melhorar confiabilidade
  * @returns {JSX.Element} Formulário de contato renderizado
  */
 const ContactForm: React.FC = () => {
@@ -93,27 +93,34 @@ const ContactForm: React.FC = () => {
     console.info("Tentativa de envio do formulário", formData);
 
     try {
-      // Obter a URL base do ambiente
+      // Obter o ambiente
       const env = getEnvironment() as Environment;
       
-      // Determinar a URL correta da API
-      let apiUrl = getApiUrl('api/contact');
-      
-      // Log para debug da URL da API
-      console.info("Enviando formulário para API", {
-        baseUrl: env.baseUrl,
-        endpoint: apiUrl,
-        isDev: env.isDev
-      });
-      
-      // Usando o axios diretamente com withCredentials para suportar CORS com cookies
-      const response = await axios.post(apiUrl, formData, {
-        withCredentials: true,
+      // Configuração do axios para a requisição
+      const axiosConfig = {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
+        },
+        withCredentials: true
+      };
+      
+      // Função que faz a requisição para uma URL específica
+      const makeRequest = async (url: string) => {
+        console.info(`[ContactForm] Enviando para ${url}`, formData);
+        return await axios.post(url, formData, axiosConfig);
+      };
+      
+      // Usar o sistema de retry e fallback para maior confiabilidade
+      const response = await apiRequestWithRetry(
+        makeRequest,
+        'api/contact',
+        {
+          forceProd: env.hostname === 'lytspot.com.br' || env.hostname === 'www.lytspot.com.br',
+          maxRetries: 2,
+          retryDelay: 1000
         }
-      });
+      );
       
       if (response.status === 200 || response.status === 201) {
         console.info("Mensagem enviada com sucesso", response.data);
@@ -135,7 +142,7 @@ const ContactForm: React.FC = () => {
       // Tratamento de erro mais detalhado
       if (error.response) {
         // O servidor respondeu com um status de erro
-        setErrorMessage(`Erro ${error.response.status}: ${error.response.data.message || 'Falha ao enviar mensagem'}`);
+        setErrorMessage(`Erro ${error.response.status}: ${error.response.data?.message || 'Falha ao enviar mensagem'}`);
       } else if (error.request) {
         // A requisição foi feita mas não houve resposta
         setErrorMessage("Não foi possível conectar ao servidor. Verifique sua conexão.");

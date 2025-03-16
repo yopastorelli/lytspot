@@ -1,18 +1,15 @@
 /**
  * Service Worker para LytSpot PWA
- * @version 1.0.0 - 2025-03-15
+ * @version 1.1.0 - 2025-03-15 - Melhorada a robustez para lidar com recursos ausentes
  */
 
 // Nome do cache
 const CACHE_NAME = 'lytspot-cache-v1';
 
-// Arquivos para cache inicial
+// Arquivos para cache inicial - apenas recursos que sabemos que existem
 const urlsToCache = [
   '/',
-  '/index.html',
   '/manifest.json',
-  '/images/og-image.jpg',
-  '/css/main.css',
   '/js/web-vitals.js'
 ];
 
@@ -22,7 +19,23 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Cache aberto');
-        return cache.addAll(urlsToCache);
+        // Cache cada URL individualmente para evitar falha total se um recurso estiver ausente
+        const cachePromises = urlsToCache.map(url => {
+          // Usar fetch().then() em vez de addAll para lidar com falhas individuais
+          return fetch(url)
+            .then(response => {
+              if (!response.ok) {
+                console.warn(`Falha ao armazenar em cache: ${url} - Status: ${response.status}`);
+                return;
+              }
+              return cache.put(url, response);
+            })
+            .catch(error => {
+              console.warn(`Não foi possível buscar recurso para cache: ${url}`, error);
+            });
+        });
+        
+        return Promise.all(cachePromises);
       })
   );
 });
@@ -45,6 +58,11 @@ self.addEventListener('activate', event => {
 
 // Estratégia de cache: Network First, fallback para cache
 self.addEventListener('fetch', event => {
+  // Ignorar requisições para analytics para evitar erros 405
+  if (event.request.url.includes('/api/analytics')) {
+    return;
+  }
+  
   event.respondWith(
     fetch(event.request)
       .then(response => {
@@ -53,20 +71,40 @@ self.addEventListener('fetch', event => {
           return response;
         }
 
-        // Clonar a resposta
+        // Clonar a resposta para o cache
         const responseToCache = response.clone();
-
-        // Armazenar em cache
         caches.open(CACHE_NAME)
           .then(cache => {
             cache.put(event.request, responseToCache);
+          })
+          .catch(error => {
+            console.warn('Erro ao armazenar em cache:', error);
           });
 
         return response;
       })
       .catch(() => {
-        // Se falhar, tentar do cache
-        return caches.match(event.request);
+        // Se a rede falhar, tentar do cache
+        return caches.match(event.request)
+          .then(cachedResponse => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            
+            // Se não estiver no cache, retornar uma resposta de fallback para navegação
+            if (event.request.mode === 'navigate') {
+              return caches.match('/');
+            }
+            
+            // Para outros recursos, retornar um erro 404 personalizado
+            return new Response('Recurso não disponível offline', {
+              status: 404,
+              statusText: 'Not Found',
+              headers: new Headers({
+                'Content-Type': 'text/plain'
+              })
+            });
+          });
       })
   );
 });

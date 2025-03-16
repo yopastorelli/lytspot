@@ -1,6 +1,6 @@
 /**
  * Módulo centralizado para detecção e configuração de ambiente
- * @version 1.6.0 - 2025-03-20 - Melhorada a detecção de ambiente e adicionado suporte para múltiplos endpoints de API
+ * @version 1.7.0 - 2025-03-15 - Melhorada a detecção de ambiente e corrigido o suporte para múltiplos endpoints de API
  * @description Fornece informações consistentes sobre o ambiente atual e URLs da API
  */
 
@@ -56,21 +56,87 @@ export const getEnvironment = () => {
 /**
  * Obtém a URL da API para um endpoint específico, com suporte a fallback
  * @param {string} endpoint - O endpoint da API (sem barra inicial)
+ * @param {Object} options - Opções adicionais
+ * @param {boolean} options.forceProd - Força o uso da URL de produção mesmo em desenvolvimento
  * @returns {string} URL completa para o endpoint
  */
-export const getApiUrl = (endpoint) => {
+export const getApiUrl = (endpoint, options = {}) => {
   const env = getEnvironment();
   
   // Normalizar o endpoint (remover barras iniciais)
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
   
-  // Em desenvolvimento, sempre usar a URL base
-  if (env.isDev) {
+  // Se estamos em produção ou se forceProd está ativado
+  if (!env.isDev || options.forceProd) {
+    // Verificar se estamos em lytspot.com.br e usar a URL da API diretamente
+    if (env.hostname === 'lytspot.com.br' || env.hostname === 'www.lytspot.com.br') {
+      console.log(`[Environment] Usando URL de API específica para ${env.hostname}`);
+      return `${env.prodApiUrls[0]}/${normalizedEndpoint}`;
+    }
+    
+    // Caso contrário, usar a URL base
     return `${env.baseUrl}/${normalizedEndpoint}`;
   }
   
-  // Em produção, usar a URL principal da API
+  // Em desenvolvimento, sempre usar a URL base
   return `${env.baseUrl}/${normalizedEndpoint}`;
+};
+
+/**
+ * Tenta enviar uma requisição com retry e fallback para diferentes URLs de API
+ * @param {Function} requestFn - Função que faz a requisição (recebe a URL como parâmetro)
+ * @param {string} endpoint - Endpoint da API
+ * @param {Object} options - Opções adicionais
+ * @returns {Promise} Resultado da requisição
+ */
+export const apiRequestWithRetry = async (requestFn, endpoint, options = {}) => {
+  const env = getEnvironment();
+  const maxRetries = options.maxRetries || 2;
+  const retryDelay = options.retryDelay || 2000;
+  
+  // Primeira tentativa com a URL principal
+  try {
+    const primaryUrl = getApiUrl(endpoint, options);
+    console.log(`[API] Tentativa principal para ${primaryUrl}`);
+    return await requestFn(primaryUrl);
+  } catch (error) {
+    console.error(`[API] Erro na tentativa principal: ${error.message}`);
+    
+    // Se estamos em produção e temos URLs alternativas, tentar com elas
+    if (!env.isDev && env.prodApiUrls.length > 1) {
+      for (let i = 1; i < env.prodApiUrls.length; i++) {
+        try {
+          const fallbackUrl = `${env.prodApiUrls[i]}/${endpoint.startsWith('/') ? endpoint.substring(1) : endpoint}`;
+          console.log(`[API] Tentativa fallback ${i} para ${fallbackUrl}`);
+          return await requestFn(fallbackUrl);
+        } catch (fallbackError) {
+          console.error(`[API] Erro na tentativa fallback ${i}: ${fallbackError.message}`);
+        }
+      }
+    }
+    
+    // Se ainda não conseguimos, tentar com retry na URL principal
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        // Esperar antes de tentar novamente (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, i)));
+        
+        const retryUrl = getApiUrl(endpoint, options);
+        console.log(`[API] Retry ${i+1} para ${retryUrl}`);
+        return await requestFn(retryUrl);
+      } catch (retryError) {
+        console.error(`[API] Erro no retry ${i+1}: ${retryError.message}`);
+        
+        // Se é a última tentativa, propagar o erro
+        if (i === maxRetries - 1) {
+          throw retryError;
+        }
+      }
+    }
+    
+    // Se chegamos aqui, todas as tentativas falharam
+    throw error;
+  }
 };
 
 export default getEnvironment;

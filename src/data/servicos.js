@@ -10,7 +10,7 @@ export const servicos = [
   {
     "id": 1,
     "nome": "VLOG - Aventuras em Família",
-    "descricao": "Documentação em vídeo e foto da sua viagem em família. Um dia na praia, no campo, na montanha ou em pontos turísticos nos arredores da Grande Curitiba.",
+    "descricao": "Documentação em vídeo e fotoaérea e terrestre,  da sua viagem em família. Um dia na praia, no campo, na montanha ou em pontos turísticos nos arredores da Grande Curitiba.",
     "preco_base": 1500,
     "duracao_media": 18,
     "detalhes": {
@@ -31,8 +31,8 @@ export const servicos = [
   {
     "id": 2,
     "nome": "VLOG - Amigos e Comunidade",
-    "descricao": "Cobertura fotográfica e de vídeo para grupos de amigos ou comunidades, perfeita para registrar viagens, encontros ou eventos colaborativos.",
-    "preco_base": 900,
+    "descricao": "Cobertura fotográfica e de vídeo, aérea e terrestre, para grupos de amigos ou comunidades, perfeita para registrar viagens, encontros ou eventos colaborativos.",
+    "preco_base": 990,
     "duracao_media": 9,
     "detalhes": {
       "captura": "3 a 4 horas",
