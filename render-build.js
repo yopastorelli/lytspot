@@ -89,6 +89,17 @@ try {
     throw new Error("Falha na sincronização de serviços. Abortando build para evitar deploy com dados desatualizados.");
   }
   
+  // Executar o script de reorganização e geração do portfólio
+  console.log("Executando reorganização e geração do portfólio...");
+  try {
+    execSync('node server/scripts/reorganize-portfolio.js', { stdio: 'inherit' });
+    console.log("Portfólio reorganizado e gerado com sucesso!");
+  } catch (error) {
+    console.error("Erro ao reorganizar e gerar portfólio:", error.message);
+    // Não abortar o build em caso de erro no portfólio
+    console.log("Continuando o build mesmo com erro no portfólio...");
+  }
+  
   // Executar o build do Astro DEPOIS da sincronização
   console.log("Executando build do Astro...");
   try {

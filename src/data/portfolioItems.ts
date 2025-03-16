@@ -1,15 +1,21 @@
+/**
+ * Arquivo gerado automaticamente pelo script reorganize-portfolio.js
+ * @version 1.0.0 - 2025-03-16T02:09:00.177Z
+ * NÃO EDITE ESTE ARQUIVO MANUALMENTE!
+ */
+
 export const portfolioItems = [
   {
-    "id": "2",
+    "id": "1",
     "title": "Arquitetura",
     "category": "arquitetura",
     "media": [
       {
-        "url": "/images/portimages/arquitetura/arquitetura1.jpeg",
+        "url": "/images/portimages/arquitetura/cover.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/arquitetura/arquitetura2.jpeg",
+        "url": "/images/portimages/arquitetura/images/arquitetura2.jpeg",
         "type": "image"
       }
     ],
@@ -20,44 +26,44 @@ export const portfolioItems = [
     "date": "2023/2024"
   },
   {
-    "id": "3",
+    "id": "2",
     "title": "Empresas",
     "category": "empresas",
     "media": [
       {
-        "url": "/images/portimages/empresas/empresas1.jpeg",
+        "url": "/images/portimages/empresas/cover.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/empresas/empresas2.jpeg",
+        "url": "/images/portimages/empresas/images/empresas2.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/empresas/empresas3.jpeg",
+        "url": "/images/portimages/empresas/images/empresas3.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/empresas/empresas4.jpeg",
+        "url": "/images/portimages/empresas/images/empresas4.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/empresas/empresas5.jpeg",
+        "url": "/images/portimages/empresas/images/empresas5.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/empresas/empresas6.jpeg",
+        "url": "/images/portimages/empresas/images/empresas6.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/empresas/empresas7.jpeg",
+        "url": "/images/portimages/empresas/images/empresas7.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/empresas/empresas8.jpeg",
+        "url": "/images/portimages/empresas/images/empresas8.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/empresas/empresas9.jpeg",
+        "url": "/images/portimages/empresas/images/empresas9.jpeg",
         "type": "image"
       }
     ],
@@ -68,28 +74,28 @@ export const portfolioItems = [
     "date": "2023/2024"
   },
   {
-    "id": "5",
+    "id": "3",
     "title": "Projetos",
     "category": "projetos",
     "media": [
       {
-        "url": "/images/portimages/projetos/projetos1.jpeg",
+        "url": "/images/portimages/projetos/cover.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/projetos/projetos3.jpeg",
+        "url": "/images/portimages/projetos/images/projetos3.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/projetos/projetos5.jpeg",
+        "url": "/images/portimages/projetos/images/projetos5.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/projetos/projetos7.jpeg",
+        "url": "/images/portimages/projetos/images/projetos7.jpeg",
         "type": "image"
       },
       {
-        "url": "/images/portimages/projetos/projetos9.jpeg",
+        "url": "/images/portimages/projetos/images/projetos9.jpeg",
         "type": "image"
       }
     ],

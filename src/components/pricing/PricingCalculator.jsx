@@ -212,8 +212,14 @@ const PricingCalculator = ({ servicos }) => {
 
   if (!servicos || servicos.length === 0) return null;
 
+  // Verifica se há itens selecionados (serviços, adicionais ou deslocamento)
+  const temItensSelecionados = 
+    Object.values(quantidades).some(q => q > 0) || 
+    adicionais.length > 0 || 
+    deslocamento;
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+    <div className={`rounded-lg shadow-md p-6 border border-gray-200 ${temItensSelecionados ? 'bg-blue-50' : 'bg-white'}`}>
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Calculadora de Preço</h2>
       
       {/* Lista de serviços selecionados */}
@@ -291,7 +297,7 @@ const PricingCalculator = ({ servicos }) => {
         </div>
         
         {/* Deslocamento */}
-        <div>
+        <div className="mt-0">
           <label className="flex items-center">
             <input
               type="checkbox"
@@ -323,7 +329,7 @@ const PricingCalculator = ({ servicos }) => {
           
           {/* Campos de contato */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="md:col-span-1">
               <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-1">
                 Nome *
               </label>
@@ -338,22 +344,7 @@ const PricingCalculator = ({ servicos }) => {
               />
             </div>
             
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                E-mail *
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            
-            <div>
+            <div className="md:col-span-1">
               <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 mb-1">
                 Telefone {formData.metodoContato === 'telefone' || formData.metodoContato === 'whatsapp' ? '*' : ''}
               </label>
@@ -368,22 +359,61 @@ const PricingCalculator = ({ servicos }) => {
               />
             </div>
             
-            <div>
-              <label htmlFor="metodoContato" className="block text-sm font-medium text-gray-700 mb-1">
-                Método de contato preferido *
+            <div className="md:col-span-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                E-mail *
               </label>
-              <select
-                id="metodoContato"
-                name="metodoContato"
-                value={formData.metodoContato}
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
-              >
-                <option value="email">E-mail</option>
-                <option value="telefone">Telefone</option>
-                <option value="whatsapp">WhatsApp</option>
-              </select>
+              />
+            </div>
+            
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Método de contato preferido *
+              </label>
+              <div className="flex items-center space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="metodoContato"
+                    value="email"
+                    checked={formData.metodoContato === 'email'}
+                    onChange={handleInputChange}
+                    className="form-radio h-4 w-4 text-blue-600"
+                    required
+                  />
+                  <span className="ml-1 text-sm text-gray-700">E-mail</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="metodoContato"
+                    value="telefone"
+                    checked={formData.metodoContato === 'telefone'}
+                    onChange={handleInputChange}
+                    className="form-radio h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-1 text-sm text-gray-700">Telefone</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="metodoContato"
+                    value="whatsapp"
+                    checked={formData.metodoContato === 'whatsapp'}
+                    onChange={handleInputChange}
+                    className="form-radio h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-1 text-sm text-gray-700">WhatsApp</span>
+                </label>
+              </div>
             </div>
           </div>
           

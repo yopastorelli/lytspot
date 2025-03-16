@@ -8,6 +8,7 @@
     "preview": "astro preview",
     "deploy": "set NODE_ENV=production && astro build && npx gh-pages -d dist -b gh-pages",
     "generate-portfolio": "node --loader ts-node/esm scripts/generatePortfolioItems.ts",
+    "reorganize-portfolio": "node server/scripts/reorganize-portfolio.js",
     "prestart": "node server/scripts/prestart.js",
     "start": "node server/server.js",
     "postinstall": "node render-setup.js",
