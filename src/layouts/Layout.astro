@@ -1,199 +1,82 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import Breadcrumbs from '../components/common/Breadcrumbs.astro';
-import SkipToContent from '../components/common/SkipToContent.astro';
 import '../styles/global.css';
 
 interface Props {
   title: string;
   description?: string;
-  canonicalUrl?: string;
 }
 
 const { 
   title, 
-  description = 'LYTSPOT - Captura de imagens profissionais com drones e câmeras',
-  canonicalUrl = Astro.url.pathname
+  description = 'LYTSPOT - Captura de imagens profissionais com drones e câmeras'
 } = Astro.props;
 
 const videoPath = '/videos/drone-hero.mp4';
-const baseUrl = 'https://lytspot.com.br';
-const fullCanonicalUrl = `${baseUrl}${canonicalUrl}`;
-
-const localBusinessSchema = {
-  "@context": "https://schema.org",
-  "@type": "LocalBusiness",
-  "name": "LYTSPOT",
-  "image": `${baseUrl}/images/og-image.jpg`,
-  "url": `${baseUrl}`,
-  "telephone": "+5541999999999",
-  "address": {
-    "@type": "PostalAddress",
-    "streetAddress": "Rua Exemplo, 123",
-    "addressLocality": "Curitiba",
-    "addressRegion": "PR",
-    "postalCode": "80000-000",
-    "addressCountry": "BR"
-  },
-  "geo": {
-    "@type": "GeoCoordinates",
-    "latitude": -25.4284,
-    "longitude": -49.2733
-  },
-  "openingHoursSpecification": {
-    "@type": "OpeningHoursSpecification",
-    "dayOfWeek": [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday"
-    ],
-    "opens": "09:00",
-    "closes": "18:00"
-  },
-  "sameAs": [
-    "https://www.facebook.com/lytspot",
-    "https://www.instagram.com/lytspot"
-  ],
-  "priceRange": "$$"
-};
-
 ---
 
 <!doctype html>
-<html lang="pt-BR" class="scroll-smooth">
+<html lang="pt-BR">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-JC594FTKTR"></script>
-    <script>
-      // @ts-ignore
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        // @ts-ignore
-        dataLayer.push(arguments);
-      }
-      // @ts-ignore
-      gtag('js', new Date());
-      // @ts-ignore
-      gtag('config', 'G-JC594FTKTR');
-    </script>
-    
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=2.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#041424" />
+    <meta name="theme-color" content="#F5F5F5" />
     <title>{title} | LYTSPOT</title>
-    
-    <!-- SEO - URL Canônica -->
-    <link rel="canonical" href={`${baseUrl}${canonicalUrl || Astro.url.pathname}`} />
-    
-    <!-- Suporte a idiomas com hreflang -->
-    <link rel="alternate" hreflang="pt-br" href={`${baseUrl}${canonicalUrl || Astro.url.pathname}`} />
-    <link rel="alternate" hreflang="x-default" href={`${baseUrl}${canonicalUrl || Astro.url.pathname}`} />
     
     <!-- Preload hero video -->
     <link rel="preload" href={videoPath} as="video" type="video/mp4" fetchpriority="high" />
     
-    <!-- Preconnect para domínios de terceiros -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
-    <link rel="preconnect" href="https://www.google-analytics.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap&display=swap" rel="stylesheet">
-    <link rel="preload" href="/fonts/main-font.woff2" as="font" type="font/woff2" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
     <!-- PWA meta tags -->
     <meta name="application-name" content="LYTSPOT" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="LYTSPOT" />
+    <meta name="format-detection" content="telephone=no" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="msapplication-TileColor" content="#0047AB" />
-    <meta name="theme-color" content="#0047AB" />
-    
-    <!-- PWA manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    
-    <!-- PWA icons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
-    
-    <!-- Service Worker Registration -->
-    <script>
-      // Registrar o Service Worker
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('Service Worker registrado com sucesso:', registration.scope);
-            })
-            .catch(error => {
-              console.log('Falha ao registrar o Service Worker:', error);
-            });
-        });
-      }
-    </script>
-    
-    <!-- Preconnect para recursos externos -->
-    <link rel="preconnect" href="/" />
-    <link rel="dns-prefetch" href="/" />
-    
-    <!-- Script de monitoramento de Web Vitals -->
-    <script src="/js/web-vitals.js" defer></script>
-    
-    <!-- Dados estruturados para Local Business -->
-    <script type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)} />
     
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={`${baseUrl}${canonicalUrl || Astro.url.pathname}`} />
     <meta property="og:title" content={`${title} | LYTSPOT`} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={`${baseUrl}/images/og-image.jpg`} />
-    <meta property="og:locale" content="pt_BR" />
     <meta property="og:site_name" content="LYTSPOT" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="LYTSPOT - Especialistas em captura de imagens profissionais" />
-    <meta property="og:image:type" content="image/jpeg" />
     
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={`${title} | LYTSPOT`} />
-    <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={`${baseUrl}/images/og-image.jpg`} />
+    <!-- Preconnect to video origin -->
+    <link rel="preconnect" href="/" />
+    <link rel="dns-prefetch" href="/" />
+    
+    <!-- Ajuste de escala inicial -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        // Configurar zoom padrão para 90%
+        const metaViewport = document.querySelector('meta[name="viewport"]');
+        if (metaViewport) {
+          metaViewport.setAttribute('content', 'width=device-width, initial-scale=0.9, maximum-scale=2.0');
+        }
+        
+        // Aplicar zoom via JavaScript como fallback
+        document.body.style.zoom = "90%";
+        
+        // Para browsers que não suportam zoom via CSS
+        if (navigator.userAgent.indexOf('Firefox') !== -1) {
+          document.body.style.transform = "scale(0.9)";
+          document.body.style.transformOrigin = "top center";
+        }
+      });
+    </script>
   </head>
-  <body class="flex flex-col min-h-screen bg-light text-dark">
-    <SkipToContent />
+  <body class="min-h-screen flex flex-col bg-light text-neutral font-sans">
     <Header />
-    <main id="main-content" class="flex-grow pt-20">
+    <main class="flex-grow pt-20">
       <slot />
     </main>
     <Footer />
-    
-    <!-- Breadcrumbs no rodapé (visível apenas para SEO) -->
-    {Astro.url.pathname !== '/' && (
-      <div class="container mx-auto">
-        <Breadcrumbs 
-          items={[
-            { label: 'Home', url: '/' },
-            { 
-              label: Astro.url.pathname.split('/').filter(Boolean).map(s => 
-                s.charAt(0).toUpperCase() + s.slice(1)
-              ).join(' '), 
-              url: Astro.url.pathname,
-              current: true 
-            }
-          ]}
-          position="bottom"
-          className="mb-2 border-t border-gray-100 pt-2"
-        />
-      </div>
-    )}
-    
-    <!-- Google Analytics -->
   </body>
 </html>

@@ -199,32 +199,6 @@ try {
   // Aplicar middleware CORS
   app.use(cors(corsOptions));
   
-  // Middleware para JSON e URL encoded
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
-  // Middleware para adicionar cabeçalhos de segurança e SEO
-  app.use((req, res, next) => {
-    // Cabeçalhos de segurança
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    
-    // Cabeçalhos de cache para melhorar performance
-    if (req.url.match(/\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 ano
-    } else {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-    }
-    
-    // Registrar requisições para diagnóstico
-    logger.info(`${req.method} ${req.url}`);
-    next();
-  });
-
   // Adicionar logging de diagnóstico para CORS e garantir que os cabeçalhos sejam aplicados corretamente
   app.use((req, res, next) => {
     console.log(`[CORS] Requisição de origem: ${req.headers.origin || 'desconhecida'} para ${req.method} ${req.path}`);
@@ -261,6 +235,10 @@ try {
     
     next();
   });
+
+  app.use(express.json());
+  logger.info('Middleware configurado.');
+  console.log('Middleware configurado.');
 
   // Rotas
   logger.info('Registrando rotas...');

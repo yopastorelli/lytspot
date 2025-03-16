@@ -3,7 +3,7 @@ import Container from './common/Container';
 import Button from './common/Button';
 ---
 
-<section class="relative h-screen flex items-center justify-center overflow-hidden" aria-label="Banner principal">
+<section class="relative h-screen flex items-center justify-center overflow-hidden">
   <div class="absolute inset-0 z-0 bg-light">
     <video 
       id="hero-video"
@@ -11,15 +11,13 @@ import Button from './common/Button';
       loop 
       muted 
       playsinline 
-      preload="metadata"
-      aria-hidden="true"
+      preload="auto"
       class="absolute inset-0 w-full h-full object-cover"
       style={{
         opacity: 0,
         transform: 'scale(1.01)',
         transition: 'opacity 0.5s ease-in-out'
       }}
-      fetchpriority="high"
     >
       <source src="/videos/drone-hero.mp4" type="video/mp4" />
     </video>
@@ -33,7 +31,6 @@ import Button from './common/Button';
         transition: 'opacity 0.5s ease-in-out'
       }}
       id="hero-fallback"
-      fetchpriority="high"
     />
     <div class="absolute inset-0 bg-primary/30"></div>
   </div>

@@ -1,9 +1,0 @@
-User-agent: *
-Allow: /
-
-# Diretórios específicos
-Disallow: /admin/
-Disallow: /uc/
-
-# Sitemap
-Sitemap: https://lytspot.com.br/sitemap.xml

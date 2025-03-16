@@ -3,45 +3,16 @@ import Layout from '../layouts/Layout.astro';
 import ServicesHero from '../components/services/ServicesHero.astro';
 import ServicesList from '../components/services/ServicesList.astro';
 //import ServicesPricing from '../components/services/ServicesPricing.astro';//
-import ServicesFAQ from '../components/services/ServicesFAQ.astro';
+//import ServicesFAQ from '../components/services/ServicesFAQ.astro';//
 import Contact from '../components/Contact.astro';
-import { SERVICES } from '../utils/constants';
 
 const seoDescription = "Serviços profissionais de filmagem com drone, fotografia e vídeos corporativos - LYTSPOT";
-const baseUrl = 'https://lytspot.com.br';
-const canonicalUrl = '/servicos';
-
-// Preparar dados estruturados para Schema.org
-const servicesSchema = {
-  "@context": "https://schema.org",
-  "@type": "ItemList",
-  "itemListElement": SERVICES.map((service, index) => ({
-    "@type": "ListItem",
-    "position": index + 1,
-    "item": {
-      "@type": "Service",
-      "name": service.title,
-      "description": service.description,
-      "provider": {
-        "@type": "LocalBusiness",
-        "name": "LYTSPOT",
-        "image": `${baseUrl}/images/og-image.jpg`,
-        "url": baseUrl
-      },
-      "image": `${baseUrl}${service.image}`,
-      "url": `${baseUrl}/servicos#${service.id}`
-    }
-  }))
-};
 ---
 
-<Layout title="Serviços" description={seoDescription} canonicalUrl={canonicalUrl}>
+<Layout title="Serviços" description={seoDescription}>
   <ServicesHero />
   <ServicesList />
   <!--ServicesPricing /-->
-  <ServicesFAQ />
+  <!--ServicesFAQ /-->
   <Contact />
-  
-  <!-- Schema.org para Serviços -->
-  <script type="application/ld+json" set:html={JSON.stringify(servicesSchema)} />
 </Layout>

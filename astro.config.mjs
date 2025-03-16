@@ -4,7 +4,6 @@ import tailwind from '@astrojs/tailwind';
 
 /**
  * Configuração do Astro com detecção inteligente de ambiente
- * @version 1.2.0 - 2025-03-15 - Adicionadas otimizações de SEO e performance
  * @version 1.1.0 - 2025-03-12 - Adicionada detecção de ambiente para Render
  */
 
@@ -49,47 +48,23 @@ export default defineConfig({
   
   // Configuração do Vite
   vite: {
-    build: {
-      // Otimizações para performance e SEO
-      cssCodeSplit: true,
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: isProd,
-          drop_debugger: isProd
-        }
+    // Configuração para garantir que variáveis de ambiente estejam disponíveis
+    define: {
+      'process.env.API_URL': JSON.stringify(apiUrl),
+      'process.env.IS_PRODUCTION': isProd
+    },
+    
+    // Ativando logs detalhados para debug
+    logLevel: 'info',
+    
+    // Configuração de server para melhor feedback durante desenvolvimento
+    server: {
+      hmr: {
+        overlay: true
       },
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            // Separar bibliotecas grandes em chunks separados
-            'react-vendor': ['react', 'react-dom'],
-            'ui-components': ['tailwindcss']
-          }
-        }
+      watch: {
+        usePolling: true
       }
-    },
-    // Otimizações de CSS
-    css: {
-      devSourcemap: !isProd
-    },
-    // Otimizações de imagem
-    optimizeDeps: {
-      include: ['react', 'react-dom']
-    },
-    // Configurações de compressão
-    plugins: []
-  },
-  
-  // Configurações de build
-  build: {
-    // Otimizações para SEO
-    format: 'file',
-    assets: 'assets',
-    inlineStylesheets: 'auto'
-  },
-  
-  // Configurações de site para SEO
-  site: 'https://lytspot.com.br',
-  trailingSlash: 'never'
+    }
+  }
 });

@@ -254,7 +254,7 @@ const ContactForm: React.FC = () => {
       {/* Botão Enviar */}
       <button
         type="submit"
-        className="w-full bg-[#0a1e4d] text-white py-3 rounded-lg hover:bg-[#0a1e4d]/90 transition-colors font-bold shadow-lg"
+        className="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 transition-colors font-bold shadow-lg"
         disabled={isSubmitting}
       >
         {isSubmitting ? "ENVIANDO..." : "ENVIAR MENSAGEM"}
