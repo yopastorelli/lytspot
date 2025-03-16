@@ -1,6 +1,6 @@
 /**
  * Módulo centralizado para detecção e configuração de ambiente
- * @version 1.5.0 - 2025-03-15 - Corrigida a configuração da URL base para garantir consistência em produção
+ * @version 1.6.0 - 2025-03-16 - Melhorada a detecção de ambiente e configuração da URL base para resolver problemas de CORS
  * @description Fornece informações consistentes sobre o ambiente atual e URLs da API
  */
 
@@ -27,6 +27,10 @@ export const getEnvironment = () => {
   // URL da API em produção - sempre usar a URL do Render para a API
   const prodApiUrl = 'https://lytspot-api.onrender.com';
   
+  // Lista de domínios de produção conhecidos
+  const prodDomains = ['lytspot.com.br', 'www.lytspot.com.br', 'lytspot.vercel.app'];
+  const isProdDomain = prodDomains.includes(window.location.hostname);
+  
   // Determinar a URL base da API
   let baseUrl;
   
@@ -43,11 +47,28 @@ export const getEnvironment = () => {
   return {
     type: 'browser',
     isDev: isLocalhost,
+    isProd: isProdDomain,
     baseUrl: baseUrl,
     prodApiUrl: prodApiUrl,
     hostname: window.location.hostname,
-    href: window.location.href
+    href: window.location.href,
+    origin: window.location.origin
   };
+};
+
+/**
+ * Retorna a URL completa para um endpoint da API
+ * @param {string} endpoint - Endpoint da API (sem barra inicial)
+ * @returns {string} URL completa para o endpoint
+ */
+export const getApiUrl = (endpoint) => {
+  const env = getEnvironment();
+  const baseUrl = env.isDev ? env.baseUrl : env.prodApiUrl;
+  
+  // Garantir que o endpoint tenha o prefixo /api
+  const apiEndpoint = endpoint.startsWith('/api/') ? endpoint : `/api/${endpoint.replace(/^\//, '')}`;
+  
+  return `${baseUrl}${apiEndpoint}`;
 };
 
 export default getEnvironment;
