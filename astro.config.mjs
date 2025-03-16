@@ -91,5 +91,5 @@ export default defineConfig({
   
   // Configurações de site para SEO
   site: 'https://lytspot.com.br',
-  trailingSlash: 'never'
+  trailingSlash: 'always'
 });
