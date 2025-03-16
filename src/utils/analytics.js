@@ -5,9 +5,8 @@
  */
 
 import { getApiUrl, getEnvironment } from './environment.js';
-// Importação estática para o Vite resolver corretamente
-// As funções serão usadas dinamicamente para não bloquear o carregamento
-import * as webVitalsLib from 'web-vitals';
+// Importação correta das funções individuais do web-vitals
+import { getCLS, getFID, getLCP, getFCP, getTTFB } from 'web-vitals';
 
 /**
  * Envia métricas de Web Vitals para o servidor
@@ -91,11 +90,11 @@ export const trackPageEvent = async (eventType, details = {}) => {
 export const initWebVitals = async () => {
   try {
     // Registrar todas as métricas importantes
-    webVitalsLib.getCLS(sendWebVitals);
-    webVitalsLib.getFID(sendWebVitals);
-    webVitalsLib.getLCP(sendWebVitals);
-    webVitalsLib.getFCP(sendWebVitals);
-    webVitalsLib.getTTFB(sendWebVitals);
+    getCLS(sendWebVitals);
+    getFID(sendWebVitals);
+    getLCP(sendWebVitals);
+    getFCP(sendWebVitals);
+    getTTFB(sendWebVitals);
     
     console.log('[Analytics] Web Vitals inicializado com sucesso');
   } catch (error) {
@@ -108,13 +107,42 @@ export const initWebVitals = async () => {
  */
 export const initPageTracking = () => {
   try {
-    // Registrar visualização de página
+    // Verificar se estamos no navegador
+    if (typeof window === 'undefined') return;
+    
+    // Registrar visualização de página inicial
     trackPageEvent('pageview');
     
-    // Registrar quando o usuário sai da página
-    window.addEventListener('beforeunload', () => {
-      trackPageEvent('exit');
-    });
+    // Adicionar listener para mudanças de rota (para SPAs)
+    if (typeof history !== 'undefined' && history.pushState) {
+      // Salvar o método original
+      const originalPushState = history.pushState;
+      
+      // Sobrescrever o método para rastrear mudanças de rota
+      history.pushState = function(state, title, url) {
+        // Chamar o método original
+        originalPushState.apply(this, [state, title, url]);
+        
+        // Rastrear mudança de página
+        trackPageEvent('navigation', { 
+          from: document.referrer || window.location.href,
+          to: url 
+        });
+        
+        // Enviar para o Google Analytics, se disponível
+        if (typeof window.gtag === 'function') {
+          try {
+            window.gtag('event', 'page_view', {
+              page_title: document.title,
+              page_location: url,
+              page_path: url.replace(window.location.origin, '')
+            });
+          } catch (gtagError) {
+            console.error('[Analytics] Erro ao enviar evento para Google Analytics:', gtagError);
+          }
+        }
+      };
+    }
     
     console.log('[Analytics] Rastreamento de página inicializado com sucesso');
   } catch (error) {
@@ -126,16 +154,32 @@ export const initPageTracking = () => {
  * Inicializa todos os módulos de analytics
  */
 export const initAnalytics = () => {
-  // Verificar se estamos no navegador
-  if (typeof window === 'undefined') return;
-  
-  // Inicializar Web Vitals
-  initWebVitals();
-  
-  // Inicializar rastreamento de página
-  initPageTracking();
-  
-  console.log('[Analytics] Módulo de analytics inicializado com sucesso');
+  try {
+    // Verificar se estamos no navegador
+    if (typeof window === 'undefined') {
+      console.log('[Analytics] Não inicializando analytics no servidor');
+      return;
+    }
+    
+    // Verificar se o analytics já foi inicializado
+    if (window._lytspotAnalyticsInitialized) {
+      console.log('[Analytics] Analytics já inicializado anteriormente');
+      return;
+    }
+    
+    // Inicializar Web Vitals
+    initWebVitals();
+    
+    // Inicializar rastreamento de página
+    initPageTracking();
+    
+    // Marcar como inicializado
+    window._lytspotAnalyticsInitialized = true;
+    
+    console.log('[Analytics] Módulo de analytics inicializado com sucesso');
+  } catch (error) {
+    console.error('[Analytics] Erro ao inicializar módulo de analytics:', error);
+  }
 };
 
 export default {
