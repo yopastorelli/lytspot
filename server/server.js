@@ -189,6 +189,9 @@ try {
         // Para diagnóstico, permitir temporariamente qualquer origem em produção
         console.log(`[CORS] Origem não listada, mas permitindo para diagnóstico: ${origin}`);
         return callback(null, true);
+        
+        // Quando o problema for resolvido, descomentar a linha abaixo e remover a linha acima
+        // return callback(new Error(`Origem não permitida: ${origin}`), false);
       }
     },
     methods: 'GET, POST, PUT, DELETE, OPTIONS',

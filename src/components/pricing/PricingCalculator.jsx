@@ -133,24 +133,38 @@ const PricingCalculator = ({ servicos }) => {
   };
 
   // Envia o formulário de orçamento
-  const enviarOrcamento = async (e) => {
-    e.preventDefault();
-    
-    // Validação básica
-    if (!formData.nome || !formData.email || (formData.metodoContato === 'telefone' && !formData.telefone)) {
-      setMensagemStatus({
-        tipo: 'erro',
-        texto: 'Por favor, preencha todos os campos obrigatórios.'
-      });
-      return;
-    }
-
+  const enviarOrcamento = async () => {
     setEnviando(true);
     setMensagemStatus(null);
-
+    
     try {
-      // Preparar dados do orçamento
-      const dadosOrcamento = {
+      const env = getEnvironment();
+      
+      // Log para debug
+      console.info("Enviando orçamento para API", {
+        baseUrl: env.baseUrl,
+        endpoint: `${env.baseUrl}/api/contact`,
+        dados: {
+          name: formData.nome, // Compatibilidade com o formato original
+          email: formData.email,
+          phone: formData.telefone, // Compatibilidade com o formato original
+          message: formData.mensagem, // Compatibilidade com o formato original
+          tipo: 'orcamento',
+          nome: formData.nome,
+          telefone: formData.telefone,
+          mensagem: formData.mensagem,
+          metodoContato: formData.metodoContato,
+          servicos: prepararDetalhesServicos(),
+          adicionais: prepararDetalhesAdicionais(),
+          deslocamento: deslocamento ? { incluido: true, valor: 120 } : { incluido: false },
+          precoTotal: precoTotal,
+          tempoEstimado: calcularTempoEntrega()
+        }
+      });
+      
+      // Usar o método específico da API para enviar orçamentos
+      // Isso garante que todas as configurações CORS sejam aplicadas corretamente
+      const response = await servicosAPI.enviarOrcamento({
         name: formData.nome, // Compatibilidade com o formato original
         email: formData.email,
         phone: formData.telefone, // Compatibilidade com o formato original
@@ -165,24 +179,14 @@ const PricingCalculator = ({ servicos }) => {
         deslocamento: deslocamento ? { incluido: true, valor: 120 } : { incluido: false },
         precoTotal: precoTotal,
         tempoEstimado: calcularTempoEntrega()
-      };
-
-      // Obter a URL base do ambiente
-      const env = getEnvironment();
-      
-      // Log para debug
-      console.info("Enviando orçamento para API", {
-        baseUrl: env.baseUrl,
-        endpoint: `${env.baseUrl}/api/contact`,
-        dados: dadosOrcamento
       });
       
-      // Usar o método específico da API para enviar orçamentos
-      // Isso garante que todas as configurações CORS sejam aplicadas corretamente
-      const response = await servicosAPI.enviarOrcamento(dadosOrcamento);
+      // Verificar se a resposta foi bem-sucedida
+      // A API retorna diretamente os dados, não um objeto com status
+      console.info("Resposta do envio de orçamento:", response);
       
-      if (response.status === 200 || response.status === 201) {
-        console.info("Orçamento enviado com sucesso", response.data);
+      if (response && response.success) {
+        console.info("Orçamento enviado com sucesso", response);
         setMensagemStatus({
           tipo: 'sucesso',
           texto: 'Orçamento enviado com sucesso! Entraremos em contato em breve.'
@@ -196,14 +200,39 @@ const PricingCalculator = ({ servicos }) => {
           metodoContato: 'email',
           mensagem: ''
         });
+        
+        // Registrar evento de analytics
+        try {
+          if (typeof window !== 'undefined' && window.gtag) {
+            window.gtag('event', 'orcamento_enviado', {
+              'event_category': 'formulario',
+              'event_label': 'orcamento'
+            });
+          }
+        } catch (analyticsError) {
+          console.error("Erro ao registrar evento de analytics:", analyticsError);
+        }
       } else {
-        throw new Error('Erro ao enviar orçamento');
+        throw new Error(response?.message || 'Erro ao enviar orçamento');
       }
     } catch (error) {
       console.error("Erro ao enviar orçamento:", error);
+      
+      // Mensagem de erro mais descritiva
+      let mensagemErro = 'Ocorreu um erro ao enviar o orçamento. Por favor, tente novamente mais tarde.';
+      
+      // Se for um erro de CORS, fornecer uma mensagem mais específica
+      if (error.message && (
+        error.message.includes('Network Error') || 
+        error.message.includes('CORS') ||
+        error.message.includes('cross-origin')
+      )) {
+        mensagemErro = 'Erro de conexão com o servidor. Por favor, verifique sua conexão e tente novamente.';
+      }
+      
       setMensagemStatus({
         tipo: 'erro',
-        texto: 'Ocorreu um erro ao enviar o orçamento. Por favor, tente novamente mais tarde.'
+        texto: mensagemErro
       });
     } finally {
       setEnviando(false);
@@ -322,7 +351,21 @@ const PricingCalculator = ({ servicos }) => {
         </div>
         
         {/* Formulário de contato */}
-        <form onSubmit={enviarOrcamento} className="space-y-4 border-t border-gray-200 pt-4 mt-4">
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          
+          // Validação básica
+          if (!formData.nome || !formData.email || (formData.metodoContato === 'telefone' && !formData.telefone)) {
+            setMensagemStatus({
+              tipo: 'erro',
+              texto: 'Por favor, preencha todos os campos obrigatórios.'
+            });
+            return;
+          }
+          
+          // Enviar orçamento
+          enviarOrcamento();
+        }} className="space-y-4 border-t border-gray-200 pt-4 mt-4">
           <h3 className="text-lg font-semibold text-gray-700">
             Solicitar Orçamento Detalhado
           </h3>

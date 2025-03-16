@@ -1,6 +1,6 @@
 /**
  * Módulo centralizado para detecção e configuração de ambiente
- * @version 1.7.0 - 2025-03-15 - Melhorada a detecção de ambiente e corrigido o suporte para múltiplos endpoints de API
+ * @version 1.8.0 - 2025-03-15 - Melhorada a detecção de ambiente e URLs da API para lytspot.com.br
  * @description Fornece informações consistentes sobre o ambiente atual e URLs da API
  */
 
@@ -37,10 +37,14 @@ export const getEnvironment = () => {
     // Em desenvolvimento, use localhost:3000
     baseUrl = 'http://localhost:3000';
     console.log('[Environment] Ambiente de desenvolvimento detectado. Usando API local:', baseUrl);
-  } else {
-    // Em produção, sempre usar a primeira URL da lista de APIs
+  } else if (window.location.hostname === 'lytspot.com.br' || window.location.hostname === 'www.lytspot.com.br') {
+    // Em produção no domínio principal, usar a primeira URL da lista de APIs
     baseUrl = prodApiUrls[0];
-    console.log('[Environment] Ambiente de produção detectado. Usando API remota:', baseUrl);
+    console.log('[Environment] Ambiente de produção (lytspot.com.br) detectado. Usando API remota:', baseUrl);
+  } else {
+    // Em outros ambientes de produção, usar a primeira URL da lista de APIs
+    baseUrl = prodApiUrls[0];
+    console.log('[Environment] Outro ambiente de produção detectado. Usando API remota:', baseUrl);
   }
   
   return {
@@ -70,7 +74,7 @@ export const getApiUrl = (endpoint, options = {}) => {
   if (!env.isDev || options.forceProd) {
     // Verificar se estamos em lytspot.com.br e usar a URL da API diretamente
     if (env.hostname === 'lytspot.com.br' || env.hostname === 'www.lytspot.com.br') {
-      console.log(`[Environment] Usando URL de API específica para ${env.hostname}`);
+      console.log(`[Environment] Usando URL de API específica para ${env.hostname}: ${env.prodApiUrls[0]}`);
       return `${env.prodApiUrls[0]}/${normalizedEndpoint}`;
     }
     
@@ -88,11 +92,22 @@ export const getApiUrl = (endpoint, options = {}) => {
  * @param {string} endpoint - Endpoint da API
  * @param {Object} options - Opções adicionais
  * @returns {Promise} Resultado da requisição
+ * @version 1.2.0 - 2025-03-15 - Melhorado tratamento de erros CORS
  */
 export const apiRequestWithRetry = async (requestFn, endpoint, options = {}) => {
   const env = getEnvironment();
   const maxRetries = options.maxRetries || 2;
   const retryDelay = options.retryDelay || 2000;
+  
+  // Verificar se estamos no domínio lytspot.com.br
+  const isMainDomain = env.hostname === 'lytspot.com.br' || env.hostname === 'www.lytspot.com.br';
+  
+  // Log para diagnóstico
+  console.log(`[API] Iniciando requisição para ${endpoint} de ${env.hostname}`, {
+    isMainDomain,
+    isDev: env.isDev,
+    forceProd: options.forceProd
+  });
   
   // Primeira tentativa com a URL principal
   try {
@@ -102,8 +117,19 @@ export const apiRequestWithRetry = async (requestFn, endpoint, options = {}) => 
   } catch (error) {
     console.error(`[API] Erro na tentativa principal: ${error.message}`);
     
+    // Verificar se é um erro de CORS
+    const isCorsError = error.message && (
+      error.message.includes('Network Error') || 
+      error.message.includes('CORS') ||
+      error.message.includes('cross-origin')
+    );
+    
+    if (isCorsError) {
+      console.warn('[API] Erro de CORS detectado, tentando URLs alternativas');
+    }
+    
     // Se estamos em produção e temos URLs alternativas, tentar com elas
-    if (!env.isDev && env.prodApiUrls.length > 1) {
+    if ((!env.isDev || options.forceProd) && env.prodApiUrls.length > 1) {
       for (let i = 1; i < env.prodApiUrls.length; i++) {
         try {
           const fallbackUrl = `${env.prodApiUrls[i]}/${endpoint.startsWith('/') ? endpoint.substring(1) : endpoint}`;
@@ -121,7 +147,12 @@ export const apiRequestWithRetry = async (requestFn, endpoint, options = {}) => 
         // Esperar antes de tentar novamente (exponential backoff)
         await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, i)));
         
-        const retryUrl = getApiUrl(endpoint, options);
+        const retryUrl = getApiUrl(endpoint, {
+          ...options,
+          // Forçar URL de produção se estamos no domínio principal
+          forceProd: options.forceProd || isMainDomain
+        });
+        
         console.log(`[API] Retry ${i+1} para ${retryUrl}`);
         return await requestFn(retryUrl);
       } catch (retryError) {

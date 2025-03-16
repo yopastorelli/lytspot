@@ -4,7 +4,7 @@
  * @description Fornece métodos para interagir com a API do backend
  */
 import axios from 'axios';
-import { getEnvironment } from '../utils/environment';
+import { getEnvironment, apiRequestWithRetry } from '../utils/environment';
 import { servicos } from '../data/servicos';
 
 /**
@@ -152,93 +152,59 @@ const servicosAPI = {
   excluir: (id) => api.delete(`/pricing/${id}`),
   
   /**
-   * Envia um orçamento para o endpoint de contato
-   * @param {Object} dadosOrcamento Dados do orçamento a ser enviado
-   * @returns {Promise} Promessa com a resposta da API
-   * @version 1.3.0 - 2025-03-15 - Implementado mecanismo de retry com exponential backoff
+   * Envia um orçamento para a API
+   * @param {Object} orcamentoData - Dados do orçamento
+   * @returns {Promise} - Resultado da requisição
+   * @version 1.2.1 - 2025-03-15 - Corrigido erro de referência env
    */
-  enviarOrcamento: async (dadosOrcamento) => {
-    console.log('[API] Enviando orçamento para o endpoint de contato');
+  enviarOrcamento: async (orcamentoData) => {
+    console.log('[API] Enviando orçamento:', orcamentoData);
     
-    // Configurações para o mecanismo de retry
-    const maxRetries = 3;
-    let tentativa = 0;
-    let ultimoErro = null;
-    
-    // Criar uma instância específica para garantir que as configurações CORS sejam aplicadas
+    // Obter informações do ambiente
     const env = getEnvironment();
     
-    // Função para criar a instância do axios com configurações consistentes
-    const criarInstancia = () => {
-      const instance = axios.create({
-        baseURL: env.baseUrl,
-        timeout: 15000,
+    // Função que faz a requisição
+    const makeRequest = async (url) => {
+      console.log(`[API] Enviando orçamento para ${url}`);
+      
+      // Configuração avançada para evitar problemas de CORS
+      const config = {
         headers: {
           'Content-Type': 'application/json',
-          'X-Source': 'lytspot-simulator',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'X-Source': 'lytspot-frontend'
         },
-        withCredentials: true
-      });
+        withCredentials: true // Importante para CORS com credenciais
+      };
       
-      // Adicionar interceptor para diagnóstico
-      instance.interceptors.request.use(
-        (config) => {
-          console.log(`[API] Enviando requisição para ${config.url} com origem ${window.location.origin}`);
-          return config;
-        },
-        (error) => {
-          console.error('[API] Erro na requisição:', error);
-          return Promise.reject(error);
+      try {
+        const response = await axios.post(url, orcamentoData, config);
+        console.log('[API] Resposta do orçamento:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('[API] Erro ao enviar orçamento:', error.message);
+        throw error;
+      }
+    };
+    
+    // Usar apiRequestWithRetry para maior robustez
+    try {
+      const response = await apiRequestWithRetry(
+        makeRequest,
+        'api/contact',
+        {
+          forceProd: env.hostname === 'lytspot.com.br' || env.hostname === 'www.lytspot.com.br',
+          maxRetries: 3,
+          retryDelay: 2000
         }
       );
       
-      return instance;
-    };
-    
-    // Implementar mecanismo de retry com exponential backoff
-    while (tentativa < maxRetries) {
-      try {
-        const instance = criarInstancia();
-        
-        // Registrar a tentativa atual
-        tentativa++;
-        console.log(`[API] Tentativa ${tentativa}/${maxRetries} de enviar orçamento`);
-        
-        // Fazer a requisição
-        const response = await instance.post('/api/contact', dadosOrcamento);
-        
-        // Se chegou aqui, a requisição foi bem-sucedida
-        console.log(`[API] Orçamento enviado com sucesso na tentativa ${tentativa}`);
-        return response;
-      } catch (error) {
-        // Registrar o erro
-        ultimoErro = error;
-        console.error(`[API] Erro ao enviar orçamento (tentativa ${tentativa}/${maxRetries}):`, error);
-        
-        // Verificar se é um erro de CORS
-        if (error.message && error.message.includes('Network Error')) {
-          console.warn('[API] Possível erro de CORS detectado');
-        }
-        
-        // Se já tentou o número máximo de vezes, lançar o erro
-        if (tentativa >= maxRetries) {
-          console.error(`[API] Número máximo de tentativas (${maxRetries}) excedido. Desistindo.`);
-          throw ultimoErro;
-        }
-        
-        // Calcular tempo de espera com exponential backoff
-        const tempoEspera = Math.pow(2, tentativa) * 1000; // 2s, 4s, 8s
-        console.log(`[API] Aguardando ${tempoEspera/1000}s antes da próxima tentativa...`);
-        
-        // Esperar antes da próxima tentativa
-        await new Promise(resolve => setTimeout(resolve, tempoEspera));
-      }
+      return response;
+    } catch (error) {
+      console.error('[API] Todas as tentativas de envio do orçamento falharam:', error.message);
+      throw error;
     }
-    
-    // Se chegou aqui, todas as tentativas falharam
-    throw ultimoErro;
   }
 };
 

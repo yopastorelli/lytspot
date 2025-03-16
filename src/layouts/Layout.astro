@@ -121,6 +121,45 @@ const localBusinessSchema = {
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
     
+    <!-- Script para inicializar analytics -->
+    <script>
+      // Inicialização do módulo de analytics com tratamento de erros aprimorado
+      const initAnalytics = async () => {
+        try {
+          // Importação dinâmica para compatibilidade com SSR
+          const analyticsModule = await import('../utils/analytics.js');
+          console.log('[Layout] Módulo de analytics carregado');
+          
+          // Verificar se o módulo foi carregado corretamente
+          if (!analyticsModule || !analyticsModule.initAnalytics) {
+            throw new Error('Módulo de analytics não contém a função initAnalytics');
+          }
+          
+          // Função para inicializar o analytics
+          const startAnalytics = () => {
+            try {
+              console.log('[Layout] Inicializando módulo de analytics...');
+              analyticsModule.initAnalytics();
+            } catch (initError) {
+              console.error('[Layout] Erro durante a inicialização do analytics:', initError);
+            }
+          };
+          
+          // Inicializar quando o DOM estiver pronto
+          if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            startAnalytics();
+          } else {
+            document.addEventListener('DOMContentLoaded', startAnalytics);
+          }
+        } catch (error) {
+          console.error('[Layout] Erro ao carregar módulo de analytics:', error);
+        }
+      };
+      
+      // Executar a inicialização com um pequeno atraso para garantir que outros scripts sejam carregados primeiro
+      setTimeout(initAnalytics, 100);
+    </script>
+    
     <!-- Service Worker Registration -->
     <script>
       // Registrar o Service Worker
@@ -136,13 +175,6 @@ const localBusinessSchema = {
         });
       }
     </script>
-    
-    <!-- Preconnect para recursos externos -->
-    <link rel="preconnect" href="/" />
-    <link rel="dns-prefetch" href="/" />
-    
-    <!-- Script de monitoramento de Web Vitals -->
-    <script src="/js/web-vitals.js" defer></script>
     
     <!-- Dados estruturados para Local Business -->
     <script type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)} />
