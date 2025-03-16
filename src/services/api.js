@@ -1,10 +1,10 @@
 /**
  * Serviço centralizado para comunicação com a API
- * @version 1.7.0 - 2025-03-16 - Implementada função getApiUrl para melhorar a consistência das URLs
+ * @version 1.5.0 - 2025-03-15 - Adicionado suporte para identificação de requisições do simulador
  * @description Fornece métodos para interagir com a API do backend
  */
 import axios from 'axios';
-import { getEnvironment, getApiUrl } from '../utils/environment';
+import { getEnvironment } from '../utils/environment';
 import { servicos } from '../data/servicos';
 
 /**
@@ -15,8 +15,13 @@ const createApiInstance = () => {
   const env = getEnvironment();
   
   // Determinar a URL base correta para a API
-  // Em produção, sempre usar a URL da API no Render
-  let baseURL = env.isDev ? env.baseUrl : 'https://lytspot-api.onrender.com';
+  // Garantir que a URL base tenha o prefixo /api apenas uma vez
+  let baseURL = env.baseUrl;
+  
+  // Se a baseURL não termina com /api e não inclui /api, adicionar /api
+  if (!baseURL.endsWith('/api') && !baseURL.includes('/api')) {
+    baseURL = `${baseURL}/api`;
+  }
   
   console.log(`[API] Configurando instância do axios com baseURL: ${baseURL}`);
   
@@ -94,111 +99,57 @@ const servicosAPI = {
   listar: async (options = {}) => {
     try {
       // Construir parâmetros de consulta
-      const params = {};
+      const params = new URLSearchParams();
       if (options.simulador) {
-        params.simulador = true;
+        params.append('simulador', 'true');
       }
       
-      // Usar a nova função getApiUrl para obter a URL correta
-      const apiUrl = getApiUrl('pricing');
-      console.log(`[API] Listando serviços de: ${apiUrl}`);
+      if (options.page) {
+        params.append('page', options.page);
+      }
       
-      const response = await api.get('/api/pricing', { params });
-      return response;
+      if (options.limit) {
+        params.append('limit', options.limit);
+      }
+      
+      if (options.search) {
+        params.append('search', options.search);
+      }
+      
+      // Construir URL com parâmetros
+      const url = `/pricing${params.toString() ? `?${params.toString()}` : ''}`;
+      
+      return api.get(url);
     } catch (error) {
       console.error('[API] Erro ao listar serviços:', error);
-      
-      // Tratamento de erro mais detalhado
-      if (error.response) {
-        console.error(`[API] Erro ${error.response.status}: ${JSON.stringify(error.response.data)}`);
-      } else if (error.request) {
-        console.error('[API] Sem resposta do servidor:', error.request);
-      } else {
-        console.error('[API] Erro de configuração:', error.message);
-      }
-      
-      console.warn('[API] Usando dados locais como fallback');
-      
-      // Se falhar, usar os dados locais como fallback
-      if (options.simulador) {
-        return { data: servicos.filter(s => s.disponivel_simulador) };
-      } else {
-        return { data: servicos };
-      }
+      throw error;
     }
   },
-  
   /**
    * Lista todos os serviços diretamente do arquivo de definições
    * @returns {Promise} Promessa com a resposta da API contendo as definições de serviços
    */
   listarDefinicoes: async () => {
     try {
-      // Usar a nova função getApiUrl para obter a URL correta
-      const apiUrl = getApiUrl('pricing/definitions');
-      console.log(`[API] Listando definições de serviços de: ${apiUrl}`);
+      console.log('[API] Buscando definições de serviços...');
       
-      const response = await api.get('/api/pricing/definitions');
-      return response;
-    } catch (error) {
-      console.error('[API] Erro ao listar definições de serviços:', error);
+      // Verificar se estamos em ambiente de desenvolvimento
+      const env = getEnvironment();
+      const isDev = env.isDev;
       
-      // Tratamento de erro mais detalhado
-      if (error.response) {
-        console.error(`[API] Erro ${error.response.status}: ${JSON.stringify(error.response.data)}`);
-      } else if (error.request) {
-        console.error('[API] Sem resposta do servidor:', error.request);
-      } else {
-        console.error('[API] Erro de configuração:', error.message);
-      }
+      // Usar diretamente os dados locais, já que eles raramente mudam
+      console.log(`[API] Usando dados locais para definições de serviços: ${servicos.length} itens`);
+      return { data: servicos };
       
-      throw error;
-    }
-  },
-  
-  obter: async (id) => {
-    try {
-      const apiUrl = getApiUrl(`pricing/${id}`);
-      console.log(`[API] Obtendo serviço ${id} de: ${apiUrl}`);
-      return await api.get(`/api/pricing/${id}`);
     } catch (error) {
-      console.error(`[API] Erro ao obter serviço ${id}:`, error);
+      console.error('[API] Erro ao obter definições de serviços:', error);
       throw error;
     }
   },
-  
-  criar: async (dados) => {
-    try {
-      const apiUrl = getApiUrl('pricing');
-      console.log(`[API] Criando serviço em: ${apiUrl}`);
-      return await api.post('/api/pricing', dados);
-    } catch (error) {
-      console.error('[API] Erro ao criar serviço:', error);
-      throw error;
-    }
-  },
-  
-  atualizar: async (id, dados) => {
-    try {
-      const apiUrl = getApiUrl(`pricing/${id}`);
-      console.log(`[API] Atualizando serviço ${id} em: ${apiUrl}`);
-      return await api.put(`/api/pricing/${id}`, dados);
-    } catch (error) {
-      console.error(`[API] Erro ao atualizar serviço ${id}:`, error);
-      throw error;
-    }
-  },
-  
-  excluir: async (id) => {
-    try {
-      const apiUrl = getApiUrl(`pricing/${id}`);
-      console.log(`[API] Excluindo serviço ${id} de: ${apiUrl}`);
-      return await api.delete(`/api/pricing/${id}`);
-    } catch (error) {
-      console.error(`[API] Erro ao excluir serviço ${id}:`, error);
-      throw error;
-    }
-  },
+  obter: (id) => api.get(`/pricing/${id}`),
+  criar: (dados) => api.post('/pricing', dados),
+  atualizar: (id, dados) => api.put(`/pricing/${id}`, dados),
+  excluir: (id) => api.delete(`/pricing/${id}`),
   
   /**
    * Envia um orçamento para o endpoint de contato
@@ -207,65 +158,51 @@ const servicosAPI = {
    */
   enviarOrcamento: async (dadosOrcamento) => {
     try {
-      // Usar a nova função getApiUrl para obter a URL correta
-      const apiUrl = getApiUrl('contact');
-      console.log(`[API] Enviando orçamento para: ${apiUrl}`);
+      console.log('[API] Enviando orçamento para o endpoint de contato');
       
-      // Fazer a requisição usando a instância padrão da API
-      // Isso garante que todas as configurações CORS e interceptors sejam aplicados
-      return await api.post('/api/contact', dadosOrcamento);
+      // Criar uma instância específica para garantir que as configurações CORS sejam aplicadas
+      const env = getEnvironment();
+      const instance = axios.create({
+        baseURL: env.baseUrl,
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Source': 'lytspot-simulator',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        withCredentials: true
+      });
+      
+      // Adicionar interceptor para diagnóstico
+      instance.interceptors.request.use(
+        (config) => {
+          console.log(`[API] Enviando requisição para ${config.url} com origem ${window.location.origin}`);
+          return config;
+        },
+        (error) => {
+          console.error('[API] Erro na requisição:', error);
+          return Promise.reject(error);
+        }
+      );
+      
+      // Fazer a requisição
+      return await instance.post('/api/contact', dadosOrcamento);
     } catch (error) {
       console.error('[API] Erro ao enviar orçamento:', error);
-      
-      // Tratamento de erro mais detalhado
-      if (error.response) {
-        console.error(`[API] Erro ${error.response.status}: ${JSON.stringify(error.response.data)}`);
-      } else if (error.request) {
-        console.error('[API] Sem resposta do servidor:', error.request);
-      } else {
-        console.error('[API] Erro de configuração:', error.message);
-      }
-      
       throw error;
     }
   }
 };
 
 const authAPI = {
-  login: async (credenciais) => {
-    try {
-      const apiUrl = getApiUrl('auth/login');
-      console.log(`[API] Realizando login em: ${apiUrl}`);
-      return await api.post('/api/auth/login', credenciais);
-    } catch (error) {
-      console.error('[API] Erro ao realizar login:', error);
-      throw error;
-    }
-  },
-  
-  registro: async (dados) => {
-    try {
-      const apiUrl = getApiUrl('auth/register');
-      console.log(`[API] Realizando registro em: ${apiUrl}`);
-      return await api.post('/api/auth/register', dados);
-    } catch (error) {
-      console.error('[API] Erro ao realizar registro:', error);
-      throw error;
-    }
-  },
-  
-  verificarToken: async () => {
-    try {
-      const apiUrl = getApiUrl('auth/verify');
-      console.log(`[API] Verificando token em: ${apiUrl}`);
-      return await api.get('/api/auth/verify');
-    } catch (error) {
-      console.error('[API] Erro ao verificar token:', error);
-      throw error;
-    }
-  }
+  login: (credenciais) => api.post('/auth/login', credenciais),
+  registro: (dados) => api.post('/auth/register', dados),
+  verificarToken: () => api.get('/auth/verify')
 };
 
 // Exportar tanto a instância padrão quanto métodos específicos
 export { servicosAPI, authAPI };
+
+// Exportar a instância padrão como default
 export default api;

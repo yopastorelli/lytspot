@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import { getEnvironment, getApiUrl } from '../../utils/environment';
+import { getEnvironment } from '../../utils/environment';
 import { servicosAPI } from '../../services/api';
 
 /**
  * Componente de calculadora de preços para o simulador
- * @version 2.2.0 - 2025-03-16 - Corrigido problema de CORS e melhorado tratamento de erros
+ * @version 2.1.0 - 2025-03-15 - Adicionado formulário de contato integrado
  */
 const PricingCalculator = ({ servicos }) => {
   const [quantidades, setQuantidades] = useState({});
@@ -22,8 +22,6 @@ const PricingCalculator = ({ servicos }) => {
   });
   const [enviando, setEnviando] = useState(false);
   const [mensagemStatus, setMensagemStatus] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 3;
 
   // Lista de adicionais disponíveis
   const opcoesAdicionais = [
@@ -169,13 +167,13 @@ const PricingCalculator = ({ servicos }) => {
         tempoEstimado: calcularTempoEntrega()
       };
 
-      // Obter a URL da API usando a nova função getApiUrl
-      const apiUrl = getApiUrl('contact');
+      // Obter a URL base do ambiente
+      const env = getEnvironment();
       
       // Log para debug
       console.info("Enviando orçamento para API", {
-        apiUrl,
-        origem: window.location.origin,
+        baseUrl: env.baseUrl,
+        endpoint: `${env.baseUrl}/api/contact`,
         dados: dadosOrcamento
       });
       
@@ -198,56 +196,15 @@ const PricingCalculator = ({ servicos }) => {
           metodoContato: 'email',
           mensagem: ''
         });
-        
-        // Resetar contador de tentativas
-        setRetryCount(0);
       } else {
         throw new Error('Erro ao enviar orçamento');
       }
     } catch (error) {
       console.error("Erro ao enviar orçamento:", error);
-      
-      // Tratamento de erro mais detalhado
-      if (error.response) {
-        // O servidor respondeu com um status de erro
-        setMensagemStatus({
-          tipo: 'erro',
-          texto: `Erro ${error.response.status}: ${error.response.data?.message || 'Falha ao enviar orçamento'}`
-        });
-      } else if (error.request) {
-        // A requisição foi feita mas não houve resposta
-        setMensagemStatus({
-          tipo: 'erro',
-          texto: 'Não foi possível conectar ao servidor. Verifique sua conexão.'
-        });
-        
-        // Implementar retry com exponential backoff
-        if (retryCount < MAX_RETRIES) {
-          const nextRetryCount = retryCount + 1;
-          setRetryCount(nextRetryCount);
-          
-          const delay = Math.pow(2, nextRetryCount) * 1000; // 2s, 4s, 8s
-          console.info(`Tentando novamente em ${delay/1000} segundos (tentativa ${nextRetryCount}/${MAX_RETRIES})...`);
-          
-          setTimeout(() => {
-            enviarOrcamento(e);
-          }, delay);
-          
-          setMensagemStatus({
-            tipo: 'info',
-            texto: `Tentando novamente em ${delay/1000} segundos...`
-          });
-          
-          setEnviando(false);
-          return;
-        }
-      } else {
-        // Erro na configuração da requisição
-        setMensagemStatus({
-          tipo: 'erro',
-          texto: 'Erro ao preparar o envio do orçamento.'
-        });
-      }
+      setMensagemStatus({
+        tipo: 'erro',
+        texto: 'Ocorreu um erro ao enviar o orçamento. Por favor, tente novamente mais tarde.'
+      });
     } finally {
       setEnviando(false);
     }
@@ -300,186 +257,165 @@ const PricingCalculator = ({ servicos }) => {
                   +
                 </button>
               </div>
+              <span className="ml-auto font-medium text-gray-700">
+                {formatMoney(servico.preco_base * (quantidades[servico.id] || 1))}
+              </span>
             </div>
           </div>
         ))}
       </div>
       
-      {/* Opções adicionais */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-3">
-          Opções Adicionais
-        </h3>
+      <div className="space-y-6">
+        {/* Adicionais */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            Adicionais
+          </label>
+          <div className="space-y-2">
+            {opcoesAdicionais.map(opcao => (
+              <div key={opcao.id} className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`adicional-${opcao.id}`}
+                  checked={adicionais.includes(opcao.id)}
+                  onChange={() => toggleAdicional(opcao.id)}
+                  className="mr-2"
+                />
+                <label htmlFor={`adicional-${opcao.id}`} className="flex justify-between w-full text-gray-700">
+                  <span>{opcao.nome}</span>
+                  <span className="font-medium">{formatMoney(opcao.valor)}</span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
         
-        <div className="space-y-2">
-          {opcoesAdicionais.map(adicional => (
-            <div key={adicional.id} className="flex items-center">
-              <input
-                type="checkbox"
-                id={`adicional-${adicional.id}`}
-                checked={adicionais.includes(adicional.id)}
-                onChange={() => toggleAdicional(adicional.id)}
-                className="mr-2 h-4 w-4 text-blue-600"
-              />
-              <label htmlFor={`adicional-${adicional.id}`} className="flex justify-between w-full text-sm">
-                <span>{adicional.nome}</span>
-                <span className="text-blue-600 font-medium">{formatMoney(adicional.valor)}</span>
-              </label>
-            </div>
-          ))}
-          
-          <div className="flex items-center mt-2">
+        {/* Deslocamento */}
+        <div>
+          <label className="flex items-center">
             <input
               type="checkbox"
-              id="deslocamento"
               checked={deslocamento}
-              onChange={() => setDeslocamento(!deslocamento)}
-              className="mr-2 h-4 w-4 text-blue-600"
+              onChange={() => setDeslocamento(prev => !prev)}
+              className="mr-2"
             />
-            <label htmlFor="deslocamento" className="flex justify-between w-full text-sm">
-              <span>Taxa de deslocamento</span>
-              <span className="text-blue-600 font-medium">{formatMoney(120)}</span>
-            </label>
-          </div>
+            <span className="text-gray-700">Incluir taxa de deslocamento</span>
+            <span className="ml-auto font-medium">{formatMoney(120)}</span>
+          </label>
         </div>
-      </div>
-      
-      {/* Resumo */}
-      <div className="bg-gray-50 p-4 rounded-md mb-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-bold text-gray-800">Total Estimado:</h3>
-          <span className="text-xl font-bold text-blue-700">{formatMoney(precoTotal)}</span>
+        
+        {/* Total */}
+        <div className="border-t border-gray-200 pt-4 mt-4">
+          <div className="flex justify-between items-center">
+            <span className="text-lg font-bold text-gray-800">Total:</span>
+            <span className="text-2xl font-bold text-blue-600">{formatMoney(precoTotal)}</span>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            Tempo estimado de entrega: {calcularTempoEntrega()} dias
+          </p>
         </div>
-        <p className="text-sm text-gray-600 mt-2">
-          Tempo estimado de entrega: {calcularTempoEntrega()} dias
-        </p>
-      </div>
-      
-      {/* Formulário de contato */}
-      <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">
-          Solicitar Orçamento
-        </h3>
         
-        {mensagemStatus && (
-          <div className={`p-3 mb-4 rounded ${
-            mensagemStatus.tipo === 'sucesso' ? 'bg-green-100 text-green-700' : 
-            mensagemStatus.tipo === 'erro' ? 'bg-red-100 text-red-700' :
-            'bg-blue-100 text-blue-700'
-          }`}>
-            {mensagemStatus.texto}
-          </div>
-        )}
-        
-        <form onSubmit={enviarOrcamento} className="space-y-4">
-          <div>
-            <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-1">
-              Nome completo *
-            </label>
-            <input
-              type="text"
-              id="nome"
-              name="nome"
-              value={formData.nome}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
+        {/* Formulário de contato */}
+        <form onSubmit={enviarOrcamento} className="space-y-4 border-t border-gray-200 pt-4 mt-4">
+          <h3 className="text-lg font-semibold text-gray-700">
+            Solicitar Orçamento Detalhado
+          </h3>
           
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              E-mail *
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 mb-1">
-              Telefone {formData.metodoContato === 'telefone' ? '*' : ''}
-            </label>
-            <input
-              type="tel"
-              id="telefone"
-              name="telefone"
-              value={formData.telefone}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required={formData.metodoContato === 'telefone'}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Método de contato preferido *
-            </label>
-            <div className="flex space-x-4">
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  name="metodoContato"
-                  value="email"
-                  checked={formData.metodoContato === 'email'}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600"
-                />
-                <span className="ml-2 text-sm text-gray-700">E-mail</span>
+          {/* Campos de contato */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-1">
+                Nome *
               </label>
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  name="metodoContato"
-                  value="telefone"
-                  checked={formData.metodoContato === 'telefone'}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600"
-                />
-                <span className="ml-2 text-sm text-gray-700">Telefone</span>
+              <input
+                type="text"
+                id="nome"
+                name="nome"
+                value={formData.nome}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                E-mail *
               </label>
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  name="metodoContato"
-                  value="whatsapp"
-                  checked={formData.metodoContato === 'whatsapp'}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600"
-                />
-                <span className="ml-2 text-sm text-gray-700">WhatsApp</span>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 mb-1">
+                Telefone {formData.metodoContato === 'telefone' || formData.metodoContato === 'whatsapp' ? '*' : ''}
               </label>
+              <input
+                type="tel"
+                id="telefone"
+                name="telefone"
+                value={formData.telefone}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required={formData.metodoContato === 'telefone' || formData.metodoContato === 'whatsapp'}
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="metodoContato" className="block text-sm font-medium text-gray-700 mb-1">
+                Método de contato preferido *
+              </label>
+              <select
+                id="metodoContato"
+                name="metodoContato"
+                value={formData.metodoContato}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="email">E-mail</option>
+                <option value="telefone">Telefone</option>
+                <option value="whatsapp">WhatsApp</option>
+              </select>
             </div>
           </div>
           
+          {/* Campo de mensagem */}
           <div>
             <label htmlFor="mensagem" className="block text-sm font-medium text-gray-700 mb-1">
-              Mensagem adicional
+              Detalhes adicionais ou dúvidas
             </label>
             <textarea
               id="mensagem"
               name="mensagem"
               value={formData.mensagem}
               onChange={handleInputChange}
-              rows={3}
+              rows="4"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             ></textarea>
           </div>
           
-          <button
-            type="submit"
+          {/* Mensagem de status */}
+          {mensagemStatus && (
+            <div className={`p-3 rounded ${mensagemStatus.tipo === 'sucesso' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              {mensagemStatus.texto}
+            </div>
+          )}
+          
+          {/* Botão de envio */}
+          <button 
+            type="submit" 
             disabled={enviando}
-            className={`w-full py-2 px-4 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors ${
-              enviando ? 'opacity-70 cursor-not-allowed' : ''
-            }`}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition duration-200 disabled:opacity-70"
           >
-            {enviando ? 'Enviando...' : 'Solicitar Orçamento'}
+            {enviando ? 'Enviando...' : 'Solicitar Orçamento Detalhado'}
           </button>
         </form>
       </div>
@@ -492,9 +428,9 @@ PricingCalculator.propTypes = {
     PropTypes.shape({
       id: PropTypes.number.isRequired,
       nome: PropTypes.string.isRequired,
-      descricao: PropTypes.string,
+      descricao: PropTypes.string.isRequired,
       preco_base: PropTypes.number.isRequired,
-      duracao_media: PropTypes.number
+      duracao_media: PropTypes.number.isRequired
     })
   ).isRequired
 };

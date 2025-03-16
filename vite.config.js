@@ -1,10 +1,6 @@
 import { defineConfig } from 'vite';
 import path from 'path';
 
-/**
- * Configuração do Vite para o projeto Lytspot
- * @version 1.5.0 - 2025-03-16 - Melhorada a configuração de proxy para resolver problemas de CORS
- */
 export default defineConfig({
   base: process.env.BASE_URL || '/', // Define a base URL para o projeto
   resolve: {
@@ -17,29 +13,11 @@ export default defineConfig({
     port: 4321, // Porta personalizada
     proxy: {
       '/api': {
-        target: process.env.API_URL || 'https://lytspot-api.onrender.com', // URL corrigida para a API
+        target: process.env.API_URL || 'https://lytspot.onrender.com', // Proxy para o backend
         changeOrigin: true, // Permite proxy em hosts diferentes
-        secure: false, // Permite conexões inseguras durante o desenvolvimento
-        rewrite: (path) => path.replace(/^\/api/, '/api'), // Mantém o prefixo /api
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('Erro de proxy:', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Enviando requisição para:', req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log(`Recebida resposta de ${req.url}: ${proxyRes.statusCode}`);
-          });
-        },
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
-        },
+        rewrite: (path) => path.replace(/^\/api/, '/api'), // Reescreve o caminho
       },
     },
-    cors: true, // Habilita CORS para todas as rotas
   },
   build: {
     outDir: 'dist', // Diretório de saída
@@ -71,19 +49,9 @@ export default defineConfig({
         preserveModules: true,
         preserveModulesRoot: 'src'
       }
-    },
-    sourcemap: true, // Gera sourcemaps para facilitar a depuração
+    }
   },
-  // Configurações específicas para produção
-  preview: {
-    port: 4321,
-    host: true,
-    strictPort: true,
-  },
-  // Configurações para otimização
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'],
-  },
+  // Configuração adicional para compatibilidade com diferentes ambientes
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
   },
