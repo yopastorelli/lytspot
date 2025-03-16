@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { validateEmail, validatePhone, validateRequired } from '../../utils/validation';
 import axios from 'axios';
-import { getEnvironment } from '../../utils/environment';
+import { getEnvironment, getApiUrl } from '../../utils/environment';
 
 // Definição da interface do ambiente para tipagem
 interface Environment {
@@ -96,14 +96,24 @@ const ContactForm: React.FC = () => {
       // Obter a URL base do ambiente
       const env = getEnvironment() as Environment;
       
+      // Determinar a URL correta da API
+      let apiUrl = getApiUrl('api/contact');
+      
       // Log para debug da URL da API
       console.info("Enviando formulário para API", {
         baseUrl: env.baseUrl,
-        endpoint: `${env.baseUrl}/api/contact`
+        endpoint: apiUrl,
+        isDev: env.isDev
       });
       
-      // Usando o axios diretamente para evitar problemas de tipagem
-      const response = await axios.post(`${env.baseUrl}/api/contact`, formData);
+      // Usando o axios diretamente com withCredentials para suportar CORS com cookies
+      const response = await axios.post(apiUrl, formData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
       
       if (response.status === 200 || response.status === 201) {
         console.info("Mensagem enviada com sucesso", response.data);

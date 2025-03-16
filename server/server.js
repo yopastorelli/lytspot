@@ -154,6 +154,7 @@ try {
     'http://lytspot.com.br',
     'http://www.lytspot.com.br',
     'https://lytspot.onrender.com',
+    'https://lytspot-api.onrender.com',
     'https://lytspot.netlify.app',
     'http://localhost:4321',
     'http://localhost:4322',
@@ -207,6 +208,21 @@ try {
   
   // Adicionar middleware específico para OPTIONS para garantir resposta imediata
   app.options('*', (req, res) => {
+    // Adicionar cabeçalhos CORS manualmente para garantir que estejam presentes
+    const origin = req.headers.origin;
+    if (origin && (allowedOrigins.includes(origin) || isDevelopment)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      // Para diagnóstico, permitir qualquer origem temporariamente
+      res.header('Access-Control-Allow-Origin', origin || '*');
+    }
+    
+    // Adicionar outros cabeçalhos CORS necessários
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-Source, Pragma');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+    
     console.log(`[CORS] Respondendo a requisição OPTIONS de ${req.headers.origin || 'origem desconhecida'} para ${req.path}`);
     res.status(200).end();
   });

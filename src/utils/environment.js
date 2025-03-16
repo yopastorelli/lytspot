@@ -1,6 +1,6 @@
 /**
  * Módulo centralizado para detecção e configuração de ambiente
- * @version 1.5.0 - 2025-03-15 - Corrigida a configuração da URL base para garantir consistência em produção
+ * @version 1.6.0 - 2025-03-20 - Melhorada a detecção de ambiente e adicionado suporte para múltiplos endpoints de API
  * @description Fornece informações consistentes sobre o ambiente atual e URLs da API
  */
 
@@ -24,8 +24,11 @@ export const getEnvironment = () => {
                      window.location.hostname.startsWith('192.168.') ||
                      window.location.hostname.startsWith('10.');
   
-  // URL da API em produção - sempre usar a URL do Render para a API
-  const prodApiUrl = 'https://lytspot-api.onrender.com';
+  // Lista de URLs da API em produção (em ordem de preferência)
+  const prodApiUrls = [
+    'https://lytspot-api.onrender.com',
+    'https://lytspot.onrender.com'
+  ];
   
   // Determinar a URL base da API
   let baseUrl;
@@ -35,8 +38,8 @@ export const getEnvironment = () => {
     baseUrl = 'http://localhost:3000';
     console.log('[Environment] Ambiente de desenvolvimento detectado. Usando API local:', baseUrl);
   } else {
-    // Em produção, sempre usar a URL do Render para a API
-    baseUrl = prodApiUrl;
+    // Em produção, sempre usar a primeira URL da lista de APIs
+    baseUrl = prodApiUrls[0];
     console.log('[Environment] Ambiente de produção detectado. Usando API remota:', baseUrl);
   }
   
@@ -44,10 +47,30 @@ export const getEnvironment = () => {
     type: 'browser',
     isDev: isLocalhost,
     baseUrl: baseUrl,
-    prodApiUrl: prodApiUrl,
+    prodApiUrls: prodApiUrls,
     hostname: window.location.hostname,
     href: window.location.href
   };
+};
+
+/**
+ * Obtém a URL da API para um endpoint específico, com suporte a fallback
+ * @param {string} endpoint - O endpoint da API (sem barra inicial)
+ * @returns {string} URL completa para o endpoint
+ */
+export const getApiUrl = (endpoint) => {
+  const env = getEnvironment();
+  
+  // Normalizar o endpoint (remover barras iniciais)
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+  
+  // Em desenvolvimento, sempre usar a URL base
+  if (env.isDev) {
+    return `${env.baseUrl}/${normalizedEndpoint}`;
+  }
+  
+  // Em produção, usar a URL principal da API
+  return `${env.baseUrl}/${normalizedEndpoint}`;
 };
 
 export default getEnvironment;
