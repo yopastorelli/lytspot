@@ -1,6 +1,6 @@
 /**
  * Script de build específico para o ambiente Render
- * @version 1.2.0 - 2025-03-15 - Corrigida ordem de execução da sincronização de serviços
+ * @version 1.3.0 - 2025-03-15 - Adicionada instalação do terser para resolver erro de build do Vite
  */
 import { execSync } from 'child_process';
 import fs from 'fs';
@@ -21,6 +21,17 @@ const currentDir = process.cwd();
 console.log("Diretório atual:", currentDir);
 
 try {
+  // Verificar se terser está instalado e instalá-lo se necessário
+  console.log("Verificando se terser está instalado...");
+  try {
+    require.resolve('terser');
+    console.log("terser já está instalado!");
+  } catch (error) {
+    console.log("terser não encontrado, instalando...");
+    execSync('npm install --no-save terser@^5.29.2', { stdio: 'inherit' });
+    console.log("terser instalado com sucesso!");
+  }
+
   // Verificar a configuração do Vite
   console.log("Verificando configuração do Vite...");
   const viteConfigPath = path.join(currentDir, 'vite.config.js');
