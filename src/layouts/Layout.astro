@@ -94,8 +94,10 @@ const localBusinessSchema = {
     <link rel="alternate" hreflang="pt-br" href={`${baseUrl}${canonicalUrl || Astro.url.pathname}`} />
     <link rel="alternate" hreflang="x-default" href={`${baseUrl}${canonicalUrl || Astro.url.pathname}`} />
     
-    <!-- Preload hero video (corrigido para usar valor suportado) -->
-    <link rel="preload" href={videoPath} as="fetch" type="video/mp4" crossorigin="anonymous" fetchpriority="high" />
+    <!-- Carregamento otimizado do vídeo hero -->
+    {Astro.url.pathname === '/' && (
+      <link rel="preload" href={videoPath} as="fetch" type="video/mp4" crossorigin="anonymous" fetchpriority="high" />
+    )}
     
     <!-- Preconnect para domínios de terceiros -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -127,12 +129,14 @@ const localBusinessSchema = {
       const initAnalytics = async () => {
         try {
           // Verificar se já foi inicializado para evitar duplicação
+          // @ts-ignore - Propriedade personalizada no objeto window
           if (window._lytspotAnalyticsInitializing) {
             console.log('[Layout] Inicialização de analytics já em andamento');
             return;
           }
           
           // Marcar como em inicialização
+          // @ts-ignore - Propriedade personalizada no objeto window
           window._lytspotAnalyticsInitializing = true;
           
           // Importação dinâmica para compatibilidade com SSR
@@ -152,9 +156,11 @@ const localBusinessSchema = {
               analyticsModule.initAnalytics();
               
               // Limpar flag de inicialização
+              // @ts-ignore - Propriedade personalizada no objeto window
               window._lytspotAnalyticsInitializing = false;
             } catch (initError) {
               console.error('[Layout] Erro durante a inicialização do analytics:', initError);
+              // @ts-ignore - Propriedade personalizada no objeto window
               window._lytspotAnalyticsInitializing = false;
             }
           };
@@ -167,6 +173,7 @@ const localBusinessSchema = {
           }
         } catch (error) {
           console.error('[Layout] Erro ao carregar módulo de analytics:', error);
+          // @ts-ignore - Propriedade personalizada no objeto window
           window._lytspotAnalyticsInitializing = false;
         }
       };
@@ -174,6 +181,7 @@ const localBusinessSchema = {
       // Executar a inicialização com um pequeno atraso para garantir que outros scripts sejam carregados primeiro
       if (typeof window !== 'undefined') {
         // Verificar se já foi inicializado
+        // @ts-ignore - Propriedades personalizadas no objeto window
         if (!window._lytspotAnalyticsInitialized && !window._lytspotAnalyticsInitializing) {
           setTimeout(initAnalytics, 100);
         }

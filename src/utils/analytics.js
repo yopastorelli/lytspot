@@ -1,12 +1,12 @@
 /**
  * Módulo de analytics para o LytSpot
- * @version 1.0.0 - 2025-03-15
+ * @version 1.0.1 - 2025-03-15
  * @description Fornece funções para capturar e enviar métricas de performance e eventos de usuário
  */
 
 import { getApiUrl, getEnvironment } from './environment.js';
-// Importação correta das funções individuais do web-vitals
-import { getCLS, getFID, getLCP, getFCP, getTTFB } from 'web-vitals';
+// Importação correta para web-vitals v4.x
+import { onCLS, onFID, onLCP, onFCP, onTTFB } from 'web-vitals';
 
 /**
  * Envia métricas de Web Vitals para o servidor
@@ -14,30 +14,74 @@ import { getCLS, getFID, getLCP, getFCP, getTTFB } from 'web-vitals';
  */
 export const sendWebVitals = async (metric) => {
   try {
-    const env = getEnvironment();
+    // Verificar se estamos no navegador
+    if (typeof window === 'undefined') return;
     
-    // Em desenvolvimento, apenas logar no console
+    // Obter ambiente e URL da API
+    const env = getEnvironment();
+    const apiUrl = getApiUrl('api/analytics/web-vitals');
+    
+    // Em desenvolvimento, apenas logar no console para facilitar o debug
     if (env.isDev) {
-      console.log('[Analytics] Web Vital:', metric.name, metric.value);
-      return;
+      console.log(`[Analytics] Web Vital: ${metric.name} = ${metric.value.toFixed(2)} (${metric.rating || 'unknown'})`);
     }
     
-    // Em produção, enviar para o servidor
-    const url = getApiUrl('api/analytics/web-vitals', { forceProd: true });
-    
-    // Adicionar informações do ambiente
-    const data = {
-      ...metric,
-      url: window.location.href,
+    // Preparar dados para envio
+    const body = {
+      // Dados da métrica
+      name: metric.name,
+      value: metric.value.toFixed(2),
+      rating: metric.rating, // 'good', 'needs-improvement', ou 'poor'
+      delta: metric.delta?.toFixed(2) || 0,
+      id: metric.id,
+      
+      // Dados da navegação
+      path: window.location.pathname,
+      hostname: window.location.hostname,
       userAgent: navigator.userAgent,
+      language: navigator.language,
+      
+      // Timestamp
       timestamp: new Date().toISOString()
     };
     
-    // Enviar de forma não bloqueante
-    navigator.sendBeacon(url, JSON.stringify(data));
+    // Tentar primeiro com fetch (mais moderno)
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        // Não enviar cookies em requisições cross-origin
+        credentials: 'same-origin'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao enviar métrica: ${response.status} ${response.statusText}`);
+      }
+      
+      console.log(`[Analytics] Métrica ${metric.name} enviada com sucesso: ${metric.value.toFixed(2)}`);
+      return;
+    } catch (fetchError) {
+      console.warn('[Analytics] Falha ao enviar métrica via fetch, tentando sendBeacon:', fetchError);
+      
+      // Fallback para sendBeacon (não bloqueante, ideal para eventos de saída)
+      if (navigator.sendBeacon) {
+        const success = navigator.sendBeacon(apiUrl, JSON.stringify(body));
+        if (success) {
+          console.log(`[Analytics] Métrica ${metric.name} enviada com sucesso via sendBeacon`);
+          return;
+        }
+        console.warn('[Analytics] Falha ao enviar métrica via sendBeacon');
+      }
+      
+      // Se chegamos aqui, ambos os métodos falharam
+      throw new Error('Falha em todos os métodos de envio');
+    }
   } catch (error) {
-    // Silenciar erros para não afetar a experiência do usuário
-    console.error('[Analytics] Erro ao enviar métrica:', error);
+    // Não interromper a execução em caso de erro
+    console.error('[Analytics] Erro ao enviar métrica Web Vitals:', error);
   }
 };
 
@@ -89,12 +133,18 @@ export const trackPageEvent = async (eventType, details = {}) => {
  */
 export const initWebVitals = async () => {
   try {
+    // Verificar se estamos no navegador
+    if (typeof window === 'undefined') {
+      console.log('[Analytics] Web Vitals não inicializado (ambiente servidor)');
+      return;
+    }
+    
     // Registrar todas as métricas importantes
-    getCLS(sendWebVitals);
-    getFID(sendWebVitals);
-    getLCP(sendWebVitals);
-    getFCP(sendWebVitals);
-    getTTFB(sendWebVitals);
+    onCLS(sendWebVitals);
+    onFID(sendWebVitals);
+    onLCP(sendWebVitals);
+    onFCP(sendWebVitals);
+    onTTFB(sendWebVitals);
     
     console.log('[Analytics] Web Vitals inicializado com sucesso');
   } catch (error) {
