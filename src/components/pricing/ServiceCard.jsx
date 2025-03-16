@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 /**
  * Componente de cartão de serviço para o simulador de preços
- * @version 1.4.0 - 2025-03-16 - Removidos logs de depuração e melhorada a compatibilidade
+ * @version 1.3.0 - 2025-03-15 - Melhorada a resiliência a diferentes estruturas de dados
  */
-const ServiceCard = ({ servico, selecionado, onToggle }) => {
+const ServiceCard = ({ servico, selecionado, onClick }) => {
   // Formata valores monetários
   const formatMoney = (value) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -42,15 +42,27 @@ const ServiceCard = ({ servico, selecionado, onToggle }) => {
     return 'Sob consulta';
   };
 
+  // Log para depuração - será removido após resolução do problema
+  useEffect(() => {
+    console.log(`[ServiceCard] Renderizando serviço: ${servico.id} - ${servico.nome}`);
+    console.log('[ServiceCard] Estrutura do serviço:', {
+      detalhes: servico.detalhes,
+      duracao_media_captura: servico.duracao_media_captura,
+      duracao_media_tratamento: servico.duracao_media_tratamento,
+      captura_usada: getCaptura(),
+      tratamento_usado: getTratamento()
+    });
+  }, [servico]);
+
   return (
     <div 
       className={`
-        border rounded-lg overflow-hidden shadow-sm transition-all duration-300 flex flex-col h-full cursor-pointer
+        border rounded-lg overflow-hidden shadow-sm transition-all duration-300 flex flex-col h-full
         ${selecionado 
           ? 'border-blue-500 shadow-md bg-blue-50' 
           : 'border-gray-200 hover:border-blue-300 hover:shadow bg-white'}
       `}
-      onClick={onToggle}
+      onClick={onClick}
     >
       <div className="p-5 flex-grow flex flex-col">
         <h3 className={`text-xl font-semibold mb-2 ${selecionado ? 'text-blue-700' : 'text-gray-800'}`}>
@@ -58,7 +70,7 @@ const ServiceCard = ({ servico, selecionado, onToggle }) => {
         </h3>
         
         <p className="text-gray-600 text-sm mb-4">
-          {servico.descricao || 'Sem descrição disponível'}
+          {servico.descricao}
         </p>
         
         <div className="flex justify-between items-center mb-3">
@@ -86,11 +98,6 @@ const ServiceCard = ({ servico, selecionado, onToggle }) => {
               ? 'bg-blue-600 text-white hover:bg-blue-700' 
               : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}
           `}
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation(); // Evita duplo acionamento
-            onToggle();
-          }}
         >
           {selecionado ? 'Selecionado' : 'Selecionar'}
         </button>
@@ -103,7 +110,7 @@ ServiceCard.propTypes = {
   servico: PropTypes.shape({
     id: PropTypes.number.isRequired,
     nome: PropTypes.string.isRequired,
-    descricao: PropTypes.string,
+    descricao: PropTypes.string.isRequired,
     preco_base: PropTypes.number.isRequired,
     detalhes: PropTypes.shape({
       captura: PropTypes.string,
@@ -116,7 +123,7 @@ ServiceCard.propTypes = {
     duracao_media_tratamento: PropTypes.string
   }).isRequired,
   selecionado: PropTypes.bool,
-  onToggle: PropTypes.func.isRequired
+  onClick: PropTypes.func.isRequired
 };
 
 ServiceCard.defaultProps = {

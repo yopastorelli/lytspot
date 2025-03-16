@@ -157,106 +157,48 @@ try {
     'https://www.lytspot.com.br',
     'http://lytspot.com.br',
     'http://www.lytspot.com.br',
-    'https://lytspot-api.onrender.com',
     'https://lytspot.onrender.com',
     'https://lytspot.netlify.app',
-    'https://lytspot.vercel.app',
     'http://localhost:4321',
     'http://localhost:4322',
     'http://localhost:3000',
-    'http://127.0.0.1:4321',
     'http://192.168.1.189:4321'  // Adicionando IP local
   ];
-  
-  // Log para diagnóstico
-  logger.info(`Configurando CORS para ambiente: ${isDevelopment ? 'desenvolvimento' : 'produção'}`);
-  logger.info(`Origens permitidas: ${allowedOrigins.join(', ')}`);
-  
-  // Middleware para lidar com requisições OPTIONS (preflight) diretamente
-  app.options('*', (req, res) => {
-    const origin = req.headers.origin;
-    
-    // Log para diagnóstico
-    logger.info(`[CORS] Requisição OPTIONS recebida de: ${origin || 'origem desconhecida'}`);
-    
-    // Verificar se a origem é permitida
-    if (isDevelopment || !origin || allowedOrigins.includes(origin)) {
-      // Configurar cabeçalhos CORS para resposta preflight
-      res.header('Access-Control-Allow-Origin', origin || '*');
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-Source, Pragma');
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Access-Control-Max-Age', '86400'); // Cache de preflight por 24 horas
-      
-      // Responder com 204 (No Content)
-      return res.status(204).end();
-    }
-    
-    // Registrar tentativas de acesso não permitidas
-    logger.warn(`[CORS] Requisição preflight bloqueada para origem: ${origin}`);
-    return res.status(403).end();
-  });
   
   const corsOptions = {
     origin: function (origin, callback) {
       // Permitir requisições sem origem (como apps mobile ou curl)
       if (!origin) {
-        logger.info('[CORS] Permitindo requisição sem origem');
+        console.log('[CORS] Permitindo requisição sem origem');
         return callback(null, true);
       }
       
       // Em desenvolvimento, aceitar qualquer origem
       if (isDevelopment) {
-        logger.info(`[CORS] Modo desenvolvimento: permitindo origem ${origin}`);
+        console.log(`[CORS] Modo desenvolvimento: permitindo origem ${origin}`);
         return callback(null, true);
       }
       
       // Em produção, verificar se a origem está na lista de origens permitidas
       if (allowedOrigins.includes(origin)) {
-        logger.info(`[CORS] Origem permitida: ${origin}`);
+        console.log(`[CORS] Origem permitida: ${origin}`);
         return callback(null, true);
       } else {
         // Para diagnóstico, permitir temporariamente qualquer origem em produção
-        // Isso deve ser removido após a resolução dos problemas de CORS
-        logger.warn(`[CORS] Origem não listada, mas permitindo para diagnóstico: ${origin}`);
+        console.log(`[CORS] Origem não listada, mas permitindo para diagnóstico: ${origin}`);
         return callback(null, true);
-        
-        // Descomentar esta linha e comentar a anterior quando o diagnóstico for concluído
-        // return callback(new Error(`Origem não permitida: ${origin}`), false);
       }
     },
     methods: 'GET, POST, PUT, DELETE, OPTIONS',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-Source, Pragma',
     exposedHeaders: 'Content-Length, X-Requested-With, Content-Type, Accept, Authorization',
     credentials: true,
-    maxAge: 86400, // Cache de preflight por 24 horas (em segundos)
-    preflightContinue: false // Não passar requisições OPTIONS para as rotas
+    maxAge: 86400 // Cache de preflight por 24 horas (em segundos)
   };
   
   // Aplicar middleware CORS
   app.use(cors(corsOptions));
   
-  // Middleware adicional para garantir que os cabeçalhos CORS estejam presentes em todas as respostas
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    
-    // Definir cabeçalhos CORS para todas as respostas
-    if (origin) {
-      res.header('Access-Control-Allow-Origin', origin);
-    } else {
-      res.header('Access-Control-Allow-Origin', '*');
-    }
-    
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
-    // Log para diagnóstico
-    if (req.method !== 'OPTIONS') {
-      logger.info(`[API] ${req.method} ${req.path} de ${origin || 'origem desconhecida'}`);
-    }
-    
-    next();
-  });
-
   // Middleware para JSON e URL encoded
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));

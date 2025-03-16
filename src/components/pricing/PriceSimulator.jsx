@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { servicosAPI } from '../../services/api';
-import { getEnvironment, getApiUrl } from '../../utils/environment';
+import { getEnvironment } from '../../utils/environment';
 import ServiceCard from './ServiceCard';
 import PricingCalculator from './PricingCalculator';
 import { dadosDemonstracao } from './dadosDemonstracao';
 
 /**
  * Componente de simulação de preços
- * @version 3.3.0 - 2025-03-16 - Corrigido problema de CORS e melhorado tratamento de erros
+ * @version 3.2.0 - 2025-03-15 - Adicionado suporte para buscar serviços diretamente das definições
  */
 const PriceSimulator = () => {
   const [servicos, setServicos] = useState([]);
@@ -17,6 +17,7 @@ const PriceSimulator = () => {
   const [usandoDadosDemonstracao, setUsandoDadosDemonstracao] = useState(false);
   const tentativasRef = useRef(0);
   const maxTentativas = 3;
+  const env = getEnvironment();
 
   /**
    * Carrega os serviços da API
@@ -32,9 +33,7 @@ const PriceSimulator = () => {
     const controller = new AbortController();
     
     try {
-      // Usar a nova função getApiUrl para obter a URL correta
-      const apiUrl = getApiUrl('pricing/definitions');
-      console.log(`Carregando definições de serviços da API: ${apiUrl}`);
+      console.log(`Carregando definições de serviços da API: ${env.baseUrl}/api/pricing/definitions`);
       
       // Incrementa o contador de tentativas
       tentativasRef.current += 1;
@@ -85,21 +84,6 @@ const PriceSimulator = () => {
     } catch (error) {
       console.error('[PriceSimulator] Erro ao carregar serviços:', error);
       
-      // Tratamento de erro mais detalhado
-      if (error.response) {
-        // O servidor respondeu com um status de erro
-        console.error(`[PriceSimulator] Erro ${error.response.status}: ${JSON.stringify(error.response.data)}`);
-        setErro(`Erro ao carregar serviços: ${error.response.status} - ${error.response.data?.message || 'Erro desconhecido'}`);
-      } else if (error.request) {
-        // A requisição foi feita mas não houve resposta
-        console.error('[PriceSimulator] Sem resposta do servidor:', error.request);
-        setErro('Não foi possível conectar ao servidor. Verifique sua conexão.');
-      } else {
-        // Erro na configuração da requisição
-        console.error('[PriceSimulator] Erro de configuração:', error.message);
-        setErro(`Erro ao preparar a requisição: ${error.message}`);
-      }
-      
       // Se excedeu o número máximo de tentativas, usar dados de demonstração
       if (tentativasRef.current >= maxTentativas) {
         console.warn(`[PriceSimulator] Excedido número máximo de tentativas (${maxTentativas}). Usando dados de demonstração.`);
@@ -114,112 +98,143 @@ const PriceSimulator = () => {
         setTimeout(() => {
           carregarServicos();
         }, tempoEspera);
+        
+        setErro(`Erro ao carregar serviços. Tentativa ${tentativasRef.current} de ${maxTentativas}...`);
       }
     } finally {
       setCarregando(false);
-      
-      // Limpar o controller
-      if (controller) {
-        controller.abort();
-      }
     }
+    
+    return () => {
+      controller.abort();
+    };
   };
 
   // Carrega os serviços quando o componente é montado
   useEffect(() => {
     carregarServicos();
     
-    // Limpa o estado quando o componente é desmontado
+    // Função de limpeza
     return () => {
-      setServicos([]);
-      setServicosSelecionados([]);
-      setCarregando(false);
-      setErro(null);
+      // Nada a limpar aqui, a função de limpeza é retornada pelo carregarServicos
     };
   }, []);
 
-  // Manipula a seleção de um serviço
+  // Log para monitorar mudanças no estado de serviços
+  useEffect(() => {
+    console.log(`[PriceSimulator] Estado de serviços atualizado: ${servicos.length} serviços`);
+    if (servicos.length > 0) {
+      console.log('[PriceSimulator] Primeiro serviço no estado:', servicos[0]);
+    }
+  }, [servicos]);
+
+  // Alterna a seleção de um serviço
   const toggleServico = (servico) => {
     setServicosSelecionados(prev => {
       // Verifica se o serviço já está selecionado
-      const jaExiste = prev.some(s => s.id === servico.id);
+      const jaExiste = prev.some(item => item.id === servico.id);
       
       if (jaExiste) {
-        // Remove o serviço da lista
-        return prev.filter(s => s.id !== servico.id);
+        // Remove o serviço da lista se já estiver selecionado
+        return prev.filter(item => item.id !== servico.id);
       } else {
-        // Adiciona o serviço à lista
+        // Adiciona o serviço à lista se não estiver selecionado
         return [...prev, servico];
       }
     });
   };
 
+  // Verifica se um serviço está selecionado
+  const isServicoSelecionado = (servico) => {
+    return servicosSelecionados.some(item => item.id === servico.id);
+  };
+
+  // Limpa todas as seleções
+  const limparSelecoes = () => {
+    setServicosSelecionados([]);
+  };
+
   // Renderiza o componente
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">Simulador de Preços</h1>
-      
-      {carregando && (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          <span className="ml-3 text-gray-600">Carregando serviços...</span>
-        </div>
-      )}
-      
-      {erro && !usandoDadosDemonstracao && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
-          <strong className="font-bold">Erro!</strong>
-          <span className="block sm:inline"> {erro}</span>
-        </div>
-      )}
-      
-      {usandoDadosDemonstracao && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-6">
-          <strong className="font-bold">Atenção!</strong>
-          <span className="block sm:inline"> Usando dados de demonstração. Os valores apresentados são apenas ilustrativos.</span>
-        </div>
-      )}
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <h2 className="text-2xl font-bold mb-6">Nossos Serviços</h2>
-          
-          {!carregando && servicos.length === 0 && (
-            <div className="bg-gray-100 p-6 rounded-lg text-center">
-              <p className="text-gray-700">Nenhum serviço disponível no momento.</p>
-            </div>
+      {erro && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+          <p>{erro}</p>
+          {usandoDadosDemonstracao && (
+            <p className="mt-2 text-sm">
+              <strong>Nota:</strong> Os dados exibidos são apenas para demonstração e podem não refletir os preços atuais.
+            </p>
           )}
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {servicos.map(servico => (
-              <ServiceCard
-                key={servico.id}
-                servico={servico}
-                selecionado={servicosSelecionados.some(s => s.id === servico.id)}
-                onToggle={() => toggleServico(servico)}
-              />
-            ))}
-          </div>
         </div>
-        
-        <div className="md:col-span-1">
-          {servicosSelecionados.length > 0 ? (
-            <PricingCalculator servicos={servicosSelecionados} />
-          ) : (
-            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 text-center">
-              <h3 className="text-xl font-semibold text-gray-700 mb-4">Calculadora de Preço</h3>
-              <p className="text-gray-600 mb-4">
-                Selecione um ou mais serviços para visualizar o orçamento estimado.
-              </p>
-              <div className="w-24 h-24 mx-auto mb-4 flex items-center justify-center rounded-full bg-gray-100">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
+      )}
+
+      {carregando ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Coluna de serviços (2/3 em desktop) */}
+          <div className="lg:col-span-2">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Escolha um ou mais serviços para simular</h2>
+              
+              {servicosSelecionados.length > 0 && (
+                <button 
+                  onClick={limparSelecoes}
+                  className="text-sm text-gray-600 hover:text-gray-800 underline"
+                >
+                  Limpar seleções
+                </button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {servicos.map((servico) => (
+                <ServiceCard 
+                  key={servico.id} 
+                  servico={servico} 
+                  selecionado={isServicoSelecionado(servico)}
+                  onClick={() => toggleServico(servico)}
+                />
+              ))}
+            </div>
+            
+            {servicos.length === 0 && !carregando && (
+              <div className="text-center py-12">
+                <p className="text-gray-500">Nenhum serviço disponível no momento.</p>
+              </div>
+            )}
+            
+            <div className="text-xs text-gray-400 mt-6 text-right">
+              Última atualização de preços: Março/2025
+            </div>
+          </div>
+          
+          {/* Coluna da calculadora (1/3 em desktop) */}
+          <div className="lg:col-span-1">
+            <div className="flex flex-col h-full">
+              <div className="mb-6 invisible lg:visible">
+                <h2 className="text-2xl font-bold text-gray-800 opacity-0">Espaçador</h2>
+              </div>
+              
+              <div className="sticky top-6">
+                {servicosSelecionados.length > 0 ? (
+                  <PricingCalculator servicos={servicosSelecionados} />
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                    <h3 className="text-xl font-semibold text-gray-700 mb-4">Calculadora de Preço</h3>
+                    <p className="text-gray-500 mb-6">Selecione um ou mais serviços para calcular o preço.</p>
+                    <svg className="w-20 h-20 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
