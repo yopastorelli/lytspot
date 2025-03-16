@@ -22,7 +22,6 @@ export default defineConfig({
   build: {
     outDir: 'dist', // Diretório de saída
     emptyOutDir: true, // Limpa o diretório de saída antes de construir
-    minify: 'esbuild', // Usar esbuild para minificação em vez de terser
     rollupOptions: {
       // Marcar dependências do Node.js e bibliotecas problemáticas como externas
       external: [
