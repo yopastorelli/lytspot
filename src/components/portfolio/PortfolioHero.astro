@@ -9,14 +9,14 @@ interface Props {
 const { category } = Astro.props;
 
 const categoryTitles: Record<string, string> = {
-  aventuras: 'Aventuras',
-  arquitetura: 'Arquitetura',
-  empresas: 'Empresas',
-  festasepalco: 'Festas & Palco',
-  projetos: 'Projetos',
+  aventuras: 'AVENTURAS',
+  arquitetura: 'ARQUITETURA',
+  empresas: 'EMPRESAS',
+  festasepalco: 'FESTAS & PALCO',
+  projetos: 'PROJETOS',
 };
 
-const title = category ? categoryTitles[category] : 'Nosso portfolio';
+const title = category ? categoryTitles[category] : 'NOSSO PORTFOLIO';
 ---
 
 <section class="pt-20 pb-0 bg-dark">

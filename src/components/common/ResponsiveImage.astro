@@ -1,0 +1,66 @@
+---
+/**
+ * Componente de imagem responsiva com otimização para SEO e performance
+ * @version 1.0.0 - 2025-03-15
+ */
+
+interface Props {
+  src: string;
+  alt: string;
+  widths?: number[];
+  sizes?: string;
+  className?: string;
+  loading?: 'lazy' | 'eager';
+  decoding?: 'async' | 'sync' | 'auto';
+  fetchpriority?: 'high' | 'low' | 'auto';
+}
+
+const { 
+  src, 
+  alt, 
+  widths = [320, 640, 960, 1280], 
+  sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw',
+  className = '',
+  loading = 'lazy',
+  decoding = 'async',
+  fetchpriority = 'auto'
+} = Astro.props;
+
+// Gera URLs para diferentes tamanhos de imagem
+function generateSrcSet(src: string, widths: number[]) {
+  const extension = src.split('.').pop();
+  const basePath = src.substring(0, src.lastIndexOf('.'));
+  
+  return widths.map(width => {
+    // Para imagens que já têm dimensões no nome
+    if (src.includes('-w')) {
+      return `${basePath.replace(/-w\d+/, `-w${width}`)}.${extension} ${width}w`;
+    }
+    // Para imagens normais
+    return `${basePath}-w${width}.${extension} ${width}w`;
+  }).join(', ');
+}
+
+// Determina se a imagem existe ou devemos usar a original
+// Na produção, isso seria feito durante o build com ferramentas como Sharp
+const srcset = generateSrcSet(src, widths);
+---
+
+<img 
+  src={src} 
+  alt={alt} 
+  srcset={srcset}
+  sizes={sizes}
+  loading={loading}
+  decoding={decoding}
+  fetchpriority={fetchpriority}
+  class={className}
+  width={widths[widths.length - 1]}
+  height="auto"
+/>
+
+<!-- 
+Nota: Este componente assume que você tem versões da mesma imagem em diferentes tamanhos.
+Para implementação completa, seria necessário um script de build que gere automaticamente 
+estas variantes usando ferramentas como Sharp ou um serviço de CDN de imagens.
+-->

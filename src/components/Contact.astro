@@ -8,13 +8,15 @@ const contactInfo = [
     icon: PhoneIcon,
     title: 'Telefone',
     content: '+55 (41) 99888-0303 (Daniel)',
-    link: 'https://wa.me/5541998880303'
+    link: 'tel:+5541998880303',
+    whatsapp: 'https://wa.me/5541998880303'
   },
   {
     icon: PhoneIcon,
     title: 'Telefone',
     content: '+55 (41) 99930-4700 (Lucas)',
-    link: 'https://wa.me/5541999304700'
+    link: 'tel:+5541999304700',
+    whatsapp: 'https://wa.me/5541999304700'
   },
   {
     icon: EnvelopeIcon,
@@ -25,7 +27,7 @@ const contactInfo = [
   {
     icon: MapPinIcon,
     title: 'Endereço',
-    content: 'Curitiba, PR',
+    content: 'Alameda dos Coqueiros, 947 - Pontal do Sul, PR',
     link: '#'
   }
 ];
@@ -49,17 +51,32 @@ const contactInfo = [
         <div class="space-y-6">
           {contactInfo.map(item => (
             <div class="flex items-start gap-4">
-              <div class="w-12 h-12 bg-gray-100/10 rounded-full flex items-center justify-center">
-                <item.icon className="w-6 h-6 text-dark-lighter" />
+              <div class="w-12 h-12 bg-primary-light/10 rounded-full flex items-center justify-center">
+                <item.icon className="w-6 h-6 text-primary-light" />
               </div>
-              <div>
-                <h4 class="font-bold">{item.title}</h4>
-                <a
-                  href={item.link}
-                  class="text-gray-600 hover:text-gray-300 transition-colors"
-                >
-                  {item.content}
-                </a>
+              <div class="flex-1">
+                <h4 class="font-bold text-dark-lighter">{item.title}</h4>
+                <div class="flex items-center gap-2">
+                  <a
+                    href={item.link}
+                    class="text-dark-lighter hover:text-black transition-colors"
+                  >
+                    {item.content}
+                  </a>
+                  
+                  {item.whatsapp && (
+                    <a 
+                      href={item.whatsapp} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center justify-center w-5 h-5 hover:opacity-80 transition-opacity"
+                      title="Enviar mensagem no WhatsApp"
+                      aria-label="Enviar mensagem no WhatsApp"
+                    >
+                      <img src="/images/whatsapp-logo.svg" alt="WhatsApp" class="w-5 h-5" />
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           ))}

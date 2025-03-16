@@ -2,15 +2,19 @@
 import Layout from '../layouts/Layout.astro';
 import Container from '../components/common/Container';
 import PriceSimulator from '../components/pricing/PriceSimulator';
+import SectionTitle from '../components/common/SectionTitle.astro';
 ---
 
 <Layout title="Simulador de Preços | Lytspot">
   <section class="py-20 bg-dark">
     <Container>
       <div class="text-center mb-12">
-        <h1 class="text-4xl md:text-5xl font-serif font-bold text-primary mb-4">Simulador de Preços</h1>
+        <SectionTitle
+          title="SIMULADOR DE PREÇOS"
+          subtitle="Selecione os serviços desejados e obtenha uma estimativa de preço em tempo real"
+          alignment="center"
+        />
         <p class="text-light text-lg max-w-3xl mx-auto">
-          Selecione os serviços desejados e obtenha uma estimativa de preço em tempo real. 
           Personalize sua experiência fotográfica e cinematográfica com a Lytspot.
         </p>
       </div>
