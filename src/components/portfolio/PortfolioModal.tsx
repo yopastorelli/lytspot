@@ -1,5 +1,20 @@
 import React from 'react';
-import type { PortfolioItem } from '@/data/portfolioItems';
+
+export interface MediaItem {
+  url: string;
+  type: 'image' | 'video';
+}
+
+export interface PortfolioItem {
+  id: string;
+  title: string;
+  category: string;
+  media: MediaItem[];
+  description: string;
+  tags: string[];
+  date: string;
+  client?: string;
+}
 
 interface PortfolioModalProps {
   item: PortfolioItem;
@@ -7,13 +22,21 @@ interface PortfolioModalProps {
 }
 
 export default function PortfolioModal({ item, onClose }: PortfolioModalProps) {
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      {/* 
-        Adicionamos 'overflow-y-auto' e 'max-h-[80vh]' para permitir a rolagem. 
-        Também incluímos 'relative' para posicionar o botão de fechar adequadamente.
-      */}
-      <div className="bg-gray-900 rounded-lg shadow-lg p-6 max-w-4xl w-full overflow-y-auto max-h-[80vh] relative">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+      onClick={handleBackdropClick}
+    >
+      <div 
+        className="bg-gray-900 rounded-lg shadow-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto relative"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Botão de Fechar */}
         <button
           onClick={onClose}
@@ -28,13 +51,14 @@ export default function PortfolioModal({ item, onClose }: PortfolioModalProps) {
 
         {/* Mídia Principal */}
         <div className="mb-6">
-          {item.media.map((mediaItem, index) =>
+          {item.media.map((mediaItem: MediaItem, index: number) =>
             mediaItem.type === 'image' ? (
               <img
                 key={index}
                 src={mediaItem.url}
                 alt={`${item.title} media ${index + 1}`}
                 className="w-full h-auto rounded-lg mb-4"
+                loading="lazy"
               />
             ) : (
               <video
@@ -55,7 +79,7 @@ export default function PortfolioModal({ item, onClose }: PortfolioModalProps) {
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-white mb-2">Tags:</h3>
             <div className="flex flex-wrap gap-2">
-              {item.tags.map((tag, index) => (
+              {item.tags.map((tag: string, index: number) => (
                 <span
                   key={index}
                   className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full"

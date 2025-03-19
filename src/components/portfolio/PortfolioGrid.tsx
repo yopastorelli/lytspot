@@ -1,21 +1,8 @@
 import React, { useState } from 'react';
 import PortfolioFilter from './PortfolioFilter';
+import type { PortfolioItem } from './PortfolioModal';
 import PortfolioModal from './PortfolioModal';
 import { portfolioItems } from '../../data/portfolioItems';
-
-// Define the PortfolioItem type based on the structure in portfolioItems
-interface PortfolioItem {
-  id: string;
-  title: string;
-  category: string;
-  media: {
-    url: string;
-    type: string;
-  }[];
-  description: string;
-  tags: string[];
-  date: string;
-}
 
 interface PortfolioGridProps {
   initialCategory?: string;
@@ -26,9 +13,9 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
 
   // Filtra os itens do portfolio com base na categoria ativa
-  const filteredItems: PortfolioItem[] = portfolioItems.filter((item: any) =>
+  const filteredItems = portfolioItems.filter((item: any) =>
     activeCategory === 'todos' ? true : item.category === activeCategory
-  );
+  ) as PortfolioItem[];
 
   return (
     <div>
@@ -43,7 +30,7 @@ export default function PortfolioGrid({ initialCategory = 'todos' }: PortfolioGr
             className="cursor-pointer"
             onClick={() => setSelectedItem(item)}
           >
-            {/* Container para a imagem - removida a borda azul */}
+            {/* Container para a imagem */}
             <div className="h-64 w-full overflow-hidden rounded-lg flex justify-center items-center">
               {item.media[0]?.type === 'image' ? (
                 <img

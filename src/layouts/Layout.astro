@@ -3,6 +3,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Breadcrumbs from '../components/common/Breadcrumbs.astro';
 import SkipToContent from '../components/common/SkipToContent.astro';
+import ServerWakeup from '../components/ServerWakeup';
 import '../styles/global.css';
 
 interface Props {
@@ -227,6 +228,7 @@ const localBusinessSchema = {
     <meta name="twitter:image" content={`${baseUrl}/images/og-image.jpg`} />
   </head>
   <body class="flex flex-col min-h-screen bg-light text-dark">
+    <ServerWakeup client:load />
     <SkipToContent />
     <Header />
     <main id="main-content" class="flex-grow pt-20">
